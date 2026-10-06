@@ -8,6 +8,9 @@ Fonctionnement (règles validées par le fondateur) :
 3. Chacun peut refuser. L'autre personne n'est jamais prévenue du refus :
    pour elle, la demande reste simplement « en attente ».
 """
+from datetime import timedelta
+
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -60,6 +63,15 @@ class Match(models.Model):
         blank=True,
         verbose_name="Match mutuel le",
         help_text="Date à laquelle les deux parties se sont déclarées intéressées.",
+    )
+    first_mutual_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Premier match mutuel le",
+        help_text=(
+            "Date du tout premier match mutuel, jamais effacée. "
+            "Sert à calculer quand les deux parties peuvent s'évaluer."
+        ),
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Créé le")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Modifié le")
@@ -134,4 +146,27 @@ class Match(models.Model):
             self.mutual_at = None
         elif self.mutual_at is None:
             self.mutual_at = timezone.now()
+            if self.first_mutual_at is None:
+                self.first_mutual_at = self.mutual_at
         self.save()
+
+    # ------------------------------------------------------------------
+    # Évaluation après la période d'essai
+    # ------------------------------------------------------------------
+
+    @property
+    def review_available_at(self):
+        """Date à partir de laquelle les deux parties peuvent s'évaluer (None si jamais mutuel)."""
+        if self.first_mutual_at is None:
+            return None
+        return self.first_mutual_at + timedelta(days=settings.REVIEW_DELAY_DAYS)
+
+    def can_be_reviewed_by(self, user) -> bool:
+        """
+        True si l'utilisateur peut évaluer l'autre partie : le match a été mutuel,
+        le délai d'essai est écoulé, et il n'a pas déjà laissé d'avis.
+        """
+        available_at = self.review_available_at
+        if available_at is None or timezone.now() < available_at:
+            return False
+        return not self.reviews.filter(author=user).exists()

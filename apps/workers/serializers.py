@@ -6,6 +6,7 @@ Serializers de l'app workers.
 """
 from rest_framework import serializers
 from apps.services.models import Service
+from apps.reviews.models import rating_summary
 from apps.services.serializers import validate_service_slugs
 from common.privacy import mask_last_name
 
@@ -23,6 +24,9 @@ class WorkerProfileSerializer(serializers.ModelSerializer):
 
     services_list = serializers.SerializerMethodField(
         help_text="Liste des services sous forme de tableau."
+    )
+    rating = serializers.SerializerMethodField(
+        help_text="Note moyenne sur 5 et nombre d'avis reçus, ex : {\"average\": \"4.5\", \"count\": 3}."
     )
     phone_display = serializers.SerializerMethodField(
         help_text="Numéro masqué (ex: +243 8** *** **8) — complet uniquement après match."
@@ -42,11 +46,15 @@ class WorkerProfileSerializer(serializers.ModelSerializer):
             "expected_salary",
             "location",
             "is_verified",
+            "rating",
             "phone_display",
             "created_at",
             "updated_at",
         ]
         read_only_fields = fields
+
+    def get_rating(self, obj) -> dict:
+        return rating_summary(obj.user)
 
     def get_services_list(self, obj) -> list[str]:
         return obj.get_services_list()

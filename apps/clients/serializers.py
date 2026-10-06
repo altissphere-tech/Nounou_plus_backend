@@ -7,6 +7,7 @@ Serializers de l'app clients.
 from rest_framework import serializers
 
 from apps.services.models import Service
+from apps.reviews.models import rating_summary
 from apps.services.serializers import validate_service_slugs
 from common.privacy import mask_last_name
 
@@ -16,6 +17,9 @@ from .models import ClientProfile
 class ClientProfileSerializer(serializers.ModelSerializer):
     """Sérialisation en lecture du profil client (vu par son propriétaire)."""
 
+    rating = serializers.SerializerMethodField(
+        help_text="Note moyenne sur 5 et nombre d'avis reçus, ex : {\"average\": \"4.5\", \"count\": 3}."
+    )
     services_list = serializers.SerializerMethodField(
         help_text="Liste des services recherchés sous forme de tableau."
     )
@@ -28,6 +32,7 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             "last_name",
             "location",
             "services_list",
+            "rating",
             "availability_needed",
             "budget",
             "needs_description",
@@ -35,6 +40,9 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = fields
+
+    def get_rating(self, obj) -> dict:
+        return rating_summary(obj.user)
 
     def get_services_list(self, obj) -> list[str]:
         return obj.get_services_list()

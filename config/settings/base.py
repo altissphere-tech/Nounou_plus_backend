@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "apps.matching",
     "apps.messaging",
     "apps.verification",
+    "apps.reviews",
 ]
 
 # --- Middleware ---
@@ -113,6 +114,11 @@ SIMPLE_JWT = {
 # est donc impossible en production — c'est voulu, pour ne jamais
 # accepter le code 123456 sur un serveur réel.
 OTP_MOCK_ENABLED = False
+
+# --- Évaluations ---
+# Nombre de jours après le premier match mutuel avant de pouvoir s'évaluer
+# (laisse le temps d'une période d'essai).
+REVIEW_DELAY_DAYS = 7
 
 # --- Format des numéros de téléphone (RDC = CD) ---
 PHONENUMBER_DEFAULT_REGION = "CD"

@@ -37,6 +37,14 @@ class MatchSerializer(serializers.ModelSerializer):
         help_text="Nombre de messages reçus non lus (0 si le match n'est pas mutuel)."
     )
 
+    can_review = serializers.SerializerMethodField(
+        help_text="True si vous pouvez maintenant évaluer l'autre personne."
+    )
+    review_available_at = serializers.DateTimeField(
+        read_only=True,
+        help_text="Date à partir de laquelle l'évaluation est possible (null si jamais mutuel).",
+    )
+
     class Meta:
         model = Match
         fields = [
@@ -46,6 +54,8 @@ class MatchSerializer(serializers.ModelSerializer):
             "their_decision",
             "other_party",
             "unread_count",
+            "can_review",
+            "review_available_at",
             "mutual_at",
             "created_at",
             "updated_at",
@@ -63,6 +73,9 @@ class MatchSerializer(serializers.ModelSerializer):
 
     def get_their_decision(self, obj) -> str:
         return obj.other_decision_seen_by(self._user())
+
+    def get_can_review(self, obj) -> bool:
+        return obj.can_be_reviewed_by(self._user())
 
     def get_unread_count(self, obj) -> int:
         user = self._user()

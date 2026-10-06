@@ -193,6 +193,28 @@ curl -X POST http://127.0.0.1:8000/api/verification/documents/ \
 
 ---
 
+## Évaluations (V1 — app reviews)
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| POST | `/api/matches/<id>/review/` | Évaluer l'autre personne d'une mise en relation |
+| GET  | `/api/reviews/workers/<profile_id>/` | Avis reçus par un travailleur (moyennes + commentaires) |
+| GET  | `/api/reviews/clients/<profile_id>/` | Avis reçus par un client (moyennes + commentaires) |
+
+Règles :
+1. Seules deux personnes ayant eu un **match mutuel** peuvent s'évaluer, **une seule fois** chacune
+   (même si l'une s'est retirée ensuite : un essai raté doit pouvoir être signalé).
+2. Possible **7 jours après le premier match mutuel** (`can_review` et `review_available_at`
+   dans `/api/matches/`). Le délai se règle avec `REVIEW_DELAY_DAYS`.
+3. Notes de 1 à 5 + commentaire facultatif :
+   - client → travailleur : `{"punctuality": 5, "competence": 4, "reliability": 5, "comment": "…"}`
+   - travailleur → client : `{"respect": 5, "clarity": 4, "payment_on_time": 5, "comment": "…"}`
+4. Les profils affichent `rating` : moyenne sur 5 et nombre d'avis. Les commentaires sont
+   publics, l'auteur étant présenté par son prénom et l'initiale de son nom.
+5. Modération : dans `/admin/`, l'administrateur peut retirer un commentaire (la note reste comptée).
+
+---
+
 ## Catalogue des services
 
 | Méthode | URL | Description |
@@ -240,7 +262,8 @@ nounou-backend/
 │   ├── clients/       → Profils clients (familles) ✅
 │   ├── matching/      → Mise en relation (intérêt, match mutuel, refus) ✅
 │   ├── messaging/     → Messagerie après match mutuel + modération ✅
-│   └── verification/  → Documents (identité, référence) et badge « vérifié » ✅
+│   ├── verification/  → Documents (identité, référence) et badge « vérifié » ✅
+│   └── reviews/       → Évaluations après la période d'essai ✅
 ├── common/            → Permissions, listes de choix et règles de confidentialité partagées
 ├── requirements/
 │   ├── base.txt       → Dépendances de production
