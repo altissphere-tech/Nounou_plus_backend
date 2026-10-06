@@ -149,6 +149,22 @@ Règles :
 
 ---
 
+## Messagerie (V1 — app messaging)
+
+Ouverte uniquement entre les deux participants d'un **match mutuel**.
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET  | `/api/matches/<id>/messages/` | Lire la conversation (marque les messages reçus comme lus) |
+| POST | `/api/matches/<id>/messages/` | Envoyer un message : `{"content": "Bonjour"}` (2000 caractères max.) |
+
+- Dans `/api/matches/`, le champ `unread_count` indique le nombre de messages non lus.
+- Si l'une des parties revient sur le match, la conversation se ferme (erreur 403).
+- Modération : dans `/admin/`, l'administrateur peut retirer un message ; les
+  participants voient alors « Ce message a été retiré par la modération. ».
+
+---
+
 ## Catalogue des services
 
 | Méthode | URL | Description |
@@ -193,7 +209,8 @@ nounou-backend/
 │   ├── services/      → Catalogue des services (nounou, ménage, cuisine) ✅
 │   ├── workers/       → Profils travailleurs ✅
 │   ├── clients/       → Profils clients (familles) ✅
-│   └── matching/      → Mise en relation (intérêt, match mutuel, refus) ✅
+│   ├── matching/      → Mise en relation (intérêt, match mutuel, refus) ✅
+│   └── messaging/     → Messagerie après match mutuel + modération ✅
 ├── common/            → Permissions, listes de choix et règles de confidentialité partagées
 ├── requirements/
 │   ├── base.txt       → Dépendances de production

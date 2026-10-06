@@ -33,6 +33,9 @@ class MatchSerializer(serializers.ModelSerializer):
     my_decision = serializers.SerializerMethodField()
     their_decision = serializers.SerializerMethodField()
     other_party = serializers.SerializerMethodField()
+    unread_count = serializers.SerializerMethodField(
+        help_text="Nombre de messages reçus non lus (0 si le match n'est pas mutuel)."
+    )
 
     class Meta:
         model = Match
@@ -42,6 +45,7 @@ class MatchSerializer(serializers.ModelSerializer):
             "my_decision",
             "their_decision",
             "other_party",
+            "unread_count",
             "mutual_at",
             "created_at",
             "updated_at",
@@ -59,6 +63,12 @@ class MatchSerializer(serializers.ModelSerializer):
 
     def get_their_decision(self, obj) -> str:
         return obj.other_decision_seen_by(self._user())
+
+    def get_unread_count(self, obj) -> int:
+        user = self._user()
+        if obj.status_seen_by(user) != Match.STATUS_MUTUAL:
+            return 0
+        return obj.messages.filter(read_at__isnull=True).exclude(sender=user).count()
 
     def get_other_party(self, obj) -> dict:
         user = self._user()

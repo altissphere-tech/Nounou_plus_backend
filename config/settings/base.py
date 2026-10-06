@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "apps.workers",
     "apps.clients",
     "apps.matching",
+    "apps.messaging",
 ]
 
 # --- Middleware ---
