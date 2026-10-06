@@ -283,6 +283,8 @@ const en: Record<TranslationKey, string> = {
 
   'common.back': 'Back',
   'common.loading': 'Loading…',
+  'common.serverDown': 'The NOUNOU+ server is not responding. Please try again in a moment.',
+  'common.serverDown.dev': 'Development mode: check that “python manage.py runserver” is running and that you use the right address (npm run dev → localhost:5173, npm run preview → localhost:4173).',
   'common.networkError': 'Cannot connect. Check your internet connection.',
 }
 

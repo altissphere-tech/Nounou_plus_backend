@@ -282,6 +282,8 @@ const fr = {
 
   'common.back': 'Retour',
   'common.loading': 'Chargement…',
+  'common.serverDown': 'Le serveur NOUNOU+ ne répond pas. Réessayez dans un instant.',
+  'common.serverDown.dev': 'Mode développement : vérifiez que « python manage.py runserver » est lancé et que vous utilisez la bonne adresse (npm run dev → localhost:5173, npm run preview → localhost:4173).',
   'common.networkError': 'Connexion impossible. Vérifiez votre connexion internet.',
 } as const
 
