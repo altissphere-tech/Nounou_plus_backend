@@ -88,10 +88,39 @@ curl http://127.0.0.1:8000/api/accounts/me/ \
 
 ---
 
+## Endpoints disponibles (V1 — app workers)
+
+Tous ces endpoints nécessitent un token JWT (`Authorization: Bearer <token>`).
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET   | `/api/workers/` | Liste des profils travailleurs vérifiés (client ou travailleur) |
+| POST  | `/api/workers/profile/` | Créer son profil (travailleur uniquement) |
+| GET   | `/api/workers/profile/me/` | Voir son propre profil (travailleur uniquement) |
+| PATCH | `/api/workers/profile/me/` | Modifier son propre profil (travailleur uniquement) |
+
+Le champ `services` s'envoie sous forme de texte séparé par des virgules,
+parmi `nounou`, `menage`, `cuisine` (ex : `"nounou,cuisine"`).
+
+---
+
+## Interface d'administration
+
+```bash
+# Créer un compte administrateur (une seule fois)
+python manage.py createsuperuser
+```
+
+Puis ouvrir **http://127.0.0.1:8000/admin/**. C'est là que l'administrateur valide
+les profils travailleurs (action « Marquer comme vérifié »). Seuls les profils
+vérifiés apparaissent dans `/api/workers/`.
+
+---
+
 ## Lancer les tests
 
 ```bash
-pytest apps/accounts/tests.py -v
+pytest -v
 ```
 
 ---
@@ -107,7 +136,9 @@ nounou-backend/
 │       ├── prod.py    → Production (PostgreSQL prêt)
 │       └── test.py    → Tests automatisés
 ├── apps/
-│   └── accounts/      → Comptes, rôles, OTP, JWT ✅
+│   ├── accounts/      → Comptes, rôles, OTP, JWT ✅
+│   ├── services/      → Catalogue des services (nounou, ménage, cuisine) ✅
+│   └── workers/       → Profils travailleurs ✅
 ├── common/            → Utilitaires partagés (à venir)
 ├── requirements/
 │   ├── base.txt       → Dépendances de production

@@ -5,32 +5,29 @@ Serializers de l'app workers.
 - WorkerProfileWriteSerializer : écriture (création et modification)
 """
 from rest_framework import serializers
+from apps.services.models import Service
+
 from .models import WorkerProfile
 
-VALID_SERVICES = {
-    WorkerProfile.SERVICE_NOUNOU,
-    WorkerProfile.SERVICE_MENAGE,
-    WorkerProfile.SERVICE_CUISINE,
-}
 
-
-def _validate_services(value: str) -> str:
+def _validate_services(value: str) -> list[Service]:
     """
-    Valide la chaîne de services.
-    Ex : "nounou,cuisine" → valide
+    Valide la chaîne de services et la convertit en objets Service du catalogue.
+    Ex : "nounou,cuisine" → [<Service cuisine>, <Service nounou>]
          "nounou,invalide" → lève une ValidationError
     """
-    items = [s.strip() for s in value.split(",") if s.strip()]
-    if not items:
+    slugs = {s.strip() for s in value.split(",") if s.strip()}
+    if not slugs:
         raise serializers.ValidationError("Au moins un service doit être renseigné.")
-    invalid = set(items) - VALID_SERVICES
+    services = list(Service.objects.filter(slug__in=slugs))
+    invalid = slugs - {service.slug for service in services}
     if invalid:
+        accepted = Service.objects.values_list("slug", flat=True)
         raise serializers.ValidationError(
-            f"Service(s) invalide(s) : {', '.join(invalid)}. "
-            f"Valeurs acceptées : {', '.join(VALID_SERVICES)}."
+            f"Service(s) invalide(s) : {', '.join(sorted(invalid))}. "
+            f"Valeurs acceptées : {', '.join(accepted)}."
         )
-    # Normalise : dédoublonne et trie
-    return ",".join(sorted(set(items)))
+    return services
 
 
 class WorkerProfileSerializer(serializers.ModelSerializer):
@@ -104,16 +101,22 @@ class WorkerProfileWriteSerializer(serializers.ModelSerializer):
             "location",
         ]
 
-    def validate_services(self, value: str) -> str:
+    def validate_services(self, value: str) -> list[Service]:
         return _validate_services(value)
 
     def create(self, validated_data):
-        # L'utilisateur est injecté depuis la vue via `save(user=request.user)`
+        # L'utilisateur connecté est lu depuis le contexte fourni par la vue
         user = self.context["request"].user
-        return WorkerProfile.objects.create(user=user, **validated_data)
+        services = validated_data.pop("services")
+        profile = WorkerProfile.objects.create(user=user, **validated_data)
+        profile.services.set(services)
+        return profile
 
     def update(self, instance, validated_data):
+        services = validated_data.pop("services", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+        if services is not None:
+            instance.services.set(services)
         return instance

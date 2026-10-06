@@ -1,0 +1,23 @@
+# Secrets — ne jamais committer (utiliser .env.example comme modèle)
+.env
+
+# Environnement virtuel Python
+venv/
+.venv/
+
+# Base de données locale (SQLite)
+db.sqlite3
+
+# Fichiers générés par Python et pytest
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Fichiers envoyés par les utilisateurs (photos, documents)
+media/
+
+# Éditeurs / système
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

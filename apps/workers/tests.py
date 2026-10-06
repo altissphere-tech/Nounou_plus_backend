@@ -11,6 +11,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.models import User
+from apps.services.models import Service
 from apps.workers.models import WorkerProfile
 
 
@@ -52,32 +53,34 @@ def client_user(db):
 @pytest.fixture
 def worker_profile(worker_user):
     """Profil travailleur non vérifié."""
-    return WorkerProfile.objects.create(
+    profile = WorkerProfile.objects.create(
         user=worker_user,
         first_name="Marie",
         last_name="Kabila",
-        services="nounou,cuisine",
         years_experience=3,
         availability=WorkerProfile.AVAILABILITY_FULL,
         expected_salary=Decimal("200.00"),
         location="Kampemba",
     )
+    profile.services.set(Service.objects.filter(slug__in=["nounou", "cuisine"]))
+    return profile
 
 
 @pytest.fixture
 def verified_profile(worker_user_2):
     """Profil travailleur vérifié (visible dans la liste publique)."""
-    return WorkerProfile.objects.create(
+    profile = WorkerProfile.objects.create(
         user=worker_user_2,
         first_name="Grace",
         last_name="Mutombo",
-        services="menage",
         years_experience=5,
         availability=WorkerProfile.AVAILABILITY_PART,
         expected_salary="150.00",
         location="Annexe",
         is_verified=True,
     )
+    profile.services.set(Service.objects.filter(slug="menage"))
+    return profile
 
 
 VALID_PAYLOAD = {
