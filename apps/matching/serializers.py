@@ -5,6 +5,7 @@ Point clé : les informations sur l'autre partie dépendent du statut du match.
 - Avant un match mutuel : prénom + initiale du nom, téléphone absent.
 - Après un match mutuel : nom complet et téléphone.
 """
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.clients.serializers import ClientProfilePublicSerializer, ClientProfileSerializer
@@ -22,6 +23,13 @@ class InterestSerializer(serializers.Serializer):
             "si vous êtes client, un profil client si vous êtes travailleur."
         )
     )
+
+
+class JobSummarySerializer(serializers.Serializer):
+    """Annonce à l'origine d'une mise en relation (format court)."""
+
+    id = serializers.IntegerField()
+    title = serializers.CharField()
 
 
 class MatchSerializer(serializers.ModelSerializer):
@@ -78,6 +86,7 @@ class MatchSerializer(serializers.ModelSerializer):
     def get_their_decision(self, obj) -> str:
         return obj.other_decision_seen_by(self._user())
 
+    @extend_schema_field(JobSummarySerializer(allow_null=True))
     def get_job(self, obj):
         if obj.job_id is None:
             return None

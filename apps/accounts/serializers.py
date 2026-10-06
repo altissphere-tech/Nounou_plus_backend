@@ -94,3 +94,18 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "phone", "role", "phone_verified", "created_at"]
         read_only_fields = fields
+
+
+class WarningSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    date = serializers.DateTimeField()
+
+
+class MeSerializer(UserSerializer):
+    """Format de /api/accounts/me/ : le compte + les avertissements de l'équipe NOUNOU+."""
+
+    warnings = WarningSerializer(many=True, read_only=True)
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ["warnings"]
+        read_only_fields = fields

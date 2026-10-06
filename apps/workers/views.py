@@ -2,6 +2,7 @@
 Vues (endpoints) de l'app workers.
 """
 from django.db.models import Avg, F
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -10,6 +11,7 @@ from rest_framework.views import APIView
 from common import choices
 from common.filters import get_choice, get_decimal, get_int, get_text
 from common.pagination import paginated_response
+from common.schema import AUTH_ERRORS, PAGINATION_PARAMETERS, error, paginated, with_message
 
 from .models import WorkerProfile
 from .permissions import IsWorker, IsWorkerOrClient
@@ -31,6 +33,16 @@ class WorkerProfileCreateView(APIView):
 
     permission_classes = [IsWorker]
 
+    @extend_schema(
+        tags=["Travailleurs"],
+        summary="Créer mon profil travailleur",
+        request=WorkerProfileWriteSerializer,
+        responses={
+            201: with_message("WorkerProfileCreated", "profile", WorkerProfileSerializer),
+            400: error("Données invalides, ou profil déjà existant."),
+            **AUTH_ERRORS,
+        },
+    )
     def post(self, request):
         # Vérifier qu'un profil n'existe pas déjà
         if hasattr(request.user, "worker_profile"):
@@ -71,6 +83,11 @@ class WorkerProfileMeView(APIView):
         except WorkerProfile.DoesNotExist:
             return None
 
+    @extend_schema(
+        tags=["Travailleurs"],
+        summary="Voir mon profil travailleur",
+        responses={200: WorkerProfileSerializer, 404: error("Profil pas encore créé."), **AUTH_ERRORS},
+    )
     def get(self, request):
         profile = self._get_profile(request.user)
         if profile is None:
@@ -80,6 +97,17 @@ class WorkerProfileMeView(APIView):
             )
         return Response(WorkerProfileSerializer(profile).data)
 
+    @extend_schema(
+        tags=["Travailleurs"],
+        summary="Modifier mon profil travailleur",
+        request=WorkerProfileWriteSerializer,
+        responses={
+            200: with_message("WorkerProfileUpdated", "profile", WorkerProfileSerializer),
+            400: error("Données invalides."),
+            404: error("Profil pas encore créé."),
+            **AUTH_ERRORS,
+        },
+    )
     def patch(self, request):
         profile = self._get_profile(request.user)
         if profile is None:
@@ -119,6 +147,7 @@ class WorkerProfileListView(APIView):
     - availability=temps_plein  → disponibilité exacte
     - max_salary=200            → prétention salariale inférieure ou égale
     - min_experience=2          → au moins 2 ans d'expérience
+
     Tri : ordering=recent (défaut) | salary | experience | rating
     """
 
@@ -131,6 +160,31 @@ class WorkerProfileListView(APIView):
         "rating": [F("average_rating").desc(nulls_last=True), "-created_at"],
     }
 
+    @extend_schema(
+        tags=["Travailleurs"],
+        summary="Rechercher des travailleurs vérifiés",
+        operation_id="workers_list",
+        parameters=[
+            OpenApiParameter("service", str, description="Service proposé : nounou, menage ou cuisine."),
+            OpenApiParameter("location", str, description="Quartier contenant ce texte (ex : kenya)."),
+            OpenApiParameter(
+                "availability", str, enum=[c[0] for c in choices.AVAILABILITY_CHOICES],
+                description="Disponibilité exacte.",
+            ),
+            OpenApiParameter("max_salary", float, description="Prétention salariale maximale."),
+            OpenApiParameter("min_experience", int, description="Années d'expérience minimum."),
+            OpenApiParameter(
+                "ordering", str, enum=["recent", "salary", "experience", "rating"],
+                description="Tri (par défaut : recent).",
+            ),
+            *PAGINATION_PARAMETERS,
+        ],
+        responses={
+            200: paginated("PaginatedWorkerProfiles", WorkerProfilePublicSerializer),
+            400: error("Valeur de filtre invalide."),
+            **AUTH_ERRORS,
+        },
+    )
     def get(self, request):
         profiles = WorkerProfile.objects.visible_to_clients().select_related("user")
 

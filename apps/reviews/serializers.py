@@ -68,3 +68,10 @@ class ReviewSerializer(serializers.ModelSerializer):
         if instance.comment_hidden:
             data["comment"] = HIDDEN_COMMENT
         return data
+
+
+class RatingSummarySerializer(serializers.Serializer):
+    """Format du champ `rating` affiché sur les profils."""
+
+    average = serializers.CharField(allow_null=True, help_text="Moyenne sur 5, ex : \"4.5\" (null si aucun avis).")
+    count = serializers.IntegerField(help_text="Nombre d'avis reçus.")

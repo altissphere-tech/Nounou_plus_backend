@@ -127,17 +127,24 @@ comptes de démo (numéros affichés à la fin de la commande) → action « Sup
 
 ---
 
-## Étape 4 (facultatif) — Tester l'API à la main
+## Étape 4 — Essayer l'API dans le navigateur (10 minutes)
 
-L'application mobile parlera à l'API. Pour l'essayer vous-même, le plus simple est
-un logiciel comme **Postman** (gratuit) ou l'extension **Thunder Client** de VS Code.
-Toutes les adresses et des exemples sont dans le `README.md`, sections
-« Endpoints disponibles ».
+Serveur lancé (`python manage.py runserver`), ouvrez **http://127.0.0.1:8000/api/docs/**.
+Chaque rubrique (Comptes, Travailleurs, Annonces…) liste ses adresses ; cliquez sur
+l'une d'elles pour voir ce qu'elle attend et ce qu'elle renvoie.
 
-Rappel du principe :
-1. `POST /api/accounts/register/` puis `POST /api/accounts/otp/verify/` (code `123456`)
-   → vous recevez un **token**.
-2. Ajoutez l'en-tête `Authorization: Bearer <token>` à toutes les autres requêtes.
+**Se connecter dans la page** (avec un compte de la démo `--garder`, numéro affiché à la fin) :
+
+1. Rubrique **Comptes** → `POST /api/accounts/otp/request/` → **Try it out** →
+   remplacez le numéro dans le cadre par le vôtre → **Execute**.
+2. `POST /api/accounts/otp/verify/` → **Try it out** → votre numéro et le code `123456`
+   → **Execute** → dans la réponse, copiez la longue valeur après `"access":` (sans les guillemets).
+3. Bouton vert **Authorize** en haut → collez → **Authorize** → **Close**.
+
+Vous pouvez maintenant tout essayer. Exemple : rubrique **Travailleurs** →
+`GET /api/workers/` → **Try it out** → `service` = `nounou`, `max_salary` = `200` → **Execute**.
+
+💡 Un code SMS ne sert qu'une fois : pour vous reconnecter, refaites les étapes 1 et 2.
 
 ---
 

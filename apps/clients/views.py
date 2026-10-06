@@ -1,6 +1,7 @@
 """
 Vues (endpoints) de l'app clients.
 """
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,6 +9,7 @@ from rest_framework.views import APIView
 from common import choices
 from common.filters import get_choice, get_decimal, get_text
 from common.pagination import paginated_response
+from common.schema import AUTH_ERRORS, PAGINATION_PARAMETERS, error, paginated, with_message
 from common.permissions import IsClient, IsWorker
 
 from .models import ClientProfile
@@ -29,6 +31,16 @@ class ClientProfileCreateView(APIView):
 
     permission_classes = [IsClient]
 
+    @extend_schema(
+        tags=["Clients"],
+        summary="Créer mon profil client",
+        request=ClientProfileWriteSerializer,
+        responses={
+            201: with_message("ClientProfileCreated", "profile", ClientProfileSerializer),
+            400: error("Données invalides, ou profil déjà existant."),
+            **AUTH_ERRORS,
+        },
+    )
     def post(self, request):
         if hasattr(request.user, "client_profile"):
             return Response(
@@ -68,6 +80,11 @@ class ClientProfileMeView(APIView):
         except ClientProfile.DoesNotExist:
             return None
 
+    @extend_schema(
+        tags=["Clients"],
+        summary="Voir mon profil client",
+        responses={200: ClientProfileSerializer, 404: error("Profil pas encore créé."), **AUTH_ERRORS},
+    )
     def get(self, request):
         profile = self._get_profile(request.user)
         if profile is None:
@@ -77,6 +94,17 @@ class ClientProfileMeView(APIView):
             )
         return Response(ClientProfileSerializer(profile).data)
 
+    @extend_schema(
+        tags=["Clients"],
+        summary="Modifier mon profil client",
+        request=ClientProfileWriteSerializer,
+        responses={
+            200: with_message("ClientProfileUpdated", "profile", ClientProfileSerializer),
+            400: error("Données invalides."),
+            404: error("Profil pas encore créé."),
+            **AUTH_ERRORS,
+        },
+    )
     def patch(self, request):
         profile = self._get_profile(request.user)
         if profile is None:
@@ -120,6 +148,26 @@ class ClientProfileListView(APIView):
 
     permission_classes = [IsWorker]
 
+    @extend_schema(
+        tags=["Clients"],
+        summary="Rechercher des besoins clients (travailleurs)",
+        operation_id="clients_list",
+        parameters=[
+            OpenApiParameter("service", str, description="Service recherché : nounou, menage ou cuisine."),
+            OpenApiParameter("location", str, description="Quartier contenant ce texte."),
+            OpenApiParameter(
+                "availability", str, enum=[c[0] for c in choices.AVAILABILITY_CHOICES],
+                description="Disponibilité recherchée.",
+            ),
+            OpenApiParameter("min_budget", float, description="Budget minimum (exclut les budgets non renseignés)."),
+            *PAGINATION_PARAMETERS,
+        ],
+        responses={
+            200: paginated("PaginatedClientProfiles", ClientProfilePublicSerializer),
+            400: error("Valeur de filtre invalide."),
+            **AUTH_ERRORS,
+        },
+    )
     def get(self, request):
         profiles = ClientProfile.objects.active().select_related("user")
 
