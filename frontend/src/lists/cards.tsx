@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { MyJob, PublicJob, PublicWorker, Rating } from '../api/types'
 import { useI18n } from '../i18n/I18nContext'
 import Avatar from '../components/Avatar'
+import FavoriteButton from '../components/FavoriteButton'
 import { money } from './format'
 
 export function RatingLine({ rating }: { rating: Rating }) {
@@ -20,18 +21,20 @@ export function RatingLine({ rating }: { rating: Rating }) {
 export function WorkerCard({ worker }: { worker: PublicWorker }) {
   const { t, lang } = useI18n()
   return (
-    <Link to={`/travailleurs/${worker.id}`} className="card result">
+    <div className="card result">
       <div className="person">
-        <Avatar name={`${worker.first_name} ${worker.last_name}`} size={52} />
+        <Avatar name={`${worker.first_name} ${worker.last_name}`} src={worker.photo_url} size={52} />
         <div className="person-text">
-          <span className="profile-name">
+          {/* Le lien couvre toute la carte ; le cœur reste cliquable séparément */}
+          <Link to={`/travailleurs/${worker.id}`} className="profile-name card-link">
             {worker.first_name} {worker.last_name}
-          </span>
+          </Link>
           <span className="muted">
             📍 {worker.location} · {t(`availability.${worker.availability}`)}
           </span>
         </div>
         {worker.is_verified && <span className="verified">✔ {t('worker.verified')}</span>}
+        <FavoriteButton kind="workers" id={worker.id} name={`${worker.first_name} ${worker.last_name}`} />
       </div>
       <div className="tags">
         {worker.services_list.map((slug) => (
@@ -45,7 +48,7 @@ export function WorkerCard({ worker }: { worker: PublicWorker }) {
         <span className="muted">{t('worker.experience', { count: String(worker.years_experience) })}</span>
       </p>
       <RatingLine rating={worker.rating} />
-    </Link>
+    </div>
   )
 }
 
@@ -53,8 +56,13 @@ export function WorkerCard({ worker }: { worker: PublicWorker }) {
 export function JobCard({ job }: { job: PublicJob }) {
   const { t, lang } = useI18n()
   return (
-    <Link to={`/annonces/${job.id}`} className="card result">
-      <span className="profile-name">{job.title}</span>
+    <div className="card result">
+      <div className="result-head">
+        <Link to={`/annonces/${job.id}`} className="profile-name card-link">
+          {job.title}
+        </Link>
+        <FavoriteButton kind="jobs" id={job.id} name={job.title} />
+      </div>
       <div className="tags">
         <span className="tag">{t(`service.${job.service.slug}`)}</span>
       </div>
@@ -67,7 +75,7 @@ export function JobCard({ job }: { job: PublicJob }) {
         </strong>
         <span className="muted">{t('jobs.by', { name: job.client.name })}</span>
       </p>
-    </Link>
+    </div>
   )
 }
 

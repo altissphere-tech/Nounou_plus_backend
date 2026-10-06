@@ -6,6 +6,8 @@ import type { PublicJob } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
+import Avatar from '../components/Avatar'
+import FavoriteButton from '../components/FavoriteButton'
 import PageHead from '../components/PageHead'
 import Stats from '../components/Stats'
 import { RatingLine } from '../lists/cards'
@@ -61,7 +63,11 @@ export default function JobDetail() {
   return (
     <section className="stack">
       <PageHead back={t('jobs.back')} overline={t('jobs.by', { name: job.client.name })} title={job.title}>
-        <span className="head-pill">{t(`service.${job.service.slug}`)}</span>
+        <div className="head-row">
+          <Avatar name={job.client.name} src={job.client.photo_url} size={56} />
+          <span className="head-pill">{t(`service.${job.service.slug}`)}</span>
+          <FavoriteButton kind="jobs" id={job.id} name={job.title} onDark />
+        </div>
       </PageHead>
       <Stats
         items={[

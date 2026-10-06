@@ -117,6 +117,9 @@ Par défaut, la démo **efface tout** à la fin : votre base reste propre.
 | **Messages** | Rechercher un message, le retirer (modération) |
 | **Évaluations** | Vue globale des notes, retrait d'un commentaire |
 | **Signalements** | Classer sans suite, avertir ou **suspendre** un compte |
+| **Photos de profil** | Voir les photos envoyées ; action « Valider » ou « Refuser » (remplir d'abord « Motif du refus ») |
+| **Références** | Appeler la personne, puis « Vérifiée » ou « Non confirmée » (la note reste interne) |
+| **Notifications** | Consulter ce qu'une personne a reçu (lecture seule) |
 
 💡 Essai conseillé : dans **Signalements**, ouvrez celui de la démo, choisissez
 « Compte suspendu » et enregistrez. Dans **Utilisateurs**, le compte de la famille
@@ -148,6 +151,34 @@ Vous pouvez maintenant tout essayer. Exemple : rubrique **Travailleurs** →
 
 ---
 
+## Étape 5 — Essayer les nouveautés dans l'application (15 minutes)
+
+Lancez Django (`python manage.py runserver`) **et** l'application (`cd frontend`, `npm install`
+la première fois, puis `npm run dev`), et ouvrez **http://localhost:5173**.
+
+1. **Inscription par e-mail** : « Créer un compte » → choisissez « E-mail » → e-mail,
+   mot de passe (8 caractères minimum) et numéro fictif (ex : `0811111111`). Vous êtes connecté tout de suite.
+2. **Mot de passe oublié** : déconnectez-vous (onglet **Profil** → « Se déconnecter »), puis
+   « Se connecter » → « E-mail » → « Mot de passe oublié ? ». En développement, l'e-mail
+   **s'affiche dans la fenêtre où tourne Django** : copiez le lien dans le navigateur.
+3. **Photo de profil** : **Profil** → « Modifier mon profil » → « Ajouter une photo ».
+   Elle reste « en attente » jusqu'à votre validation dans l'admin (**Photos de profil**).
+4. **Références** (compte travailleur) : **Profil** → « Vérification et références ».
+5. **Favoris** : compte famille → **Rechercher** → touchez le cœur ; retrouvez-les dans **Profil** → « Mes favoris ».
+6. **Notifications** : la cloche en haut à droite compte les nouveautés (intérêt reçu, match,
+   messages, photo validée…).
+7. **Aide**, **Conditions d'utilisation** et **Sécurité** : depuis l'onglet **Profil**.
+
+**Google et Apple** : les boutons restent grisés (« bientôt disponible ») tant que les comptes
+développeur ne sont pas créés. Il faudra ensuite renseigner `GOOGLE_CLIENT_ID` et
+`APPLE_CLIENT_ID` dans le fichier `.env` (voir `.env.example`). Apple demande un compte
+Apple Developer payant et une adresse de site en `https://`.
+
+**À compléter avant la mise en ligne** : les coordonnées du support (fichier
+`frontend/src/content/contact.ts`) et la relecture des conditions d'utilisation par un juriste.
+
+---
+
 ## En cas de problème
 
 | Message | Solution |
@@ -158,4 +189,5 @@ Vous pouvez maintenant tout essayer. Exemple : rubrique **Travailleurs** →
 | Port déjà utilisé | Un autre serveur tourne : fermez-le (Ctrl+C) ou utilisez `runserver 8001` |
 | `Your local changes … would be overwritten` | Suivez l'étape 0 (sauvegarde puis `git checkout -f`) |
 | `RPC failed` / `Connection was reset` | Coupure réseau passagère : relancez la commande |
+| `No module named 'PIL'` ou `'cryptography'` | Nouvelles dépendances : `pip install -r requirements/dev.txt` |
 | `Activate.ps1 cannot be loaded` | Lancez une fois : `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |

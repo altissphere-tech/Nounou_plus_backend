@@ -4,8 +4,12 @@ import { AuthProvider, useAuth } from './auth/AuthContext'
 import Layout from './components/Layout'
 import OfflineScreen from './components/OfflineScreen'
 import { I18nProvider, useI18n } from './i18n/I18nContext'
+import Account from './pages/Account'
 import Conversation from './pages/Conversation'
 import Documents from './pages/Documents'
+import Favorites from './pages/Favorites'
+import ForgotPassword from './pages/ForgotPassword'
+import Help from './pages/Help'
 import Home from './pages/Home'
 import JobDetail from './pages/JobDetail'
 import JobForm from './pages/JobForm'
@@ -13,11 +17,16 @@ import Jobs from './pages/Jobs'
 import MyJobs from './pages/MyJobs'
 import Login from './pages/Login'
 import Matches from './pages/Matches'
+import Notifications from './pages/Notifications'
 import ProfileForm from './pages/ProfileForm'
 import ReportForm from './pages/ReportForm'
 import ReviewForm from './pages/ReviewForm'
 import Search from './pages/Search'
 import Register from './pages/Register'
+import ResetPassword from './pages/ResetPassword'
+import Security from './pages/Security'
+import SocialComplete from './pages/SocialComplete'
+import Terms from './pages/Terms'
 import VerifyCode from './pages/VerifyCode'
 import Welcome from './pages/Welcome'
 import WorkerDetail from './pages/WorkerDetail'
@@ -63,12 +72,22 @@ export default function App() {
               <Route path="/inscription" element={<Public><Register /></Public>} />
               <Route path="/connexion" element={<Public><Login /></Public>} />
               <Route path="/code" element={<Public><VerifyCode /></Public>} />
+              <Route path="/inscription/finaliser" element={<Public><SocialComplete /></Public>} />
+              <Route path="/mot-de-passe-oublie" element={<Public><ForgotPassword /></Public>} />
+              <Route path="/mot-de-passe/nouveau" element={<ResetPassword />} />
+              {/* Ouverts à tous, connecté ou non */}
+              <Route path="/aide" element={<Help />} />
+              <Route path="/conditions" element={<Terms />} />
               <Route path="/accueil" element={<Private><Home /></Private>} />
               <Route path="/profil" element={<Private><ProfileForm /></Private>} />
               <Route path="/relations" element={<Private><Matches /></Private>} />
               <Route path="/relations/:id" element={<Private><Conversation /></Private>} />
               <Route path="/relations/:id/avis" element={<Private><ReviewForm /></Private>} />
               <Route path="/signaler/:profileId" element={<Private><ReportForm /></Private>} />
+              <Route path="/compte" element={<Private><Account /></Private>} />
+              <Route path="/favoris" element={<Private><Favorites /></Private>} />
+              <Route path="/notifications" element={<Private><Notifications /></Private>} />
+              <Route path="/securite" element={<Private><Security /></Private>} />
               <Route path="/documents" element={<OnlyFor role="travailleur"><Documents /></OnlyFor>} />
               {/* Familles */}
               <Route path="/recherche" element={<OnlyFor role="client"><Search /></OnlyFor>} />

@@ -8,7 +8,7 @@ function match(id: number, fields: Partial<Match>): Match {
     status: 'en_attente',
     my_decision: 'en_attente',
     their_decision: 'en_attente',
-    other_party: { id, first_name: 'X', last_name: 'Y.', location: '', services_list: [], phone: null, rating: { average: null, count: 0 } },
+    other_party: { id, first_name: 'X', last_name: 'Y.', photo_url: null, location: '', services_list: [], phone: null, rating: { average: null, count: 0 } },
     job: null,
     unread_count: 0,
     can_review: false,

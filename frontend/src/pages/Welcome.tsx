@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { MessageCircleHeart, Search, ShieldCheck } from 'lucide-react'
 import Logo from '../components/Logo'
+import TermsNote from '../components/TermsNote'
 import { useI18n } from '../i18n/I18nContext'
 import InstallPrompt from '../pwa/InstallPrompt'
 
@@ -29,6 +30,7 @@ export default function Welcome() {
           {t('welcome.login')}
         </Link>
         <InstallPrompt />
+        <TermsNote />
       </div>
       <h2 className="welcome-why">{t('welcome.why')}</h2>
       <ul className="features">
@@ -44,6 +46,9 @@ export default function Welcome() {
           </li>
         ))}
       </ul>
+      <p className="welcome-links">
+        <Link to="/aide">{t('help.title')}</Link> · <Link to="/conditions">{t('terms.title')}</Link>
+      </p>
     </section>
   )
 }

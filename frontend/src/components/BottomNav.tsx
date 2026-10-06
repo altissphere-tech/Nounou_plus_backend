@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { Briefcase, ClipboardList, Heart, House, Search } from 'lucide-react'
+import { Briefcase, CircleUser, ClipboardList, Heart, House, Search } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { listMatches } from '../api/matches'
 import { useAuth } from '../auth/AuthContext'
@@ -47,11 +47,13 @@ export default function BottomNav() {
           { to: '/recherche', icon: Search, label: 'nav.search' },
           { to: '/mes-annonces', icon: ClipboardList, label: 'nav.myJobs' },
           { to: '/relations', icon: Heart, label: 'nav.matches', badge: news },
+          { to: '/compte', icon: CircleUser, label: 'nav.account' },
         ]
       : [
           { to: '/accueil', icon: House, label: 'nav.home' },
           { to: '/annonces', icon: Briefcase, label: 'nav.jobs' },
           { to: '/relations', icon: Heart, label: 'nav.matches', badge: news },
+          { to: '/compte', icon: CircleUser, label: 'nav.account' },
         ]
 
   return (

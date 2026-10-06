@@ -5,6 +5,8 @@ import { expressInterest, getWorker, getWorkerReviews } from '../api/search'
 import type { PublicWorker, ReviewsPage } from '../api/types'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
+import Avatar from '../components/Avatar'
+import FavoriteButton from '../components/FavoriteButton'
 import PageHead from '../components/PageHead'
 import Stats from '../components/Stats'
 import TrustScore from '../components/TrustScore'
@@ -54,7 +56,11 @@ export default function WorkerDetail() {
   return (
     <section className="stack">
       <PageHead back={t('worker.back')} overline={worker.services_list.map((slug) => t(`search.short.${slug}`)).join(' · ')} title={`${worker.first_name} ${worker.last_name}`}>
-        <span className="head-pill">{t(`availability.${worker.availability}`)}</span>
+        <div className="head-row">
+          <Avatar name={`${worker.first_name} ${worker.last_name}`} src={worker.photo_url} size={64} />
+          <span className="head-pill">{t(`availability.${worker.availability}`)}</span>
+          <FavoriteButton kind="workers" id={worker.id} name={`${worker.first_name} ${worker.last_name}`} onDark />
+        </div>
       </PageHead>
       <Stats
         items={[
@@ -65,7 +71,7 @@ export default function WorkerDetail() {
       />
 
       <div className="card">
-        <TrustScore verified={worker.is_verified} />
+        <TrustScore trust={worker.trust} />
       </div>
 
       <div className="card">

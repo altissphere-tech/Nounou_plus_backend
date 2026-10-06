@@ -2,12 +2,33 @@
 
 export type Role = 'client' | 'travailleur' | 'admin'
 
+export type PhotoStatus = 'aucune' | 'en_attente' | 'validee' | 'rejetee'
+export type SocialProvider = 'google' | 'apple'
+
 export interface User {
   id: number
   phone: string
   role: Role
   phone_verified: boolean
+  email: string | null
+  has_password: boolean
+  social_providers: SocialProvider[]
+  photo_status: PhotoStatus
+  photo_rejection_reason: string
   created_at: string
+}
+
+export interface AuthOptions {
+  sms: boolean
+  google_client_id: string
+  apple_client_id: string
+}
+
+/** Contrôles faits par NOUNOU+ (ce n'est pas une garantie d'absence de risque). */
+export interface Trust {
+  phone: boolean
+  identity: boolean
+  references: boolean
 }
 
 export interface Me extends User {
@@ -32,6 +53,7 @@ export interface WorkerProfile {
   id: number
   first_name: string
   last_name: string
+  photo_url: string | null
   bio: string
   services_list: ServiceSlug[]
   years_experience: number
@@ -39,6 +61,7 @@ export interface WorkerProfile {
   expected_salary: string
   location: string
   is_verified: boolean
+  trust: Trust
   rating: Rating
   phone_display: string
 }
@@ -47,6 +70,7 @@ export interface ClientProfile {
   id: number
   first_name: string
   last_name: string
+  photo_url: string | null
   location: string
   services_list: ServiceSlug[]
   availability_needed: Availability
@@ -112,7 +136,7 @@ export interface MyJob {
 
 /** Annonce vue par un travailleur (famille présentée par prénom + initiale). */
 export interface PublicJob extends Omit<MyJob, 'interested_workers'> {
-  client: { profile_id: number; name: string; rating: Rating }
+  client: { profile_id: number; name: string; photo_url: string | null; rating: Rating }
 }
 
 export interface JobInput {
@@ -151,6 +175,7 @@ export interface OtherParty {
   id: number // identifiant de son profil (travailleur ou client)
   first_name: string
   last_name: string
+  photo_url: string | null
   location: string
   services_list: ServiceSlug[]
   phone: string | null
@@ -194,3 +219,44 @@ export interface VerificationDocument {
 }
 
 export type ReportCategory = 'faux_profil' | 'comportement_inapproprie' | 'arnaque' | 'securite' | 'autre'
+
+export type ReferenceStatus = 'en_attente' | 'verifiee' | 'non_confirmee'
+
+export interface WorkerReference {
+  id: number
+  name: string
+  phone: string
+  relationship: string
+  status: ReferenceStatus
+  reviewed_at: string | null
+  created_at: string
+}
+
+export type NotificationKind =
+  | 'interest_received'
+  | 'match_mutual'
+  | 'new_message'
+  | 'document_reviewed'
+  | 'photo_reviewed'
+  | 'reference_reviewed'
+  | 'warning'
+
+export interface AppNotification {
+  id: number
+  kind: NotificationKind
+  params: {
+    match_id?: number
+    name?: string
+    approved?: boolean
+    reason?: string
+    doc_type?: DocType
+  }
+  count: number
+  is_read: boolean
+  created_at: string
+}
+
+export interface Favorites {
+  workers: PublicWorker[]
+  jobs: PublicJob[]
+}

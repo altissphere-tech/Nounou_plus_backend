@@ -1,19 +1,32 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Briefcase, Check, Users } from 'lucide-react'
-import { register } from '../api/accounts'
+import { register, registerWithEmail } from '../api/accounts'
+import { useAuth } from '../auth/AuthContext'
+import { useSocialLogin } from '../auth/useSocialLogin'
+import AuthTabs from '../components/AuthTabs'
 import { errorText } from '../components/errors'
+import Field from '../components/Field'
+import MethodSwitch from '../components/MethodSwitch'
+import type { Method } from '../components/MethodSwitch'
+import PasswordField from '../components/PasswordField'
 import PhoneField from '../components/PhoneField'
+import RoleCards from '../components/RoleCards'
+import type { Role } from '../components/RoleCards'
+import SocialButtons from '../components/SocialButtons'
+import TermsNote from '../components/TermsNote'
 import { useI18n } from '../i18n/I18nContext'
-
-type Role = 'client' | 'travailleur'
 
 export default function Register() {
   const { t, lang } = useI18n()
   const navigate = useNavigate()
+  const { startSession } = useAuth()
+  const social = useSocialLogin()
   const [role, setRole] = useState<Role>('client')
+  const [method, setMethod] = useState<Method>('phone')
   const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -22,8 +35,14 @@ export default function Register() {
     setError('')
     setBusy(true)
     try {
-      await register(phone, role)
-      navigate('/code', { state: { phone } })
+      if (method === 'phone') {
+        await register(phone, role)
+        navigate('/code', { state: { phone } })
+      } else {
+        const response = await registerWithEmail({ phone, role, email, password })
+        await startSession(response.tokens)
+        navigate('/accueil', { replace: true })
+      }
     } catch (err) {
       setError(errorText(err, lang, t, 'register.error'))
     } finally {
@@ -31,48 +50,50 @@ export default function Register() {
     }
   }
 
-  const roles = [
-    { value: 'client', icon: Users, prefix: 'register.role.client' },
-    { value: 'travailleur', icon: Briefcase, prefix: 'register.role.worker' },
-  ] as const
+  const shownError = error || social.error
 
   return (
-    <form className="card" onSubmit={submit}>
+    <form className="card auth-card" onSubmit={submit}>
       <h1>{t('register.title')}</h1>
-      <fieldset className="roles">
-        <legend className="field-label">{t('register.roleQuestion')}</legend>
-        {roles.map((r) => (
-          <label key={r.value} className={`role-option role-${r.value} ${role === r.value ? 'selected' : ''}`}>
+      <AuthTabs />
+      <RoleCards value={role} onChange={setRole} />
+      <SocialButtons onToken={social.handleToken} onError={social.setError} />
+      <MethodSwitch
+        value={method}
+        onChange={(next) => {
+          setMethod(next)
+          setError('')
+        }}
+      />
+      {method === 'email' && (
+        <>
+          <Field label={t('email.label')}>
             <input
-              type="radio"
-              name="role"
-              value={r.value}
-              checked={role === r.value}
-              onChange={() => setRole(r.value)}
+              type="email"
+              autoComplete="email"
+              inputMode="email"
+              required
+              placeholder={t('email.placeholder')}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
-            <span className="role-top">
-              <span className="role-icon" aria-hidden="true">
-                <r.icon size={20} />
-              </span>
-              <span className="role-tag">{t(`${r.prefix}.tag`)}</span>
-            </span>
-            <span className="role-title">{t(r.prefix)}</span>
-            <span className="role-hint">{t(`${r.prefix}.hint`)}</span>
-            <ul className="role-points">
-              {(['p1', 'p2', 'p3'] as const).map((point) => (
-                <li key={point}>
-                  <Check size={14} aria-hidden="true" /> {t(`${r.prefix}.${point}`)}
-                </li>
-              ))}
-            </ul>
-          </label>
-        ))}
-      </fieldset>
+          </Field>
+          <PasswordField
+            label={t('password.label')}
+            hint={t('password.rules')}
+            autoComplete="new-password"
+            value={password}
+            onChange={setPassword}
+          />
+        </>
+      )}
       <PhoneField value={phone} onChange={setPhone} />
-      {error && <p className="error" role="alert">{error}</p>}
+      {method === 'email' && <p className="field-hint">{t('register.phoneWhy')}</p>}
+      {shownError && <p className="error" role="alert">{shownError}</p>}
       <button type="submit" className="button primary" disabled={busy}>
-        {busy ? t('common.loading') : t('register.submit')}
+        {busy ? t('common.loading') : method === 'phone' ? t('register.submit') : t('register.submitEmail')}
       </button>
+      <TermsNote />
       <Link to="/connexion" className="link">
         {t('register.haveAccount')}
       </Link>

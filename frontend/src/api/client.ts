@@ -64,7 +64,7 @@ export function saveTokens(tokens: Tokens | null): void {
 
 // --- Requêtes ---------------------------------------------------------------
 
-type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE'
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 async function send(method: Method, path: string, body: unknown, access?: string): Promise<Response> {
   const headers: Record<string, string> = { Accept: 'application/json' }
@@ -124,4 +124,16 @@ export async function api<T>(method: Method, path: string, body?: unknown): Prom
   const data = await parse(response)
   if (!response.ok) throw new ApiError(response.status, data)
   return data as T
+}
+
+/** Télécharge un fichier protégé (ex : sa propre photo en attente) et renvoie une adresse locale. */
+export async function apiBlobUrl(path: string): Promise<string> {
+  let tokens = loadTokens()
+  let response = await send('GET', path, undefined, tokens?.access)
+  if (response.status === 401 && tokens) {
+    tokens = await refreshTokens(tokens)
+    if (tokens) response = await send('GET', path, undefined, tokens.access)
+  }
+  if (!response.ok) throw new ApiError(response.status, null)
+  return URL.createObjectURL(await response.blob())
 }

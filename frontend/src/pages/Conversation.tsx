@@ -82,7 +82,11 @@ export default function Conversation() {
           </Link>
           {match && (
             <>
-              <Avatar name={`${match.other_party.first_name} ${match.other_party.last_name}`} size={42} />
+              <Avatar
+                name={`${match.other_party.first_name} ${match.other_party.last_name}`}
+                src={match.other_party.photo_url}
+                size={42}
+              />
               <div className="chat-party">
                 <h1 className="profile-name">
                   {match.other_party.first_name} {match.other_party.last_name}

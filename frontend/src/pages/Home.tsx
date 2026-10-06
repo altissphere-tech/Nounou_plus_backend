@@ -1,19 +1,20 @@
 import { Link, useLocation } from 'react-router-dom'
-import type { Me } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useI18n } from '../i18n/I18nContext'
-import type { TranslationKey } from '../i18n/fr'
 import { money } from '../lists/format'
 import Avatar from '../components/Avatar'
 import PageHead from '../components/PageHead'
 import TrustScore from '../components/TrustScore'
 import InstallPrompt from '../pwa/InstallPrompt'
 import type { MyProfile } from '../profile/useMyProfile'
+import { useMyPhoto } from '../profile/useMyPhoto'
 import { useMyProfile } from '../profile/useMyProfile'
 
 
 function ProfileCard({ data }: { data: MyProfile }) {
   const { t, lang } = useI18n()
+  const { user } = useAuth()
+  const photo = useMyPhoto(user?.photo_status)
   const isWorker = data.kind === 'worker'
 
   if (!data.profile) {
@@ -37,7 +38,7 @@ function ProfileCard({ data }: { data: MyProfile }) {
     <div className="card">
       <h2 className="overline">{t('home.profile.title')}</h2>
       <div className="person">
-        <Avatar name={`${p.first_name} ${p.last_name}`} size={56} />
+        <Avatar name={`${p.first_name} ${p.last_name}`} src={photo} size={56} />
         <div>
           <p className="profile-name">
             {p.first_name} {p.last_name}
@@ -77,7 +78,7 @@ function ProfileCard({ data }: { data: MyProfile }) {
       </dl>
       <p className="muted">⭐ {rating}</p>
 
-      {data.kind === 'worker' && <TrustScore verified={data.profile.is_verified} />}
+      {data.kind === 'worker' && <TrustScore trust={data.profile.trust} />}
       {data.kind === 'worker' &&
         !data.profile.is_verified && (
           <div className="notice">
@@ -101,27 +102,9 @@ function ProfileCard({ data }: { data: MyProfile }) {
   )
 }
 
-function AccountCard({ user, onLogout }: { user: Me; onLogout: () => void }) {
-  const { t } = useI18n()
-  return (
-    <div className="card">
-      <h2 className="overline">{t('home.account')}</h2>
-      <dl className="details">
-        <dt>{t('home.phone')}</dt>
-        <dd>{user.phone}</dd>
-        <dt>{t('home.role')}</dt>
-        <dd>{t(`home.role.${user.role}` as TranslationKey)}</dd>
-      </dl>
-      <button type="button" className="button secondary" onClick={onLogout}>
-        {t('home.logout')}
-      </button>
-    </div>
-  )
-}
-
 export default function Home() {
   const { t } = useI18n()
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const saved = (useLocation().state as { saved?: boolean } | null)?.saved
   const { data, failed } = useMyProfile(user!.role)
 
@@ -148,7 +131,6 @@ export default function Home() {
       {data && <ProfileCard data={data} />}
       <InstallPrompt />
 
-      <AccountCard user={user!} onLogout={logout} />
     </section>
   )
 }

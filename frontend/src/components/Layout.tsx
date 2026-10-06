@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/I18nContext'
 import BottomNav from './BottomNav'
 import Logo from './Logo'
+import NotificationBell from './NotificationBell'
 import OfflineBanner from './OfflineBanner'
 import ScrollToTop from './ScrollToTop'
 
@@ -16,13 +17,16 @@ export default function Layout({ children }: { children: ReactNode }) {
         <Link to="/" className="header-logo">
           <Logo size={22} />
         </Link>
-        <button
-          type="button"
-          className="lang-switch"
-          onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
-        >
-          {t('lang.switch')}
-        </button>
+        <div className="header-actions">
+          <button
+            type="button"
+            className="lang-switch"
+            onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
+          >
+            {t('lang.switch')}
+          </button>
+          <NotificationBell />
+        </div>
       </header>
       <OfflineBanner />
       <main className="content">{children}</main>

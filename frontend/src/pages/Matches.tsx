@@ -53,7 +53,7 @@ function MatchCard({ match, now, children }: { match: Match; now: number; childr
   return (
     <div className="card match-card">
       <div className="person">
-        <Avatar name={`${match.other_party.first_name} ${match.other_party.last_name}`} />
+        <Avatar name={`${match.other_party.first_name} ${match.other_party.last_name}`} src={match.other_party.photo_url} />
         <PartyName match={match} />
         {match.unread_count > 0 && <span className="unread">{match.unread_count}</span>}
       </div>
