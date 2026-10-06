@@ -3,13 +3,13 @@ import type { Me } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
-import { amount } from '../lists/format'
+import { money } from '../lists/format'
 import type { MyProfile } from '../profile/useMyProfile'
 import { useMyProfile } from '../profile/useMyProfile'
 
 
 function ProfileCard({ data }: { data: MyProfile }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const isWorker = data.kind === 'worker'
 
   if (!data.profile) {
@@ -50,8 +50,8 @@ function ProfileCard({ data }: { data: MyProfile }) {
             <dd>{t(`availability.${data.profile.availability}`)}</dd>
             <dt>{t('profile.experience')}</dt>
             <dd>{t('home.profile.years', { count: String(data.profile.years_experience) })}</dd>
-            <dt>{t('profile.salary')}</dt>
-            <dd>{t('home.profile.perMonth', { amount: amount(data.profile.expected_salary) })}</dd>
+            <dt>{t('summary.salary')}</dt>
+            <dd>{t('home.profile.perMonth', { amount: money(data.profile.expected_salary, lang) })}</dd>
           </>
         ) : (
           <>
@@ -59,8 +59,8 @@ function ProfileCard({ data }: { data: MyProfile }) {
             <dd>{t(`availability.${data.profile.availability_needed}`)}</dd>
             {data.profile.budget !== null && (
               <>
-                <dt>{t('profile.budget')}</dt>
-                <dd>{t('home.profile.perMonth', { amount: amount(data.profile.budget) })}</dd>
+                <dt>{t('jobs.budget')}</dt>
+                <dd>{t('home.profile.perMonth', { amount: money(data.profile.budget, lang) })}</dd>
               </>
             )}
           </>

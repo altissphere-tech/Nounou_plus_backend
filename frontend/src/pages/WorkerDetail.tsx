@@ -6,11 +6,11 @@ import type { PublicWorker, ReviewsPage } from '../api/types'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
 import { RatingLine } from '../lists/cards'
-import { amount } from '../lists/format'
+import { money } from '../lists/format'
 
 /** Fiche d'un travailleur vue par une famille, avec le bouton « Je suis intéressé(e) ». */
 export default function WorkerDetail() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const navigate = useNavigate()
   const id = Number(useParams().id)
   const [worker, setWorker] = useState<PublicWorker | null | undefined>(undefined)
@@ -77,8 +77,8 @@ export default function WorkerDetail() {
           <dd>{t(`availability.${worker.availability}`)}</dd>
           <dt>{t('profile.experience')}</dt>
           <dd>{t('home.profile.years', { count: String(worker.years_experience) })}</dd>
-          <dt>{t('profile.salary')}</dt>
-          <dd>{t('home.profile.perMonth', { amount: amount(worker.expected_salary) })}</dd>
+          <dt>{t('summary.salary')}</dt>
+          <dd>{t('home.profile.perMonth', { amount: money(worker.expected_salary, lang) })}</dd>
         </dl>
         <RatingLine rating={worker.rating} />
         {worker.bio && (

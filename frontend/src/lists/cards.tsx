@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { MyJob, PublicJob, PublicWorker, Rating } from '../api/types'
 import { useI18n } from '../i18n/I18nContext'
-import { amount } from './format'
+import { money } from './format'
 
 export function RatingLine({ rating }: { rating: Rating }) {
   const { t } = useI18n()
@@ -17,7 +17,7 @@ export function RatingLine({ rating }: { rating: Rating }) {
 
 /** Carte d'un travailleur dans les résultats de recherche. */
 export function WorkerCard({ worker }: { worker: PublicWorker }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   return (
     <Link to={`/travailleurs/${worker.id}`} className="card result">
       <div className="result-head">
@@ -37,7 +37,7 @@ export function WorkerCard({ worker }: { worker: PublicWorker }) {
         📍 {worker.location} · {t(`availability.${worker.availability}`)}
       </p>
       <p className="result-foot">
-        <strong>{t('home.profile.perMonth', { amount: amount(worker.expected_salary) })}</strong>
+        <strong>{t('home.profile.perMonth', { amount: money(worker.expected_salary, lang) })}</strong>
         <span className="muted">{t('worker.experience', { count: String(worker.years_experience) })}</span>
       </p>
       <RatingLine rating={worker.rating} />
@@ -47,7 +47,7 @@ export function WorkerCard({ worker }: { worker: PublicWorker }) {
 
 /** Carte d'une annonce vue par un travailleur. */
 export function JobCard({ job }: { job: PublicJob }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   return (
     <Link to={`/annonces/${job.id}`} className="card result">
       <span className="profile-name">{job.title}</span>
@@ -59,7 +59,7 @@ export function JobCard({ job }: { job: PublicJob }) {
       </p>
       <p className="result-foot">
         <strong>
-          {job.budget ? t('home.profile.perMonth', { amount: amount(job.budget) }) : t('jobs.noBudget')}
+          {job.budget ? t('home.profile.perMonth', { amount: money(job.budget, lang) }) : t('jobs.noBudget')}
         </strong>
         <span className="muted">{t('jobs.by', { name: job.client.name })}</span>
       </p>
@@ -75,7 +75,7 @@ export function MyJobCard({
   job: MyJob
   onStatus: (status: MyJob['status']) => void
 }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   return (
     <div className="card">
       <div className="result-head">
@@ -87,7 +87,7 @@ export function MyJobCard({
       </div>
       <p className="muted">
         📍 {job.location} · {t(`availability.${job.availability}`)}
-        {job.budget && ` · ${t('home.profile.perMonth', { amount: amount(job.budget) })}`}
+        {job.budget && ` · ${t('home.profile.perMonth', { amount: money(job.budget, lang) })}`}
       </p>
       <p>
         <strong>{t('myJobs.responses', { count: String(job.interested_workers) })}</strong>

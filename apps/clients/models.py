@@ -62,7 +62,7 @@ class ClientProfile(models.Model):
         blank=True,
         validators=[MinValueValidator(Decimal("0"))],
         verbose_name="Budget mensuel",
-        help_text="Montant mensuel envisagé (en USD ou CDF selon accord). Facultatif.",
+        help_text="Montant mensuel envisagé, en francs congolais (CDF). Facultatif.",
     )
     needs_description = models.TextField(
         blank=True,

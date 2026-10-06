@@ -92,7 +92,7 @@ class WorkerProfile(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0"))],
         verbose_name="Prétention salariale",
-        help_text="Montant mensuel souhaité (en USD ou CDF selon accord).",
+        help_text="Montant mensuel souhaité, en francs congolais (CDF).",
     )
     location = models.CharField(
         max_length=200,

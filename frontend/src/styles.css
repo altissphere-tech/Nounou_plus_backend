@@ -577,6 +577,15 @@ select {
   gap: 8px;
 }
 
+/* Le montant reste sur une seule ligne ; c'est le texte voisin qui passe à la ligne */
+.result-foot strong {
+  white-space: nowrap;
+}
+
+.result-foot span {
+  text-align: right;
+}
+
 .verified {
   flex-shrink: 0;
   font-size: 0.8rem;

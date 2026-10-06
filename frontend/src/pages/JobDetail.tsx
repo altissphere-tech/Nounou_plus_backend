@@ -6,12 +6,12 @@ import type { PublicJob } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useI18n } from '../i18n/I18nContext'
 import { RatingLine } from '../lists/cards'
-import { amount } from '../lists/format'
+import { money } from '../lists/format'
 import { useMyProfile } from '../profile/useMyProfile'
 
 /** Détail d'une annonce vue par un travailleur, avec « Répondre à l'annonce ». */
 export default function JobDetail() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const { user } = useAuth()
   const navigate = useNavigate()
   const id = Number(useParams().id)
@@ -72,7 +72,7 @@ export default function JobDetail() {
           <dt>{t('filters.availability')}</dt>
           <dd>{t(`availability.${job.availability}`)}</dd>
           <dt>{t('jobs.budget')}</dt>
-          <dd>{job.budget ? t('home.profile.perMonth', { amount: amount(job.budget) }) : t('jobs.noBudget')}</dd>
+          <dd>{job.budget ? t('home.profile.perMonth', { amount: money(job.budget, lang) }) : t('jobs.noBudget')}</dd>
         </dl>
         {job.description && <p className="pre-line">{job.description}</p>}
         <p className="muted">{t('jobs.by', { name: job.client.name })}</p>
