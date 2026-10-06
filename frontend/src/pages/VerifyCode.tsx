@@ -4,6 +4,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { requestCode } from '../api/accounts'
 import { useAuth } from '../auth/AuthContext'
 import { errorText } from '../components/errors'
+import Field from '../components/Field'
 import { useI18n } from '../i18n/I18nContext'
 
 export default function VerifyCode() {
@@ -49,8 +50,7 @@ export default function VerifyCode() {
       <h1>{t('verify.title')}</h1>
       <p className="muted">{t('verify.sentTo', { phone })}</p>
       {import.meta.env.DEV && <p className="dev-hint">{t('verify.devHint')}</p>}
-      <label className="field">
-        <span className="field-label">{t('verify.label')}</span>
+      <Field label={t('verify.label')}>
         <input
           className="code-input"
           inputMode="numeric"
@@ -61,7 +61,7 @@ export default function VerifyCode() {
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
         />
-      </label>
+      </Field>
       {error && <p className="error" role="alert">{error}</p>}
       {info && <p className="info">{info}</p>}
       <button type="submit" className="button primary" disabled={busy || code.length !== 6}>
