@@ -20,6 +20,7 @@ from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.utils import timezone
+from phonenumber_field.modelfields import PhoneNumberField
 
 ALLOWED_EXTENSIONS = ["pdf", "jpg", "jpeg", "png"]
 MAX_FILE_SIZE_MB = 5
@@ -103,6 +104,16 @@ class VerificationRecord(models.Model):
         self.reviewed_at = timezone.now()
         self.save()
         update_worker_badge(self.worker)
+        if status != self.STATUS_PENDING:
+            from apps.notifications.models import Notification, notify
+
+            notify(
+                self.worker.user,
+                Notification.KIND_DOCUMENT,
+                doc_type=self.doc_type,
+                approved=status == self.STATUS_APPROVED,
+                reason=self.rejection_reason,
+            )
 
 
 def update_worker_badge(worker) -> None:
@@ -124,3 +135,81 @@ def delete_document_file(sender, instance, **kwargs):
     """Supprime le fichier du disque quand le document est supprimé (données personnelles)."""
     if instance.file:
         instance.file.delete(save=False)
+
+
+class WorkerReference(models.Model):
+    """
+    Référence donnée par un travailleur (ancien employeur, voisin, pasteur…).
+
+    Règles validées par le fondateur :
+    - jusqu'à 3 références : nom, téléphone et lien avec le travailleur ;
+    - ces coordonnées ne sont vues que par l'équipe NOUNOU+, qui appelle la personne ;
+    - les familles voient seulement l'étape « Références » cochée dans le score de confiance.
+    """
+
+    MAX_PER_WORKER = 3
+
+    STATUS_PENDING = "en_attente"
+    STATUS_VERIFIED = "verifiee"
+    STATUS_REJECTED = "non_confirmee"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "À appeler"),
+        (STATUS_VERIFIED, "Vérifiée"),
+        (STATUS_REJECTED, "Non confirmée"),
+    ]
+
+    worker = models.ForeignKey(
+        "workers.WorkerProfile",
+        on_delete=models.CASCADE,
+        related_name="references",
+        verbose_name="Travailleur",
+    )
+    name = models.CharField(max_length=150, verbose_name="Nom de la référence")
+    phone = PhoneNumberField(verbose_name="Téléphone de la référence")
+    relationship = models.CharField(
+        max_length=150,
+        verbose_name="Lien avec le travailleur",
+        help_text="Ex : ancien employeur (2019-2023), voisine, pasteur…",
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING, verbose_name="Statut"
+    )
+    team_note = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Note de l'équipe",
+        help_text="Compte rendu de l'appel. Jamais montré au travailleur.",
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_references",
+        verbose_name="Vérifiée par",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name="Vérifiée le")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ajoutée le")
+
+    class Meta:
+        verbose_name = "Référence"
+        verbose_name_plural = "Références"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} — pour {self.worker}"
+
+    def review(self, admin_user, status: str) -> None:
+        from apps.notifications.models import Notification, notify
+
+        self.status = status
+        self.reviewed_by = admin_user
+        self.reviewed_at = timezone.now()
+        self.save()
+        if status != self.STATUS_PENDING:
+            notify(
+                self.worker.user,
+                Notification.KIND_REFERENCE,
+                name=self.name,
+                approved=status == self.STATUS_VERIFIED,
+            )

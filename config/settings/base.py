@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     "apps.verification",
     "apps.reviews",
     "apps.reports",
+    "apps.notifications",
+    "apps.favorites",
 ]
 
 # --- Middleware ---
@@ -104,6 +106,8 @@ REST_FRAMEWORK = {
     ),
     # Génère la description de l'API (OpenAPI) utilisée par la documentation interactive
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Limite les essais de mot de passe et les e-mails « mot de passe oublié » (par adresse IP)
+    "DEFAULT_THROTTLE_RATES": {"auth": "10/min"},
 }
 
 # --- Documentation interactive de l'API (/api/docs/) ---
@@ -118,6 +122,8 @@ SPECTACULAR_SETTINGS = {
         "2. `POST /api/accounts/otp/verify/` avec le code `123456` (OTP simulé en "
         "développement) → copiez la valeur `access` ;\n"
         "3. cliquez sur **Authorize** en haut de la page et collez-la.\n\n"
+        "Autres moyens de connexion : `POST /api/accounts/login/` (e-mail + mot de passe) "
+        "et `POST /api/accounts/social/` (Google / Apple, si configurés).\n\n"
         "Le téléphone et le nom complet de l'autre partie ne sont visibles qu'après "
         "un match mutuel. Le badge « vérifié » ne constitue pas une garantie "
         "d'absence de risque."
@@ -144,7 +150,11 @@ SPECTACULAR_SETTINGS = {
         "VerificationStatusEnum": "apps.verification.models.VerificationRecord.STATUS_CHOICES",
     },
     "TAGS": [
-        {"name": "Comptes", "description": "Inscription, connexion par code SMS, profil du compte."},
+        {
+            "name": "Comptes",
+            "description": "Inscription ; connexion par code SMS, e-mail + mot de passe, "
+            "Google ou Apple ; mot de passe oublié.",
+        },
         {"name": "Services", "description": "Catalogue des services (nounou, ménage, cuisine)."},
         {"name": "Travailleurs", "description": "Profils des travailleurs et recherche."},
         {"name": "Clients", "description": "Profils des familles et recherche des besoins."},
@@ -154,6 +164,9 @@ SPECTACULAR_SETTINGS = {
         {"name": "Vérification", "description": "Documents des travailleurs et badge « vérifié »."},
         {"name": "Évaluations", "description": "Notes après la période d'essai."},
         {"name": "Signalements", "description": "Signaler un profil (anonyme)."},
+        {"name": "Photos", "description": "Photo de profil, visible après validation par l'équipe."},
+        {"name": "Favoris", "description": "Profils et annonces mis de côté."},
+        {"name": "Notifications", "description": "Notifications dans l'application (cloche)."},
     ],
 }
 
@@ -176,6 +189,24 @@ OTP_MOCK_ENABLED = False
 # Nombre de jours après le premier match mutuel avant de pouvoir s'évaluer
 # (laisse le temps d'une période d'essai).
 REVIEW_DELAY_DAYS = 7
+
+# --- Mots de passe (connexion par e-mail, facultative) ---
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
+# Adresse de l'application (utilisée dans le lien « mot de passe oublié »)
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="NOUNOU+ <no-reply@nounou.local>")
+
+# --- Connexion Google / Apple (vide = bouton désactivé) ---
+GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")
+APPLE_CLIENT_ID = config("APPLE_CLIENT_ID", default="")
 
 # --- Format des numéros de téléphone (RDC = CD) ---
 PHONENUMBER_DEFAULT_REGION = "CD"

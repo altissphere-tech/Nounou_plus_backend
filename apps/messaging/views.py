@@ -9,6 +9,8 @@ from rest_framework import serializers as drf_serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.notifications.models import Notification, display_name, notify
+
 from apps.matching.models import Match
 from common.permissions import IsWorkerOrClient
 from common.schema import AUTH_ERRORS, error
@@ -89,6 +91,9 @@ class ConversationView(APIView):
             sender=request.user,
             content=serializer.validated_data["content"],
         )
+        client_side = match.is_client_side(request.user)
+        me, other = (match.client, match.worker) if client_side else (match.worker, match.client)
+        notify(other.user, Notification.KIND_MESSAGE, match_id=match.id, name=display_name(me, full=True))
         return Response(
             MessageSerializer(message, context={"request": request}).data,
             status=status.HTTP_201_CREATED,

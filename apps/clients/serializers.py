@@ -7,6 +7,7 @@ Serializers de l'app clients.
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from apps.accounts.photos import public_photo_url
 from apps.services.models import Service
 from apps.reviews.models import rating_summary
 from apps.reviews.serializers import RatingSummarySerializer
@@ -25,6 +26,9 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     services_list = serializers.SerializerMethodField(
         help_text="Liste des services recherchés sous forme de tableau."
     )
+    photo_url = serializers.SerializerMethodField(
+        help_text="Adresse de la photo validée, ou null."
+    )
 
     class Meta:
         model = ClientProfile
@@ -32,6 +36,7 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             "id",
             "first_name",
             "last_name",
+            "photo_url",
             "location",
             "services_list",
             "rating",
@@ -49,6 +54,9 @@ class ClientProfileSerializer(serializers.ModelSerializer):
 
     def get_services_list(self, obj) -> list[str]:
         return obj.get_services_list()
+
+    def get_photo_url(self, obj) -> str | None:
+        return public_photo_url(obj.user)
 
 
 class ClientProfilePublicSerializer(ClientProfileSerializer):

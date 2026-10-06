@@ -5,3 +5,5 @@ python-decouple==3.8
 phonenumbers==8.13.43
 django-phonenumber-field[phonenumbers]==7.3.0
 drf-spectacular[sidecar]==0.30.0
+cryptography==50.0.2
+Pillow==12.3.0

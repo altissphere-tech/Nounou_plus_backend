@@ -8,6 +8,7 @@ Serializers de l'app jobs.
 """
 from rest_framework import serializers
 
+from apps.accounts.photos import public_photo_url
 from apps.reviews.models import rating_summary
 from apps.services.models import Service
 from apps.services.serializers import ServiceSerializer
@@ -60,6 +61,7 @@ class JobRequestPublicSerializer(serializers.ModelSerializer):
         return {
             "profile_id": client.id,
             "name": f"{client.first_name} {mask_last_name(client.last_name)}".strip(),
+            "photo_url": public_photo_url(client.user),
             "rating": rating_summary(client.user),
         }
 

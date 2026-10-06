@@ -231,3 +231,404 @@ def test_commande_demo_parcours(settings, tmp_path):
     # Sans --garder, toutes les données de démo sont effacées
     assert User.objects.count() == users_before
     assert not any(tmp_path.rglob("*.pdf"))
+
+
+# ------------------------------------------------------------------ #
+# E-mail + mot de passe, mot de passe oublié, Google / Apple          #
+# ------------------------------------------------------------------ #
+
+import re  # noqa: E402
+
+from django.core import mail  # noqa: E402
+
+from apps.accounts import social  # noqa: E402
+from apps.accounts.models import SocialAccount  # noqa: E402
+
+PASSWORD = "Lubumbashi2026"
+
+
+def register_with_email(api_client, email="marie@example.com", phone="+243812300001", role="client"):
+    return api_client.post(
+        reverse("accounts-register"),
+        {"phone": phone, "role": role, "email": email, "password": PASSWORD},
+        format="json",
+    )
+
+
+@pytest.mark.django_db
+class TestEmailPassword:
+    def test_inscription_avec_email_connecte_directement(self, api_client):
+        response = register_with_email(api_client, email="Marie@Example.com")
+        assert response.status_code == 201
+        assert response.data["tokens"]["access"]
+        assert response.data["user"]["email"] == "marie@example.com"
+        assert response.data["user"]["has_password"] is True
+        # Le numéro n'est pas confirmé par SMS dans ce cas
+        assert response.data["user"]["phone_verified"] is False
+
+    def test_email_sans_mot_de_passe_refuse(self, api_client):
+        response = api_client.post(
+            reverse("accounts-register"),
+            {"phone": "+243812300001", "role": "client", "email": "a@example.com"},
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_mot_de_passe_trop_faible(self, api_client):
+        response = api_client.post(
+            reverse("accounts-register"),
+            {"phone": "+243812300001", "role": "client", "email": "a@example.com", "password": "1234"},
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_email_deja_utilise(self, api_client):
+        register_with_email(api_client)
+        response = register_with_email(api_client, email="MARIE@example.com", phone="+243812300002")
+        assert response.status_code == 400
+        assert "email" in response.data
+
+    def test_connexion_email(self, api_client):
+        register_with_email(api_client)
+        response = api_client.post(
+            reverse("accounts-login"), {"email": "marie@example.com", "password": PASSWORD}, format="json"
+        )
+        assert response.status_code == 200
+        assert response.data["tokens"]["access"]
+
+    def test_mauvais_mot_de_passe_meme_message_que_email_inconnu(self, api_client):
+        register_with_email(api_client)
+        wrong = api_client.post(
+            reverse("accounts-login"), {"email": "marie@example.com", "password": "faux-mot"}, format="json"
+        )
+        unknown = api_client.post(
+            reverse("accounts-login"), {"email": "personne@example.com", "password": "faux-mot"}, format="json"
+        )
+        assert wrong.status_code == unknown.status_code == 400
+        assert wrong.data == unknown.data
+
+    def test_compte_suspendu_ne_peut_pas_se_connecter(self, api_client):
+        register_with_email(api_client)
+        User.objects.filter(email="marie@example.com").update(is_active=False)
+        response = api_client.post(
+            reverse("accounts-login"), {"email": "marie@example.com", "password": PASSWORD}, format="json"
+        )
+        assert response.status_code == 400
+
+    def test_compte_telephone_sans_mot_de_passe_ne_se_connecte_pas_par_email(self, api_client):
+        User.objects.create_user(phone="+243812300003", role="client", email="tel@example.com")
+        response = api_client.post(
+            reverse("accounts-login"), {"email": "tel@example.com", "password": ""}, format="json"
+        )
+        assert response.status_code == 400
+
+
+@pytest.mark.django_db
+class TestForgotPassword:
+    def test_parcours_complet(self, api_client):
+        register_with_email(api_client)
+        response = api_client.post(
+            reverse("accounts-password-forgot"), {"email": "marie@example.com"}, format="json"
+        )
+        assert response.status_code == 200
+        assert len(mail.outbox) == 1
+        link = re.search(r"uid=([^&\s]+)&token=(\S+)", mail.outbox[0].body)
+        uid, token = link.groups()
+        response = api_client.post(
+            reverse("accounts-password-reset"),
+            {"uid": uid, "token": token, "password": "NouveauSecret42"},
+            format="json",
+        )
+        assert response.status_code == 200
+        login = api_client.post(
+            reverse("accounts-login"), {"email": "marie@example.com", "password": "NouveauSecret42"}, format="json"
+        )
+        assert login.status_code == 200
+        # Le lien ne sert qu'une fois
+        again = api_client.post(
+            reverse("accounts-password-reset"),
+            {"uid": uid, "token": token, "password": "EncoreAutre77"},
+            format="json",
+        )
+        assert again.status_code == 400
+
+    def test_adresse_inconnue_meme_reponse_sans_email(self, api_client):
+        response = api_client.post(
+            reverse("accounts-password-forgot"), {"email": "inconnu@example.com"}, format="json"
+        )
+        assert response.status_code == 200
+        assert mail.outbox == []
+
+    def test_lien_invalide(self, api_client):
+        response = api_client.post(
+            reverse("accounts-password-reset"),
+            {"uid": "abc", "token": "faux", "password": "NouveauSecret42"},
+            format="json",
+        )
+        assert response.status_code == 400
+
+
+@pytest.mark.django_db
+class TestSecuritySettings:
+    def test_compte_telephone_ajoute_email_et_mot_de_passe(self, authenticated_client):
+        response = authenticated_client.post(
+            reverse("accounts-password-change"), {"new_password": PASSWORD}, format="json"
+        )
+        assert response.status_code == 200
+        # Ensuite, le mot de passe actuel est demandé pour changer l'e-mail
+        response = authenticated_client.post(
+            reverse("accounts-email"), {"email": "nouveau@example.com"}, format="json"
+        )
+        assert response.status_code == 400
+        response = authenticated_client.post(
+            reverse("accounts-email"),
+            {"email": "nouveau@example.com", "current_password": PASSWORD},
+            format="json",
+        )
+        assert response.status_code == 200
+        assert response.data["user"]["email"] == "nouveau@example.com"
+
+    def test_changer_mot_de_passe_demande_l_actuel(self, api_client):
+        token = register_with_email(api_client).data["tokens"]["access"]
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        response = api_client.post(
+            reverse("accounts-password-change"),
+            {"current_password": "mauvais", "new_password": "NouveauSecret42"},
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_options_de_connexion(self, api_client, settings):
+        settings.GOOGLE_CLIENT_ID = "google-id"
+        settings.APPLE_CLIENT_ID = ""
+        response = api_client.get(reverse("accounts-auth-options"))
+        assert response.data == {"sms": True, "google_client_id": "google-id", "apple_client_id": ""}
+
+
+@pytest.fixture
+def google(settings, monkeypatch):
+    """Google configuré ; le jeton « bon-jeton » est accepté (sans appel à Google)."""
+    settings.GOOGLE_CLIENT_ID = "google-id"
+    identity = {"value": social.SocialIdentity(uid="g-123", email="marie@gmail.com")}
+
+    def fake_verify(provider, token):
+        if token != "bon-jeton":
+            raise social.SocialAuthError("signature")
+        return identity["value"]
+
+    monkeypatch.setattr(social, "verify_id_token", fake_verify)
+    return identity
+
+
+def social_login(api_client, **extra):
+    return api_client.post(
+        reverse("accounts-social"), {"provider": "google", "id_token": "bon-jeton", **extra}, format="json"
+    )
+
+
+@pytest.mark.django_db
+class TestSocialLogin:
+    def test_non_configure(self, api_client):
+        response = social_login(api_client)
+        assert response.status_code == 503
+
+    def test_jeton_refuse(self, api_client, google):
+        response = social_login(api_client, id_token="faux")
+        assert response.status_code == 400
+        assert "registration_required" not in response.data
+
+    def test_nouveau_compte_en_deux_temps(self, api_client, google):
+        first = social_login(api_client)
+        assert first.status_code == 400
+        assert first.data["registration_required"] is True
+        assert first.data["email"] == "marie@gmail.com"
+        second = social_login(api_client, role="travailleur", phone="+243812300004")
+        assert second.status_code == 201
+        user = User.objects.get(phone="+243812300004")
+        assert user.email == "marie@gmail.com"
+        assert user.role == "travailleur"
+        assert not user.has_usable_password()
+        # Les fois suivantes : connexion directe
+        third = social_login(api_client)
+        assert third.status_code == 200
+        assert third.data["user"]["social_providers"] == ["google"]
+
+    def test_meme_email_relie_au_compte_existant(self, api_client, google):
+        register_with_email(api_client, email="marie@gmail.com")
+        response = social_login(api_client)
+        assert response.status_code == 200
+        assert SocialAccount.objects.filter(uid="g-123", user__email="marie@gmail.com").exists()
+
+    def test_email_non_verifie_ne_relie_pas(self, api_client, google):
+        register_with_email(api_client, email="marie@gmail.com")
+        google["value"] = social.SocialIdentity(uid="g-999", email=None)
+        response = social_login(api_client)
+        assert response.status_code == 400
+        assert response.data["registration_required"] is True
+
+    def test_numero_deja_utilise(self, api_client, google, registered_user):
+        response = social_login(api_client, role="client", phone="+243812345678")
+        assert response.status_code == 400
+        assert "phone" in response.data
+
+    def test_compte_suspendu(self, api_client, google):
+        social_login(api_client, role="client", phone="+243812300005")
+        User.objects.filter(phone="+243812300005").update(is_active=False)
+        response = social_login(api_client)
+        assert response.status_code == 400
+
+
+class TestVerifyIdToken:
+    """Vérification réelle de la signature (avec une clé de test générée sur place)."""
+
+    @pytest.fixture
+    def signer(self, settings, monkeypatch):
+        import time
+
+        import jwt
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        settings.GOOGLE_CLIENT_ID = "google-id"
+        private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+        class FakeJWKS:
+            def get_signing_key_from_jwt(self, token):
+                return type("Key", (), {"key": private.public_key()})()
+
+        monkeypatch.setitem(social._jwks_clients, "google", FakeJWKS())
+
+        def sign(**overrides):
+            claims = {
+                "iss": "https://accounts.google.com",
+                "aud": "google-id",
+                "sub": "g-1",
+                "email": "a@gmail.com",
+                "email_verified": True,
+                "exp": int(time.time()) + 600,
+                **overrides,
+            }
+            return jwt.encode(claims, private, algorithm="RS256")
+
+        return sign
+
+    def test_jeton_valide(self, signer):
+        identity = social.verify_id_token("google", signer())
+        assert identity == social.SocialIdentity(uid="g-1", email="a@gmail.com")
+
+    def test_email_non_verifie_ignore(self, signer):
+        assert social.verify_id_token("google", signer(email_verified=False)).email is None
+
+    @pytest.mark.parametrize(
+        "overrides", [{"aud": "autre-application"}, {"iss": "https://pirate.example"}, {"exp": 1}]
+    )
+    def test_jeton_refuse(self, signer, overrides):
+        with pytest.raises(social.SocialAuthError):
+            social.verify_id_token("google", signer(**overrides))
+
+
+# ------------------------------------------------------------------ #
+# Photo de profil                                                      #
+# ------------------------------------------------------------------ #
+
+from io import BytesIO  # noqa: E402
+
+from django.core.files.uploadedfile import SimpleUploadedFile  # noqa: E402
+from PIL import Image  # noqa: E402
+from rest_framework_simplejwt.tokens import RefreshToken  # noqa: E402
+
+from apps.accounts import photos  # noqa: E402
+from apps.notifications.models import Notification  # noqa: E402
+
+
+def image_file(fmt="JPEG", size=(1600, 1200), name="moi.jpg", exif_gps=False):
+    buffer = BytesIO()
+    image = Image.new("RGB", size, "purple")
+    kwargs = {}
+    if exif_gps:
+        exif = Image.Exif()
+        exif[0x8825] = {1: "S", 2: (11.0, 40.0, 0.0)}  # position GPS (Lubumbashi)
+        kwargs["exif"] = exif
+    image.save(buffer, format=fmt, **kwargs)
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type=f"image/{fmt.lower()}")
+
+
+@pytest.fixture
+def photo_user(db, settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+    user = User.objects.create_user(phone="+243812300010", role=User.ROLE_WORKER)
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {RefreshToken.for_user(user).access_token}")
+    return user, client
+
+
+@pytest.mark.django_db
+class TestPhoto:
+    def test_envoi_reduit_et_nettoie_la_photo(self, photo_user):
+        user, client = photo_user
+        response = client.post(reverse("accounts-photo"), {"photo": image_file(exif_gps=True)}, format="multipart")
+        assert response.status_code == 200
+        assert response.data["user"]["photo_status"] == "en_attente"
+        user.refresh_from_db()
+        stored = Image.open(user.photo.open("rb"))
+        assert stored.format == "JPEG"
+        assert max(stored.size) == photos.MAX_SIDE_PX
+        assert 0x8825 not in stored.getexif()  # plus de position GPS
+
+    def test_photo_en_attente_invisible_pour_les_autres(self, photo_user):
+        user, client = photo_user
+        client.post(reverse("accounts-photo"), {"photo": image_file()}, format="multipart")
+        user.refresh_from_db()
+        name = user.photo.name.rsplit("/", 1)[-1]
+        assert photos.public_photo_url(user) is None
+        assert APIClient().get(reverse("public-photo", args=[name])).status_code == 404
+        # La personne elle-même la voit
+        assert client.get(reverse("accounts-photo")).status_code == 200
+
+    def test_photo_validee_visible_par_tous(self, photo_user):
+        user, client = photo_user
+        client.post(reverse("accounts-photo"), {"photo": image_file(fmt="PNG", name="moi.png")}, format="multipart")
+        user.refresh_from_db()
+        photos.review_photo(user, approved=True)
+        url = photos.public_photo_url(user)
+        assert url.startswith("/api/photos/")
+        response = APIClient().get(url)
+        assert response.status_code == 200
+        assert response["Content-Type"] == "image/jpeg"
+        assert Notification.objects.get(user=user).params["approved"] is True
+
+    def test_photo_refusee_supprimee_avec_motif(self, photo_user):
+        user, client = photo_user
+        client.post(reverse("accounts-photo"), {"photo": image_file()}, format="multipart")
+        user.refresh_from_db()
+        path = user.photo.path
+        photos.review_photo(user, approved=False, reason="Visage non visible.")
+        user.refresh_from_db()
+        assert user.photo_status == "rejetee"
+        assert not user.photo
+        import os
+
+        assert not os.path.exists(path)
+        assert client.get(reverse("accounts-me")).data["photo_rejection_reason"] == "Visage non visible."
+
+    def test_nouvelle_photo_repasse_en_attente(self, photo_user):
+        user, client = photo_user
+        client.post(reverse("accounts-photo"), {"photo": image_file()}, format="multipart")
+        user.refresh_from_db()
+        photos.review_photo(user, approved=True)
+        client.post(reverse("accounts-photo"), {"photo": image_file()}, format="multipart")
+        user.refresh_from_db()
+        assert user.photo_status == "en_attente"
+        assert photos.public_photo_url(user) is None
+
+    def test_fichier_qui_n_est_pas_une_image(self, photo_user):
+        _, client = photo_user
+        fake = SimpleUploadedFile("virus.jpg", b"pas une image", content_type="image/jpeg")
+        response = client.post(reverse("accounts-photo"), {"photo": fake}, format="multipart")
+        assert response.status_code == 400
+
+    def test_supprimer_sa_photo(self, photo_user):
+        user, client = photo_user
+        client.post(reverse("accounts-photo"), {"photo": image_file()}, format="multipart")
+        assert client.delete(reverse("accounts-photo")).status_code == 200
+        user.refresh_from_db()
+        assert user.photo_status == "aucune" and not user.photo
