@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import Layout from './components/Layout'
+import OfflineScreen from './components/OfflineScreen'
 import { I18nProvider, useI18n } from './i18n/I18nContext'
 import Conversation from './pages/Conversation'
 import Documents from './pages/Documents'
@@ -26,8 +27,9 @@ import WorkerDetail from './pages/WorkerDetail'
  * session expirée), retour à l'écran d'accueil qui propose de se connecter.
  */
 function Private({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
+  const { user, unreachable } = useAuth()
   const { t } = useI18n()
+  if (unreachable && !user) return <OfflineScreen />
   if (user === undefined) return <p className="muted">{t('common.loading')}</p>
   return user ? children : <Navigate to="/" replace />
 }
@@ -44,7 +46,8 @@ function OnlyFor({ role, children }: { role: 'client' | 'travailleur'; children:
 
 /** Écrans d'accueil et de connexion : un utilisateur déjà connecté va directement à l'accueil. */
 function Public({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
+  const { user, unreachable } = useAuth()
+  if (unreachable && !user) return <OfflineScreen />
   if (user === undefined) return null
   return user ? <Navigate to="/accueil" replace /> : children
 }
