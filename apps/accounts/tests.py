@@ -211,3 +211,23 @@ class TestOTPMockDisabled:
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# ------------------------------------------------------------------ #
+# Test : commande de démonstration du parcours complet                #
+# ------------------------------------------------------------------ #
+
+@pytest.mark.django_db
+def test_commande_demo_parcours(settings, tmp_path):
+    from io import StringIO
+
+    from django.core.management import call_command
+
+    settings.MEDIA_ROOT = tmp_path
+    users_before = User.objects.count()
+    out = StringIO()
+    call_command("demo_parcours", stdout=out)
+    assert "Démo terminée avec succès" in out.getvalue()
+    # Sans --garder, toutes les données de démo sont effacées
+    assert User.objects.count() == users_before
+    assert not any(tmp_path.rglob("*.pdf"))

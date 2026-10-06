@@ -2,6 +2,10 @@
 
 Marketplace de mise en relation entre familles et travailleurs domestiques à Lubumbashi, RDC.
 
+> 🧪 **Pour tout essayer sans écrire de code**, suivez le guide pas à pas :
+> [`docs/GUIDE_ESSAI.md`](docs/GUIDE_ESSAI.md) — ou lancez directement
+> `python manage.py demo_parcours` pour voir tout le parcours en une commande.
+
 ---
 
 ## Prérequis
