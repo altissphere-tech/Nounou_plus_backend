@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { expressInterest, getWorker, getWorkerReviews } from '../api/search'
 import type { PublicWorker, ReviewsPage } from '../api/types'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
-import { RatingLine } from '../lists/cards'
+import PageHead from '../components/PageHead'
+import Stats from '../components/Stats'
+import TrustScore from '../components/TrustScore'
 import { money } from '../lists/format'
 
 /** Fiche d'un travailleur vue par une famille, avec le bouton « Je suis intéressé(e) ». */
 export default function WorkerDetail() {
   const { t, lang } = useI18n()
-  const navigate = useNavigate()
   const id = Number(useParams().id)
   const [worker, setWorker] = useState<PublicWorker | null | undefined>(undefined)
   const [reviews, setReviews] = useState<ReviewsPage | null>(null)
@@ -52,17 +53,25 @@ export default function WorkerDetail() {
 
   return (
     <section className="stack">
-      <button type="button" className="link back" onClick={() => navigate(-1)}>
-        ← {t('worker.back')}
-      </button>
+      <PageHead back={t('worker.back')} overline={worker.services_list.map((slug) => t(`search.short.${slug}`)).join(' · ')} title={`${worker.first_name} ${worker.last_name}`}>
+        <span className="head-pill">{t(`availability.${worker.availability}`)}</span>
+      </PageHead>
+      <Stats
+        items={[
+          { label: t('stats.experience'), value: t('stats.years', { count: String(worker.years_experience) }) },
+          { label: t('stats.salary'), value: money(worker.expected_salary, lang), accent: true },
+          { label: t('stats.rating'), value: worker.rating.average ? `${worker.rating.average} ★` : '—' },
+        ]}
+      />
 
       <div className="card">
-        <div className="result-head">
-          <h1 className="profile-name">
-            {worker.first_name} {worker.last_name}
-          </h1>
-          {worker.is_verified && <span className="verified">✔ {t('worker.verified')}</span>}
-        </div>
+        <TrustScore verified={worker.is_verified} />
+      </div>
+
+      <div className="card">
+        <h2 className="overline">{t('filters.location')}</h2>
+        <p>📍 {worker.location}</p>
+        <h2 className="overline">{t('filters.service')}</h2>
         <div className="tags">
           {worker.services_list.map((slug) => (
             <span key={slug} className="tag">
@@ -70,24 +79,12 @@ export default function WorkerDetail() {
             </span>
           ))}
         </div>
-        <dl className="details">
-          <dt>{t('filters.location')}</dt>
-          <dd>{worker.location}</dd>
-          <dt>{t('filters.availability')}</dt>
-          <dd>{t(`availability.${worker.availability}`)}</dd>
-          <dt>{t('profile.experience')}</dt>
-          <dd>{t('home.profile.years', { count: String(worker.years_experience) })}</dd>
-          <dt>{t('summary.salary')}</dt>
-          <dd>{t('home.profile.perMonth', { amount: money(worker.expected_salary, lang) })}</dd>
-        </dl>
-        <RatingLine rating={worker.rating} />
         {worker.bio && (
           <>
-            <h2>{t('worker.about')}</h2>
+            <h2 className="overline">{t('worker.about')}</h2>
             <p className="pre-line">{worker.bio}</p>
           </>
         )}
-        <p className="field-hint">{t('worker.verifiedNote')}</p>
         <Link
           to={`/signaler/${worker.id}`}
           state={{ name: `${worker.first_name} ${worker.last_name}` }}
@@ -113,7 +110,7 @@ export default function WorkerDetail() {
       </div>
 
       <div className="card">
-        <h2>{t('worker.reviews')}</h2>
+        <h2 className="overline">{t('worker.reviews')}</h2>
         {!reviews || reviews.count === 0 ? (
           <p className="muted">{t('worker.noReviews')}</p>
         ) : (

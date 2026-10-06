@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import { Briefcase, ClipboardList, Heart, House, Search } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { listMatches } from '../api/matches'
 import { useAuth } from '../auth/AuthContext'
@@ -38,18 +40,18 @@ export default function BottomNav() {
   const news = useNews(Boolean(user))
   if (!user) return null
 
-  const items: { to: string; icon: string; label: TranslationKey; badge?: number }[] =
+  const items: { to: string; icon: LucideIcon; label: TranslationKey; badge?: number }[] =
     user.role === 'client'
       ? [
-          { to: '/accueil', icon: '🏠', label: 'nav.home' },
-          { to: '/recherche', icon: '🔍', label: 'nav.search' },
-          { to: '/mes-annonces', icon: '📋', label: 'nav.myJobs' },
-          { to: '/relations', icon: '🤝', label: 'nav.matches', badge: news },
+          { to: '/accueil', icon: House, label: 'nav.home' },
+          { to: '/recherche', icon: Search, label: 'nav.search' },
+          { to: '/mes-annonces', icon: ClipboardList, label: 'nav.myJobs' },
+          { to: '/relations', icon: Heart, label: 'nav.matches', badge: news },
         ]
       : [
-          { to: '/accueil', icon: '🏠', label: 'nav.home' },
-          { to: '/annonces', icon: '📋', label: 'nav.jobs' },
-          { to: '/relations', icon: '🤝', label: 'nav.matches', badge: news },
+          { to: '/accueil', icon: House, label: 'nav.home' },
+          { to: '/annonces', icon: Briefcase, label: 'nav.jobs' },
+          { to: '/relations', icon: Heart, label: 'nav.matches', badge: news },
         ]
 
   return (
@@ -57,7 +59,7 @@ export default function BottomNav() {
       {items.map((item) => (
         <NavLink key={item.to} to={item.to} className="bottom-nav-item">
           <span aria-hidden="true" className="bottom-nav-icon">
-            {item.icon}
+            <item.icon size={22} strokeWidth={2.2} />
             {item.badge ? <span className="badge-dot">{item.badge}</span> : null}
           </span>
           <span>{t(item.label)}</span>

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { MyJob, PublicJob, PublicWorker, Rating } from '../api/types'
 import { useI18n } from '../i18n/I18nContext'
+import Avatar from '../components/Avatar'
 import { money } from './format'
 
 export function RatingLine({ rating }: { rating: Rating }) {
@@ -20,10 +21,16 @@ export function WorkerCard({ worker }: { worker: PublicWorker }) {
   const { t, lang } = useI18n()
   return (
     <Link to={`/travailleurs/${worker.id}`} className="card result">
-      <div className="result-head">
-        <span className="profile-name">
-          {worker.first_name} {worker.last_name}
-        </span>
+      <div className="person">
+        <Avatar name={`${worker.first_name} ${worker.last_name}`} size={52} />
+        <div className="person-text">
+          <span className="profile-name">
+            {worker.first_name} {worker.last_name}
+          </span>
+          <span className="muted">
+            📍 {worker.location} · {t(`availability.${worker.availability}`)}
+          </span>
+        </div>
         {worker.is_verified && <span className="verified">✔ {t('worker.verified')}</span>}
       </div>
       <div className="tags">
@@ -33,11 +40,8 @@ export function WorkerCard({ worker }: { worker: PublicWorker }) {
           </span>
         ))}
       </div>
-      <p className="muted">
-        📍 {worker.location} · {t(`availability.${worker.availability}`)}
-      </p>
       <p className="result-foot">
-        <strong>{t('home.profile.perMonth', { amount: money(worker.expected_salary, lang) })}</strong>
+        <strong className="price">{t('home.profile.perMonth', { amount: money(worker.expected_salary, lang) })}</strong>
         <span className="muted">{t('worker.experience', { count: String(worker.years_experience) })}</span>
       </p>
       <RatingLine rating={worker.rating} />
@@ -58,7 +62,7 @@ export function JobCard({ job }: { job: PublicJob }) {
         📍 {job.location} · {t(`availability.${job.availability}`)}
       </p>
       <p className="result-foot">
-        <strong>
+        <strong className="price">
           {job.budget ? t('home.profile.perMonth', { amount: money(job.budget, lang) }) : t('jobs.noBudget')}
         </strong>
         <span className="muted">{t('jobs.by', { name: job.client.name })}</span>

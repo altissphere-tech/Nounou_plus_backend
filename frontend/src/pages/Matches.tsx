@@ -5,6 +5,8 @@ import { acceptMatch, declineMatch, listMatches } from '../api/matches'
 import type { Match } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useI18n } from '../i18n/I18nContext'
+import Avatar from '../components/Avatar'
+import PageHead from '../components/PageHead'
 import { RatingLine } from '../lists/cards'
 import type { TranslationKey } from '../i18n/fr'
 import { groupMatches, refreshNews } from '../matches/groups'
@@ -50,7 +52,8 @@ function MatchCard({ match, now, children }: { match: Match; now: number; childr
   const { t } = useI18n()
   return (
     <div className="card match-card">
-      <div className="result-head">
+      <div className="person">
+        <Avatar name={`${match.other_party.first_name} ${match.other_party.last_name}`} />
         <PartyName match={match} />
         {match.unread_count > 0 && <span className="unread">{match.unread_count}</span>}
       </div>
@@ -117,7 +120,7 @@ export default function Matches() {
 
   return (
     <section className="stack">
-      <h1>{t('matches.title')}</h1>
+      <PageHead title={t('matches.title')} />
       {feedback && <p className={feedback.ok ? 'info-banner' : 'error'} role="status">{t(feedback.key)}</p>}
 
       {matches.length === 0 && (
@@ -132,7 +135,7 @@ export default function Matches() {
 
       {groups.incoming.length > 0 && (
         <>
-          <h2 className="section-title">
+          <h2 className="section-title overline">
             {t('matches.section.incoming')} <span className="count">{groups.incoming.length}</span>
           </h2>
           <p className="muted small">{t('matches.section.incoming.hint')}</p>
@@ -154,7 +157,7 @@ export default function Matches() {
 
       {groups.mutual.length > 0 && (
         <>
-          <h2 className="section-title">{t('matches.section.mutual')}</h2>
+          <h2 className="section-title overline">{t('matches.section.mutual')}</h2>
           <p className="muted small">{t('matches.section.mutual.hint')}</p>
           {groups.mutual.map((match) => (
             <MatchCard key={match.id} match={match} now={now}>
@@ -179,7 +182,7 @@ export default function Matches() {
 
       {groups.outgoing.length > 0 && (
         <>
-          <h2 className="section-title">{t('matches.section.outgoing')}</h2>
+          <h2 className="section-title overline">{t('matches.section.outgoing')}</h2>
           <p className="muted small">{t('matches.section.outgoing.hint')}</p>
           {groups.outgoing.map((match) => (
             <MatchCard key={match.id} match={match} now={now} />

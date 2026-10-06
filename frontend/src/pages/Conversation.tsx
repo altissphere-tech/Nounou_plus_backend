@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import { ApiError } from '../api/client'
 import { getMessages, listMatches, sendMessage } from '../api/matches'
 import type { Match, Message } from '../api/types'
+import Avatar from '../components/Avatar'
 import { useI18n } from '../i18n/I18nContext'
 import { refreshNews } from '../matches/groups'
 
@@ -73,22 +75,29 @@ export default function Conversation() {
 
   return (
     <section className="chat">
-      <div className="chat-head">
-        <Link to="/relations" className="link back">
-          ← {t('chat.back')}
-        </Link>
-        {match && (
-          <div className="chat-party">
-            <span className="profile-name">
-              {match.other_party.first_name} {match.other_party.last_name}
-            </span>
-            {match.other_party.phone && (
-              <a href={`tel:${match.other_party.phone}`} className="phone">
-                📞 {match.other_party.phone}
-              </a>
-            )}
-          </div>
-        )}
+      <div className="page-head chat-head">
+        <div className="page-head-row">
+          <Link to="/relations" className="icon-button" aria-label={t('chat.back')}>
+            <ArrowLeft size={20} />
+          </Link>
+          {match && (
+            <>
+              <Avatar name={`${match.other_party.first_name} ${match.other_party.last_name}`} size={42} />
+              <div className="chat-party">
+                <h1 className="profile-name">
+                  {match.other_party.first_name} {match.other_party.last_name}
+                </h1>
+                {match.other_party.phone && (
+                  <a href={`tel:${match.other_party.phone}`} className="phone">
+                    📞 {match.other_party.phone}
+                  </a>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="chat-top">
         <p className="chat-safety">🛡️ {t('chat.safety')}</p>
       </div>
 

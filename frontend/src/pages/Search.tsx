@@ -2,6 +2,8 @@ import { useSearchParams } from 'react-router-dom'
 import { searchWorkers } from '../api/search'
 import type { PublicWorker } from '../api/types'
 import { useI18n } from '../i18n/I18nContext'
+import PageHead from '../components/PageHead'
+import ServiceChips from '../lists/ServiceChips'
 import { WorkerCard } from '../lists/cards'
 import Filters, { filtersFromParams } from '../lists/Filters'
 import type { FilterDefinition, FilterValues } from '../lists/Filters'
@@ -31,14 +33,16 @@ export default function Search() {
 
   return (
     <section className="stack">
-      <h1>{t('search.title')}</h1>
+      <PageHead title={t('search.title')}>
+        <ServiceChips value={filters.service ?? ''} onChange={(service) => setParams({ ...filters, service })} />
+      </PageHead>
       <Filters
         key={params.toString()}
         definitions={FILTERS}
         values={filters}
         onApply={(values: FilterValues) => setParams(values)}
       />
-      {!list.loading && !list.failed && <p className="muted">{t('list.count', { count: String(list.count) })}</p>}
+      {!list.loading && !list.failed && <p className="list-count">{t('list.count', { count: String(list.count) })}</p>}
       {!list.loading && !list.failed && list.count === 0 && <p className="card muted">{t('search.empty')}</p>}
       {list.items.map((worker) => (
         <WorkerCard key={worker.id} worker={worker} />

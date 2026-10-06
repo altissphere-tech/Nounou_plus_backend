@@ -1,29 +1,31 @@
 /*
  * Style de l'application NOUNOU+ — pensé d'abord pour le téléphone.
- * Couleurs de la marque, reprises du logo officiel (brand/logo-original.webp) :
- *   violet #3E0C98 (dégradé #4610A4 → #360A8F), orange #F7941D, blanc.
+ * Repris de la maquette Figma « Build app » : police Nunito,
+ *   violet #3B12B8 (teinte claire #F0EBFF), orange #F5931E (teinte claire #FFF3E0),
+ *   cartes très arrondies avec ombre douce, en-têtes violets.
  * L'orange sert d'accent (icônes, « + », badges) mais jamais pour du texte
  * sur fond blanc, car il serait trop peu lisible.
  */
 :root {
-  --brand: #3e0c98;
-  --brand-dark: #2d0873;
-  --brand-gradient: linear-gradient(135deg, #4610a4 0%, #360a8f 100%);
-  --brand-light: #f1ebfb;
-  --accent: #f7941d;
-  --accent-light: #fef1e0;
+  --brand: #3b12b8;
+  --brand-dark: #2a0c86;
+  --brand-gradient: linear-gradient(150deg, #4a1fd1 0%, #3b12b8 55%, #2a0c86 100%);
+  --brand-light: #f0ebff;
+  --accent: #f5931e;
+  --accent-light: #fff3e0;
 
-  --text: #1d2a30;
-  --muted: #5b6b73;
-  --border: #d9e1e4;
+  --text: #1a1530;
+  --muted: #6b6880;
+  --border: #e6e2f0;
   --surface: #ffffff;
-  --background: #f5f7f8;
+  --background: #f7f6fb;
+  --shadow: 0 1px 2px rgba(26, 21, 48, 0.04), 0 6px 20px rgba(59, 18, 184, 0.07);
   --error: #b3261e;
   --error-bg: #fdecea;
   --warning-bg: #fff4e0;
 
-  --radius: 14px;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --radius: 20px;
+  font-family: 'Nunito Variable', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   color: var(--text);
   background: var(--background);
   -webkit-font-smoothing: antialiased;
@@ -41,11 +43,13 @@ body {
 
 h1 {
   font-size: 1.5rem;
+  font-weight: 800;
   margin: 0 0 0.5rem;
 }
 
 h2 {
   font-size: 1.1rem;
+  font-weight: 800;
   margin: 0 0 0.5rem;
 }
 
@@ -67,8 +71,8 @@ p {
   justify-content: space-between;
   padding: 12px 16px;
   padding-top: max(12px, env(safe-area-inset-top));
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: var(--brand);
+  color: #fff;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -76,6 +80,16 @@ p {
 
 .header-logo {
   text-decoration: none;
+}
+
+.header .logo {
+  color: #fff;
+}
+
+/* L'icône (maison violette) reste lisible sur l'en-tête violet */
+.header .logo-icon {
+  background: #fff;
+  padding: 2px;
 }
 
 .content {
@@ -132,7 +146,36 @@ p {
   padding: 36px 16px 30px;
   background: var(--brand-gradient);
   color: #fff;
-  border-radius: 0 0 28px 28px;
+  border-radius: 0 0 32px 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Grands cercles décoratifs, comme sur la maquette */
+.welcome-hero::before,
+.welcome-hero::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.welcome-hero::before {
+  width: 220px;
+  height: 220px;
+  top: -90px;
+  right: -70px;
+}
+
+.welcome-hero::after {
+  width: 160px;
+  height: 160px;
+  bottom: -70px;
+  left: -50px;
+}
+
+.welcome-hero > * {
+  position: relative;
 }
 
 .welcome-hero .logo {
@@ -146,13 +189,24 @@ p {
 }
 
 .welcome-hero .logo-name {
-  font-size: 2rem;
+  font-size: 2.3rem;
+  font-weight: 900;
+}
+
+.welcome-hero .motto {
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.85;
 }
 
 .welcome-hero .tagline {
   color: #fff;
   opacity: 0.92;
-  margin: 14px 0 0;
+  margin: 16px 0 0;
+  font-weight: 600;
 }
 
 .welcome .stack {
@@ -173,7 +227,8 @@ p {
 
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
+  box-shadow: var(--shadow);
   border-radius: var(--radius);
   padding: 20px;
   display: flex;
@@ -210,11 +265,12 @@ textarea,
 select,
 .code-input {
   font: inherit;
-  font-size: 1.1rem;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
+  font-size: 1.05rem;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  background: #fbfaff;
+  color: var(--text);
   width: 100%;
 }
 
@@ -244,13 +300,13 @@ select:focus {
 }
 
 .role-option {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 12px;
-  align-items: center;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 2px solid var(--border);
+  border-radius: 18px;
   cursor: pointer;
 }
 
@@ -259,15 +315,87 @@ select:focus {
   background: var(--brand-light);
 }
 
+.role-travailleur.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* Le bouton radio reste accessible (clavier, lecteur d'écran) mais discret */
 .role-option input {
-  grid-row: span 2;
+  position: absolute;
+  top: 16px;
+  right: 16px;
   accent-color: var(--brand);
   width: 20px;
   height: 20px;
 }
 
+.role-travailleur input {
+  accent-color: var(--accent);
+}
+
+.role-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.role-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--brand);
+  color: #fff;
+}
+
+.role-travailleur .role-icon {
+  background: var(--accent);
+}
+
+.role-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+}
+
+.role-travailleur .role-tag {
+  background: var(--accent);
+  color: #2b1600;
+}
+
 .role-title {
-  font-weight: 600;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.role-points {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.88rem;
+}
+
+.role-points li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.role-points svg {
+  color: var(--brand);
+  flex-shrink: 0;
+}
+
+.role-travailleur .role-points svg {
+  color: #b86200;
 }
 
 .role-hint {
@@ -281,12 +409,12 @@ select:focus {
   display: block;
   width: 100%;
   font: inherit;
-  font-weight: 600;
-  font-size: 1.05rem;
+  font-weight: 800;
+  font-size: 1.02rem;
   text-align: center;
   text-decoration: none;
-  padding: 14px 18px;
-  border-radius: 12px;
+  padding: 15px 18px;
+  border-radius: 16px;
   border: 1px solid transparent;
   cursor: pointer;
 }
@@ -294,7 +422,7 @@ select:focus {
 .button.primary {
   background: var(--brand-gradient);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(62, 12, 152, 0.25);
+  box-shadow: 0 6px 18px rgba(59, 18, 184, 0.28);
 }
 
 .button.primary:hover {
@@ -303,8 +431,15 @@ select:focus {
 
 .button.secondary {
   background: var(--surface);
-  color: var(--brand-dark);
-  border-color: var(--brand);
+  color: var(--brand);
+  border: 1.5px solid var(--brand);
+}
+
+/* « + Publier une nouvelle demande » : cadre en pointillés */
+.button.dashed {
+  background: transparent;
+  color: var(--brand);
+  border: 2px dashed var(--brand);
 }
 
 .button:disabled {
@@ -325,9 +460,10 @@ select:focus {
 
 .lang-switch {
   font: inherit;
-  font-size: 0.9rem;
-  background: var(--brand-light);
-  color: var(--brand-dark);
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
   border: 0;
   border-radius: 999px;
   padding: 6px 14px;
@@ -463,12 +599,12 @@ textarea {
 }
 
 .tag {
-  font-size: 0.85rem;
-  padding: 4px 10px;
+  font-size: 0.82rem;
+  padding: 5px 12px;
   border-radius: 999px;
   background: var(--brand-light);
-  color: var(--brand-dark);
-  font-weight: 600;
+  color: var(--brand);
+  font-weight: 700;
 }
 
 .notice {
@@ -509,7 +645,7 @@ textarea {
   display: flex;
   justify-content: space-around;
   background: var(--surface);
-  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 20px rgba(26, 21, 48, 0.06);
   padding: 6px 4px;
   padding-bottom: max(6px, env(safe-area-inset-bottom));
 }
@@ -523,14 +659,16 @@ textarea {
   gap: 2px;
   padding: 6px 4px;
   border-radius: 12px;
-  font-size: 0.8rem;
-  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9a97ad;
   text-decoration: none;
+  position: relative;
 }
 
 .bottom-nav-icon {
   position: relative;
-  font-size: 1.3rem;
+  display: flex;
 }
 
 .badge-dot {
@@ -551,8 +689,18 @@ textarea {
 
 .bottom-nav-item.active {
   color: var(--brand);
-  font-weight: 700;
-  background: var(--brand-light);
+  font-weight: 800;
+}
+
+/* Petit point orange sous l'onglet actif */
+.bottom-nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 
 /* --- Listes et cartes de résultats ----------------------------------- */
@@ -605,10 +753,10 @@ select {
 
 .verified {
   flex-shrink: 0;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #1e6b3a;
-  background: #e7f6ec;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--brand);
+  background: var(--brand-light);
   padding: 3px 9px;
   border-radius: 999px;
 }
@@ -824,7 +972,7 @@ select {
 
 .bubble.mine {
   align-self: flex-end;
-  background: var(--brand);
+  background: var(--brand-gradient);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
@@ -832,7 +980,7 @@ select {
 .bubble.theirs {
   align-self: flex-start;
   background: var(--surface);
-  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
   border-bottom-left-radius: 4px;
 }
 
@@ -1007,4 +1155,310 @@ input[type='file'] {
 .offline-icon {
   font-size: 2.5rem;
   margin: 0;
+}
+
+/* --- Maquette Figma : en-têtes, avatars, chiffres clés, confiance ------ */
+
+/* Bandeau violet en haut d'un écran, dans le prolongement de l'en-tête */
+.page-head {
+  margin: -20px -16px 4px;
+  padding: 6px 16px 22px;
+  background: var(--brand);
+  color: #fff;
+  border-radius: 0 0 28px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  line-height: 1.2;
+}
+
+.page-head-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-head-overline {
+  margin: 0 0 2px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.icon-button {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  cursor: pointer;
+}
+
+.head-pill {
+  align-self: flex-start;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Petits titres de section en majuscules */
+.overline {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.section-title.overline {
+  margin-top: 12px;
+}
+
+.avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 800;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(26, 21, 48, 0.15);
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.person-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.88rem;
+}
+
+.person .profile-name {
+  flex: 1;
+}
+
+.person-text .profile-name {
+  flex: none;
+  font-size: 1.05rem;
+}
+
+.price {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.list-count {
+  margin: 4px 0 0;
+  font-weight: 800;
+}
+
+/* Raccourcis de service dans l'en-tête */
+.quick-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 0 16px 2px;
+  scrollbar-width: none;
+}
+
+.quick-chip {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.quick-chip.selected {
+  background: #fff;
+  color: var(--brand);
+  border-color: #fff;
+}
+
+/* Chiffres clés sous l'en-tête d'une fiche */
+.stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 6px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  padding: 0 4px;
+}
+
+.stat + .stat {
+  border-left: 1px solid var(--border);
+}
+
+.stat dd {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1.02rem;
+}
+
+.stat dd.accent {
+  color: var(--accent);
+}
+
+.stat dt {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* Score de confiance */
+.trust {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trust-steps {
+  list-style: none;
+  margin: 0;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--brand-light);
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+}
+
+.trust-steps li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.trust-steps li.done {
+  color: var(--brand);
+}
+
+.trust-dot {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px dashed #c9c3dd;
+  color: #9a97ad;
+}
+
+.trust-steps li.done .trust-dot {
+  background: var(--brand);
+  border: 0;
+  color: #fff;
+}
+
+.trust-note {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* Accueil : « Pourquoi NOUNOU+ ? » */
+.welcome-why {
+  margin: 32px 0 12px;
+  text-align: left;
+}
+
+.features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.feature {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.feature > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.88rem;
+}
+
+.feature strong {
+  font-size: 0.98rem;
+}
+
+.feature-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: var(--brand-light);
+  color: var(--brand);
+}
+
+/* Conversation : en-tête violet avec la personne */
+.chat-head .avatar {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.chat-head .profile-name {
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.chat-head .phone {
+  color: #fff;
+  opacity: 0.85;
+  font-size: 0.9rem;
+}
+
+.chat-top {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }

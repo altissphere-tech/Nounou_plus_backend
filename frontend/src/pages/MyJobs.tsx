@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { myJobs, updateJob } from '../api/search'
 import type { MyJob } from '../api/types'
 import { useI18n } from '../i18n/I18nContext'
+import PageHead from '../components/PageHead'
 import { MyJobCard } from '../lists/cards'
 import ListFooter from '../lists/ListFooter'
 import { usePagedList } from '../lists/usePagedList'
@@ -20,8 +21,8 @@ export default function MyJobs() {
 
   return (
     <section className="stack">
-      <h1>{t('myJobs.title')}</h1>
-      <Link to="/mes-annonces/nouvelle" className="button primary">
+      <PageHead title={t('myJobs.title')} />
+      <Link to="/mes-annonces/nouvelle" className="button dashed">
         + {t('myJobs.new')}
       </Link>
       {!list.loading && !list.failed && list.count === 0 && <p className="card muted">{t('myJobs.empty')}</p>}

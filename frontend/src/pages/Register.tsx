@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Briefcase, Check, Users } from 'lucide-react'
 import { register } from '../api/accounts'
 import { errorText } from '../components/errors'
 import PhoneField from '../components/PhoneField'
@@ -30,10 +31,10 @@ export default function Register() {
     }
   }
 
-  const roles: { value: Role; title: string; hint: string }[] = [
-    { value: 'client', title: t('register.role.client'), hint: t('register.role.client.hint') },
-    { value: 'travailleur', title: t('register.role.worker'), hint: t('register.role.worker.hint') },
-  ]
+  const roles = [
+    { value: 'client', icon: Users, prefix: 'register.role.client' },
+    { value: 'travailleur', icon: Briefcase, prefix: 'register.role.worker' },
+  ] as const
 
   return (
     <form className="card" onSubmit={submit}>
@@ -41,7 +42,7 @@ export default function Register() {
       <fieldset className="roles">
         <legend className="field-label">{t('register.roleQuestion')}</legend>
         {roles.map((r) => (
-          <label key={r.value} className={`role-option ${role === r.value ? 'selected' : ''}`}>
+          <label key={r.value} className={`role-option role-${r.value} ${role === r.value ? 'selected' : ''}`}>
             <input
               type="radio"
               name="role"
@@ -49,8 +50,21 @@ export default function Register() {
               checked={role === r.value}
               onChange={() => setRole(r.value)}
             />
-            <span className="role-title">{r.title}</span>
-            <span className="role-hint">{r.hint}</span>
+            <span className="role-top">
+              <span className="role-icon" aria-hidden="true">
+                <r.icon size={20} />
+              </span>
+              <span className="role-tag">{t(`${r.prefix}.tag`)}</span>
+            </span>
+            <span className="role-title">{t(r.prefix)}</span>
+            <span className="role-hint">{t(`${r.prefix}.hint`)}</span>
+            <ul className="role-points">
+              {(['p1', 'p2', 'p3'] as const).map((point) => (
+                <li key={point}>
+                  <Check size={14} aria-hidden="true" /> {t(`${r.prefix}.${point}`)}
+                </li>
+              ))}
+            </ul>
           </label>
         ))}
       </fieldset>
