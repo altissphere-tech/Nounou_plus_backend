@@ -215,6 +215,26 @@ Règles :
 
 ---
 
+## Signalements (V1 — app reports)
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| POST | `/api/reports/` | Signaler un profil : `{"profile_id": 12, "category": "arnaque", "description": "…"}` |
+| GET  | `/api/reports/` | Voir ses signalements (`en_attente` ou `traite`) |
+
+- Un client signale un **profil travailleur** qu'il voit (liste ou matchs), un travailleur
+  signale un **profil client**. Aucun match n'est nécessaire.
+- Catégories : `faux_profil`, `comportement_inapproprie`, `arnaque`, `securite`, `autre`
+  (description obligatoire pour `autre`).
+- **Anonyme** : la personne signalée ne sait jamais qui l'a signalée.
+- Dans `/admin/` → « Signalements », l'administrateur décide :
+  - **Classé sans suite** ;
+  - **Avertissement** : le message s'affiche dans `/api/accounts/me/` (champ `warnings`) ;
+  - **Compte suspendu** : plus de connexion (même avec un ancien token), disparition des
+    listes, des matchs et de la messagerie. Annuler la décision réactive le compte.
+
+---
+
 ## Catalogue des services
 
 | Méthode | URL | Description |
@@ -263,7 +283,8 @@ nounou-backend/
 │   ├── matching/      → Mise en relation (intérêt, match mutuel, refus) ✅
 │   ├── messaging/     → Messagerie après match mutuel + modération ✅
 │   ├── verification/  → Documents (identité, référence) et badge « vérifié » ✅
-│   └── reviews/       → Évaluations après la période d'essai ✅
+│   ├── reviews/       → Évaluations après la période d'essai ✅
+│   └── reports/       → Signalements, avertissements et suspensions ✅
 ├── common/            → Permissions, listes de choix et règles de confidentialité partagées
 ├── requirements/
 │   ├── base.txt       → Dépendances de production

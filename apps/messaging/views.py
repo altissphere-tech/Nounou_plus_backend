@@ -1,7 +1,6 @@
 """
 Vues (endpoints) de l'app messaging.
 """
-from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -30,10 +29,7 @@ class ConversationView(APIView):
 
     def _get_open_match(self, request, match_id):
         """Retourne le match si l'utilisateur y participe et qu'il est mutuel, sinon une erreur."""
-        match = get_object_or_404(
-            Match.objects.filter(Q(client__user=request.user) | Q(worker__user=request.user)),
-            pk=match_id,
-        )
+        match = get_object_or_404(Match.objects.for_user(request.user), pk=match_id)
         if match.status_seen_by(request.user) != Match.STATUS_MUTUAL:
             return match, Response({"detail": CLOSED_MESSAGE}, status=status.HTTP_403_FORBIDDEN)
         return match, None

@@ -114,7 +114,7 @@ class WorkerProfileListView(APIView):
     permission_classes = [IsWorkerOrClient]
 
     def get(self, request):
-        profiles = WorkerProfile.objects.filter(is_verified=True).select_related("user")
+        profiles = WorkerProfile.objects.visible_to_clients().select_related("user")
         serializer = WorkerProfilePublicSerializer(profiles, many=True)
         return Response(
             {

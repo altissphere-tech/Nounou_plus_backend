@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "apps.messaging",
     "apps.verification",
     "apps.reviews",
+    "apps.reports",
 ]
 
 # --- Middleware ---

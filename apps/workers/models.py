@@ -13,6 +13,16 @@ from django.db import models
 from common import choices
 
 
+class WorkerProfileQuerySet(models.QuerySet):
+    def active(self):
+        """Profils dont le compte n'est pas suspendu."""
+        return self.filter(user__is_active=True)
+
+    def visible_to_clients(self):
+        """Profils que les clients peuvent voir : comptes actifs et vérifiés."""
+        return self.active().filter(is_verified=True)
+
+
 class WorkerProfile(models.Model):
     """
     Profil professionnel d'un travailleur domestique (nounou, femme de ménage, cuisinière).
@@ -103,6 +113,8 @@ class WorkerProfile(models.Model):
     # --- Horodatages ---
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Créé le")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Modifié le")
+
+    objects = WorkerProfileQuerySet.as_manager()
 
     class Meta:
         verbose_name = "Profil travailleur"

@@ -1,7 +1,6 @@
 """
 Vues (endpoints) de l'app matching.
 """
-from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
@@ -24,13 +23,6 @@ def _own_profile(user):
     return getattr(user, attr, None)
 
 
-def _user_matches(user):
-    """Tous les matchs auxquels l'utilisateur participe."""
-    return Match.objects.filter(
-        Q(client__user=user) | Q(worker__user=user)
-    ).select_related("client__user", "worker__user")
-
-
 class MatchListView(APIView):
     """
     GET /api/matches/
@@ -42,7 +34,7 @@ class MatchListView(APIView):
     permission_classes = [IsWorkerOrClient]
 
     def get(self, request):
-        matches = _user_matches(request.user).prefetch_related(
+        matches = Match.objects.for_user(request.user).prefetch_related(
             "client__services_needed", "worker__services"
         )
         serializer = MatchSerializer(matches, many=True, context={"request": request})
@@ -73,7 +65,7 @@ class MatchInterestView(APIView):
 
         if request.user.role == User.ROLE_CLIENT:
             # Les clients ne voient que les travailleurs vérifiés
-            worker = get_object_or_404(WorkerProfile, pk=profile_id, is_verified=True)
+            worker = get_object_or_404(WorkerProfile.objects.visible_to_clients(), pk=profile_id)
             match, created = Match.objects.get_or_create(client=own_profile, worker=worker)
         else:
             if not own_profile.is_verified:
@@ -82,7 +74,7 @@ class MatchInterestView(APIView):
                                "avant de pouvoir contacter des clients."},
                     status=status.HTTP_403_FORBIDDEN,
                 )
-            client = get_object_or_404(ClientProfile, pk=profile_id)
+            client = get_object_or_404(ClientProfile.objects.active(), pk=profile_id)
             match, created = Match.objects.get_or_create(client=client, worker=own_profile)
 
         match.set_decision(request.user, Match.DECISION_INTERESTED)
@@ -111,7 +103,7 @@ class MatchDeclineView(APIView):
     permission_classes = [IsWorkerOrClient]
 
     def post(self, request, pk):
-        match = get_object_or_404(_user_matches(request.user), pk=pk)
+        match = get_object_or_404(Match.objects.for_user(request.user), pk=pk)
         match.set_decision(request.user, Match.DECISION_DECLINED)
         return Response(
             {

@@ -111,6 +111,6 @@ class ClientProfileListView(APIView):
     permission_classes = [IsWorker]
 
     def get(self, request):
-        profiles = ClientProfile.objects.prefetch_related("services_needed")
+        profiles = ClientProfile.objects.active().prefetch_related("services_needed")
         serializer = ClientProfilePublicSerializer(profiles, many=True)
         return Response({"count": len(serializer.data), "results": serializer.data})

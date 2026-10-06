@@ -17,6 +17,19 @@ from django.utils import timezone
 from apps.accounts.models import User
 
 
+class MatchQuerySet(models.QuerySet):
+    def for_user(self, user):
+        """
+        Les matchs auxquels l'utilisateur participe, en excluant ceux dont
+        l'autre partie a un compte suspendu (elle disparaît de la plateforme).
+        """
+        return self.filter(
+            models.Q(client__user=user) | models.Q(worker__user=user),
+            client__user__is_active=True,
+            worker__user__is_active=True,
+        ).select_related("client__user", "worker__user")
+
+
 class Match(models.Model):
     # --- Décision de chaque partie ---
     DECISION_PENDING = "en_attente"
@@ -75,6 +88,8 @@ class Match(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Créé le")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Modifié le")
+
+    objects = MatchQuerySet.as_manager()
 
     class Meta:
         verbose_name = "Mise en relation"

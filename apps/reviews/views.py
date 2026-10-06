@@ -1,7 +1,7 @@
 """
 Vues (endpoints) de l'app reviews.
 """
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
@@ -29,11 +29,7 @@ class MatchReviewView(APIView):
     permission_classes = [IsWorkerOrClient]
 
     def post(self, request, match_id):
-        match = get_object_or_404(
-            Match.objects.filter(Q(client__user=request.user) | Q(worker__user=request.user))
-            .select_related("client__user", "worker__user"),
-            pk=match_id,
-        )
+        match = get_object_or_404(Match.objects.for_user(request.user), pk=match_id)
 
         if match.reviews.filter(author=request.user).exists():
             return Response(
@@ -96,7 +92,7 @@ class WorkerReviewsView(APIView):
     permission_classes = [IsWorkerOrClient]
 
     def get(self, request, profile_id):
-        worker = get_object_or_404(WorkerProfile.objects.select_related("user"), pk=profile_id)
+        worker = get_object_or_404(WorkerProfile.objects.active().select_related("user"), pk=profile_id)
         return _reviews_response(worker.user, WORKER_CRITERIA)
 
 
@@ -110,5 +106,5 @@ class ClientReviewsView(APIView):
     permission_classes = [IsWorkerOrClient]
 
     def get(self, request, profile_id):
-        client = get_object_or_404(ClientProfile.objects.select_related("user"), pk=profile_id)
+        client = get_object_or_404(ClientProfile.objects.active().select_related("user"), pk=profile_id)
         return _reviews_response(client.user, CLIENT_CRITERIA)

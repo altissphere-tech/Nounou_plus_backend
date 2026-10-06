@@ -20,4 +20,5 @@ urlpatterns = [
     path("api/verification/", include("apps.verification.urls")),
     path("api/matches/<int:match_id>/review/", MatchReviewView.as_view(), name="matches-review"),
     path("api/reviews/", include("apps.reviews.urls")),
+    path("api/reports/", include("apps.reports.urls")),
 ]

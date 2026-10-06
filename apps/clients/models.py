@@ -13,6 +13,12 @@ from django.db import models
 from common import choices
 
 
+class ClientProfileQuerySet(models.QuerySet):
+    def active(self):
+        """Profils dont le compte n'est pas suspendu."""
+        return self.filter(user__is_active=True)
+
+
 class ClientProfile(models.Model):
     """
     Profil d'un client (famille) et description de ses besoins.
@@ -68,6 +74,8 @@ class ClientProfile(models.Model):
     # --- Horodatages ---
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Créé le")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Modifié le")
+
+    objects = ClientProfileQuerySet.as_manager()
 
     class Meta:
         verbose_name = "Profil client"

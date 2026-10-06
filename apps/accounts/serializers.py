@@ -8,6 +8,8 @@ from rest_framework import serializers
 from phonenumber_field.serializerfields import PhoneNumberField
 from .models import User
 
+SUSPENDED_MESSAGE = "Ce compte a été suspendu. Contactez l'équipe NOUNOU+ pour plus d'informations."
+
 
 class RegisterSerializer(serializers.Serializer):
     """
@@ -50,6 +52,8 @@ class OTPRequestSerializer(serializers.Serializer):
             self._user = User.objects.get(phone=value)
         except User.DoesNotExist:
             raise serializers.ValidationError("Aucun compte trouvé avec ce numéro.")
+        if not self._user.is_active:
+            raise serializers.ValidationError(SUSPENDED_MESSAGE)
         return value
 
     def get_user(self) -> User:
@@ -72,6 +76,9 @@ class OTPVerifySerializer(serializers.Serializer):
             user = User.objects.get(phone=phone)
         except User.DoesNotExist:
             raise serializers.ValidationError({"phone": "Aucun compte trouvé avec ce numéro."})
+
+        if not user.is_active:
+            raise serializers.ValidationError({"phone": SUSPENDED_MESSAGE})
 
         if not user.verify_otp(code):
             raise serializers.ValidationError({"code": "Code OTP invalide ou expiré."})

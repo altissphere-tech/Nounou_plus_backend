@@ -10,6 +10,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.reports.models import warnings_for
+
 from .models import OTPUnavailableError
 from .serializers import (
     OTPRequestSerializer,
@@ -121,11 +123,15 @@ class MeView(APIView):
     """
     GET /api/accounts/me/
 
-    Retourne le profil de l'utilisateur connecté.
+    Retourne le profil de l'utilisateur connecté, avec les éventuels
+    avertissements reçus de l'équipe NOUNOU+.
     Nécessite un token JWT valide dans l'en-tête Authorization.
     """
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response(UserSerializer(request.user).data)
+        data = UserSerializer(request.user).data
+        # Avertissements de l'équipe NOUNOU+ (sans jamais révéler qui a signalé)
+        data["warnings"] = warnings_for(request.user)
+        return Response(data)
