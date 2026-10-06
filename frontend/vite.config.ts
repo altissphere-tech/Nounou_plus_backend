@@ -8,8 +8,16 @@ export default defineConfig({
   server: {
     // En développement, les appels /api/... sont transmis au serveur Django
     // (python manage.py runserver), ce qui évite toute configuration CORS.
+    // changeOrigin : Django reçoit « 127.0.0.1 » comme adresse, même quand
+    // l'application est ouverte depuis un téléphone du même Wi-Fi.
     proxy: {
-      '/api': 'http://127.0.0.1:8000',
+      '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+    },
+  },
+  // `npm run preview` : version finale (avec installation et mode hors connexion)
+  preview: {
+    proxy: {
+      '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
     },
   },
   test: {

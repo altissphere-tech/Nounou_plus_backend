@@ -269,6 +269,17 @@ const fr = {
   'report.error': 'Impossible d\'envoyer le signalement.',
   'report.someone': 'ce profil',
 
+  'install.title': 'Installer NOUNOU+',
+  'install.text': 'Ajoutez l\'application sur votre écran d\'accueil pour l\'ouvrir en un geste, comme une vraie application.',
+  'install.ios': 'Sur iPhone : touchez le bouton Partager (carré avec une flèche), puis « Sur l\'écran d\'accueil ».',
+  'install.button': 'Installer',
+  'install.later': 'Plus tard',
+  'offline.banner': 'Vous êtes hors connexion. Certaines informations ne peuvent pas être mises à jour.',
+
+  'offline.title': 'Pas de connexion internet',
+  'offline.text': 'Vous êtes bien connecté(e) à NOUNOU+, mais internet n\'est pas disponible. Vos informations s\'afficheront dès le retour de la connexion.',
+  'offline.retry': 'Réessayer',
+
   'common.back': 'Retour',
   'common.loading': 'Chargement…',
   'common.networkError': 'Connexion impossible. Vérifiez votre connexion internet.',

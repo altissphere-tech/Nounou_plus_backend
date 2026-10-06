@@ -270,6 +270,17 @@ const en: Record<TranslationKey, string> = {
   'report.error': 'Could not send the report.',
   'report.someone': 'this profile',
 
+  'install.title': 'Install NOUNOU+',
+  'install.text': 'Add the app to your home screen to open it in one tap, like a real app.',
+  'install.ios': 'On iPhone: tap the Share button (square with an arrow), then “Add to Home Screen”.',
+  'install.button': 'Install',
+  'install.later': 'Later',
+  'offline.banner': 'You are offline. Some information cannot be updated.',
+
+  'offline.title': 'No internet connection',
+  'offline.text': 'You are still signed in to NOUNOU+, but the internet is not available. Your information will appear as soon as the connection is back.',
+  'offline.retry': 'Try again',
+
   'common.back': 'Back',
   'common.loading': 'Loading…',
   'common.networkError': 'Cannot connect. Check your internet connection.',

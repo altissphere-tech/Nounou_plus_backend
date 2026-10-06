@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
 import { money } from '../lists/format'
+import InstallPrompt from '../pwa/InstallPrompt'
 import type { MyProfile } from '../profile/useMyProfile'
 import { useMyProfile } from '../profile/useMyProfile'
 
@@ -137,6 +138,7 @@ export default function Home() {
       {failed && <p className="error">{t('profile.loadError')}</p>}
       {!data && !failed && <p className="muted">{t('common.loading')}</p>}
       {data && <ProfileCard data={data} />}
+      <InstallPrompt />
 
       <AccountCard user={user!} onLogout={logout} />
     </section>

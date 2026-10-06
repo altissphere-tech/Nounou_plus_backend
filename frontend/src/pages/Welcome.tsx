@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import Logo from '../components/Logo'
 import { useI18n } from '../i18n/I18nContext'
+import InstallPrompt from '../pwa/InstallPrompt'
 
 export default function Welcome() {
   const { t } = useI18n()
@@ -19,6 +20,7 @@ export default function Welcome() {
         <Link to="/connexion" className="button secondary">
           {t('welcome.login')}
         </Link>
+        <InstallPrompt />
       </div>
     </section>
   )

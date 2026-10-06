@@ -3,8 +3,12 @@
   "short_name": "NOUNOU+",
   "description": "Familles et travailleurs domestiques de confiance à Lubumbashi",
   "lang": "fr",
-  "start_url": "/",
+  "id": "/",
+  "start_url": "/accueil",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
+  "categories": ["lifestyle", "business"],
   "background_color": "#ffffff",
   "theme_color": "#3E0C98",
   "icons": [
