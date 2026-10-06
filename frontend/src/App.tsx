@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import { I18nProvider, useI18n } from './i18n/I18nContext'
 import Home from './pages/Home'
 import Login from './pages/Login'
+import ProfileForm from './pages/ProfileForm'
 import Register from './pages/Register'
 import VerifyCode from './pages/VerifyCode'
 import Welcome from './pages/Welcome'
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="/connexion" element={<Public><Login /></Public>} />
               <Route path="/code" element={<Public><VerifyCode /></Public>} />
               <Route path="/accueil" element={<Private><Home /></Private>} />
+              <Route path="/profil" element={<Private><ProfileForm /></Private>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Layout>
