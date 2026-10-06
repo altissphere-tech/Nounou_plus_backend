@@ -4,10 +4,12 @@ Serializers de l'app clients.
 - ClientProfileSerializer      : lecture (son propre profil)
 - ClientProfileWriteSerializer : écriture (création et modification)
 """
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.services.models import Service
 from apps.reviews.models import rating_summary
+from apps.reviews.serializers import RatingSummarySerializer
 from apps.services.serializers import validate_service_slugs
 from common.privacy import mask_last_name
 
@@ -41,6 +43,7 @@ class ClientProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    @extend_schema_field(RatingSummarySerializer)
     def get_rating(self, obj) -> dict:
         return rating_summary(obj.user)
 

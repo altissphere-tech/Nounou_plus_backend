@@ -3,7 +3,9 @@ Vues (endpoints) de l'app accounts.
 Chaque vue correspond à une URL et traite une action précise.
 """
 from django.db import transaction
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import status
+from rest_framework import serializers as drf_serializers
 from rest_framework.exceptions import APIException
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -11,9 +13,11 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.reports.models import warnings_for
+from common.schema import MESSAGE_ONLY, error, with_message
 
 from .models import OTPUnavailableError
 from .serializers import (
+    MeSerializer,
     OTPRequestSerializer,
     OTPVerifySerializer,
     RegisterSerializer,
@@ -56,6 +60,17 @@ class RegisterView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        tags=["Comptes"],
+        summary="Créer un compte (client ou travailleur)",
+        auth=[],
+        request=RegisterSerializer,
+        responses={
+            201: with_message("RegisterResponse", "user", UserSerializer),
+            400: error("Numéro invalide ou déjà utilisé, ou rôle invalide."),
+            503: error("Envoi des codes SMS indisponible (le compte n'est pas créé)."),
+        },
+    )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -83,6 +98,17 @@ class OTPRequestView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        tags=["Comptes"],
+        summary="Recevoir un nouveau code SMS",
+        auth=[],
+        request=OTPRequestSerializer,
+        responses={
+            200: MESSAGE_ONLY,
+            400: error("Numéro inconnu ou compte suspendu."),
+            503: error("Envoi des codes SMS indisponible."),
+        },
+    )
     def post(self, request):
         serializer = OTPRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -104,6 +130,31 @@ class OTPVerifyView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        tags=["Comptes"],
+        summary="Se connecter avec le code SMS (renvoie les tokens)",
+        description="En développement, le code est toujours `123456`. "
+        "Copiez `tokens.access` puis cliquez sur **Authorize** en haut de la page.",
+        auth=[],
+        request=OTPVerifySerializer,
+        responses={
+            200: inline_serializer(
+                name="LoginResponse",
+                fields={
+                    "message": drf_serializers.CharField(),
+                    "tokens": inline_serializer(
+                        name="Tokens",
+                        fields={
+                            "refresh": drf_serializers.CharField(),
+                            "access": drf_serializers.CharField(),
+                        },
+                    ),
+                    "user": UserSerializer(),
+                },
+            ),
+            400: error("Numéro inconnu, compte suspendu ou code invalide."),
+        },
+    )
     def post(self, request):
         serializer = OTPVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -130,6 +181,11 @@ class MeView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        tags=["Comptes"],
+        summary="Mon compte (et mes éventuels avertissements)",
+        responses={200: MeSerializer, 401: error("Token absent, invalide ou expiré.")},
+    )
     def get(self, request):
         data = UserSerializer(request.user).data
         # Avertissements de l'équipe NOUNOU+ (sans jamais révéler qui a signalé)

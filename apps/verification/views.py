@@ -1,11 +1,14 @@
 """
 Vues (endpoints) de l'app verification.
 """
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import status
+from rest_framework import serializers as drf_serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.permissions import IsWorker
+from common.schema import AUTH_ERRORS, error, with_message
 
 from .serializers import VerificationRecordSerializer, VerificationUploadSerializer
 
@@ -27,6 +30,21 @@ class VerificationDocumentsView(APIView):
     def _get_worker(self, request):
         return getattr(request.user, "worker_profile", None)
 
+    @extend_schema(
+        tags=["Vérification"],
+        summary="Mes documents et mon badge",
+        responses={
+            200: inline_serializer(
+                name="MyVerification",
+                fields={
+                    "is_verified": drf_serializers.BooleanField(),
+                    "documents": VerificationRecordSerializer(many=True),
+                },
+            ),
+            404: error("Profil travailleur pas encore créé."),
+            **AUTH_ERRORS,
+        },
+    )
     def get(self, request):
         worker = self._get_worker(request)
         if worker is None:
@@ -39,6 +57,19 @@ class VerificationDocumentsView(APIView):
             }
         )
 
+    @extend_schema(
+        tags=["Vérification"],
+        summary="Envoyer un document (pièce d'identité ou référence)",
+        description="Formulaire multipart. Formats : PDF, JPG, PNG — 5 Mo maximum. "
+        "Le badge « vérifié » est accordé quand l'équipe valide la pièce d'identité.",
+        request={"multipart/form-data": VerificationUploadSerializer},
+        responses={
+            201: with_message("DocumentReceived", "document", VerificationRecordSerializer),
+            400: error("Fichier invalide, trop lourd, ou document du même type déjà en attente/validé."),
+            404: error("Profil travailleur pas encore créé."),
+            **AUTH_ERRORS,
+        },
+    )
     def post(self, request):
         worker = self._get_worker(request)
         if worker is None:

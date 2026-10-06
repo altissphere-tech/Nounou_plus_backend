@@ -3,6 +3,7 @@ Vues (endpoints) de l'app reports.
 """
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,6 +12,7 @@ from apps.accounts.models import User
 from apps.clients.models import ClientProfile
 from apps.workers.models import WorkerProfile
 from common.pagination import paginated_response
+from common.schema import AUTH_ERRORS, PAGINATION_PARAMETERS, error, paginated, with_message
 from common.permissions import IsWorkerOrClient
 
 from .models import Report
@@ -29,10 +31,30 @@ class ReportView(APIView):
 
     permission_classes = [IsWorkerOrClient]
 
+    @extend_schema(
+        tags=["Signalements"],
+        summary="Mes signalements (en attente / traité)",
+        operation_id="reports_list",
+        parameters=PAGINATION_PARAMETERS,
+        responses={200: paginated("PaginatedReports", ReportSerializer), **AUTH_ERRORS},
+    )
     def get(self, request):
         reports = request.user.reports_made.all()
         return paginated_response(request, self, reports, ReportSerializer)
 
+    @extend_schema(
+        tags=["Signalements"],
+        summary="Signaler un profil (anonyme)",
+        description="Client → `profile_id` d'un travailleur ; travailleur → `profile_id` d'un client. "
+        "`description` est obligatoire pour la catégorie `autre`.",
+        request=ReportCreateSerializer,
+        responses={
+            201: with_message("ReportCreated", "report", ReportSerializer),
+            400: error("Données invalides, ou signalement déjà en cours pour ce profil."),
+            404: error("Profil introuvable ou non visible."),
+            **AUTH_ERRORS,
+        },
+    )
     def post(self, request):
         serializer = ReportCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

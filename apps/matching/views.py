@@ -2,6 +2,7 @@
 Vues (endpoints) de l'app matching.
 """
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,6 +11,7 @@ from apps.accounts.models import User
 from apps.clients.models import ClientProfile
 from apps.workers.models import WorkerProfile
 from common.pagination import paginated_response
+from common.schema import AUTH_ERRORS, PAGINATION_PARAMETERS, error, paginated, with_message
 from common.permissions import IsWorkerOrClient
 
 from .models import Match
@@ -19,6 +21,11 @@ NO_PROFILE_MESSAGE = "Vous devez d'abord créer votre profil avant de manifester
 UNVERIFIED_WORKER_MESSAGE = (
     "Votre profil doit être vérifié par l'équipe NOUNOU+ avant de pouvoir contacter des clients."
 )
+
+
+# Format de réponse commun à « manifester son intérêt » (profil ou annonce)
+_INTEREST_RESPONSE = with_message("InterestResponse", "match", MatchSerializer)
+INTEREST_RESPONSES = {200: _INTEREST_RESPONSE, 201: _INTEREST_RESPONSE}
 
 
 def interest_response(request, match, created):
@@ -53,6 +60,13 @@ class MatchListView(APIView):
 
     permission_classes = [IsWorkerOrClient]
 
+    @extend_schema(
+        tags=["Mise en relation"],
+        summary="Mes mises en relation",
+        operation_id="matches_list",
+        parameters=PAGINATION_PARAMETERS,
+        responses={200: paginated("PaginatedMatches", MatchSerializer), **AUTH_ERRORS},
+    )
     def get(self, request):
         matches = Match.objects.for_user(request.user).prefetch_related(
             "client__services_needed", "worker__services"
@@ -75,6 +89,22 @@ class MatchInterestView(APIView):
 
     permission_classes = [IsWorkerOrClient]
 
+    @extend_schema(
+        tags=["Mise en relation"],
+        summary="Me déclarer intéressé(e) par un profil",
+        description="Client → `profile_id` d'un travailleur vérifié ; travailleur → `profile_id` "
+        "d'un client. Si l'autre était déjà intéressé, le match devient mutuel (statut `mutuel`) : "
+        "nom complet et téléphone apparaissent dans `other_party`. 201 si la mise en relation est "
+        "nouvelle, 200 sinon.",
+        request=InterestSerializer,
+        responses={
+            **INTEREST_RESPONSES,
+            400: error("Vous n'avez pas encore créé votre profil."),
+            401: AUTH_ERRORS[401],
+            403: error("Rôle non autorisé, ou travailleur pas encore vérifié."),
+            404: error("Profil introuvable ou non visible."),
+        },
+    )
     def post(self, request):
         serializer = InterestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -109,6 +139,17 @@ class MatchDeclineView(APIView):
 
     permission_classes = [IsWorkerOrClient]
 
+    @extend_schema(
+        tags=["Mise en relation"],
+        summary="Refuser une mise en relation",
+        description="L'autre personne n'en est jamais informée : pour elle, la demande reste « en attente ».",
+        request=None,
+        responses={
+            200: with_message("MatchDeclined", "match", MatchSerializer),
+            404: error("Mise en relation introuvable."),
+            **AUTH_ERRORS,
+        },
+    )
     def post(self, request, pk):
         match = get_object_or_404(Match.objects.for_user(request.user), pk=pk)
         match.set_decision(request.user, Match.DECISION_DECLINED)

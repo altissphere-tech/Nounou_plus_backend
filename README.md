@@ -49,6 +49,20 @@ python manage.py runserver
 
 L'API est accessible sur : **http://127.0.0.1:8000/**
 
+### 📖 Documentation interactive
+
+Avec le serveur lancé, ouvrez **http://127.0.0.1:8000/api/docs/** : toutes les adresses
+de l'API y sont décrites (données attendues, réponses, filtres, erreurs) et peuvent être
+**essayées directement dans le navigateur** :
+
+1. rubrique « Comptes » → `POST /api/accounts/otp/request/` → *Try it out* → votre numéro → *Execute* ;
+2. `POST /api/accounts/otp/verify/` avec le code `123456` → copiez la valeur `access` ;
+3. bouton **Authorize** en haut de la page → collez le token → toutes les adresses sont utilisables.
+
+Variante en lecture seule : **http://127.0.0.1:8000/api/redoc/**. Description brute (OpenAPI),
+utile au développeur de l'application mobile : **http://127.0.0.1:8000/api/schema/**.
+En production, ces pages seront réservées aux comptes administrateurs.
+
 ---
 
 ## Endpoints disponibles (V1 — app accounts)
