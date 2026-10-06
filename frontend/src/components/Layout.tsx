@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/I18nContext'
+import BottomNav from './BottomNav'
 import Logo from './Logo'
 
 /** Cadre commun à tous les écrans : en-tête (logo + langue) et contenu centré. */
@@ -21,6 +22,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </button>
       </header>
       <main className="content">{children}</main>
+      <BottomNav />
     </div>
   )
 }

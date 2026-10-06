@@ -2,6 +2,7 @@
 Vues (endpoints) de l'app workers.
 """
 from django.db.models import Avg, F
+from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -214,3 +215,30 @@ class WorkerProfileListView(APIView):
         return paginated_response(
             request, self, profiles.prefetch_related("services"), WorkerProfilePublicSerializer
         )
+
+
+class WorkerProfileDetailView(APIView):
+    """
+    GET /api/workers/<id>/
+
+    Fiche publique d'un travailleur vérifié, avec les mêmes règles de
+    confidentialité que la liste (initiale du nom, téléphone masqué).
+    """
+
+    permission_classes = [IsWorkerOrClient]
+
+    @extend_schema(
+        tags=["Travailleurs"],
+        summary="Fiche d'un travailleur vérifié",
+        responses={
+            200: WorkerProfilePublicSerializer,
+            404: error("Profil introuvable, non vérifié ou suspendu."),
+            **AUTH_ERRORS,
+        },
+    )
+    def get(self, request, pk):
+        profile = get_object_or_404(
+            WorkerProfile.objects.visible_to_clients().select_related("user").prefetch_related("services"),
+            pk=pk,
+        )
+        return Response(WorkerProfilePublicSerializer(profile).data)

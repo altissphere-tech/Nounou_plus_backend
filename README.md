@@ -116,6 +116,7 @@ Tous ces endpoints nécessitent un token JWT (`Authorization: Bearer <token>`).
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET   | `/api/workers/` | Liste des profils travailleurs vérifiés (client ou travailleur) |
+| GET   | `/api/workers/<id>/` | Fiche d'un travailleur vérifié (mêmes règles de confidentialité) |
 | POST  | `/api/workers/profile/` | Créer son profil (travailleur uniquement) |
 | GET   | `/api/workers/profile/me/` | Voir son propre profil (travailleur uniquement) |
 | PATCH | `/api/workers/profile/me/` | Modifier son propre profil (travailleur uniquement) |
