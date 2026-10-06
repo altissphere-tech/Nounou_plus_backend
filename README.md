@@ -155,6 +155,34 @@ curl -X POST http://127.0.0.1:8000/api/clients/profile/ \
 
 ---
 
+## Annonces (V1 — app jobs)
+
+Une famille peut publier **plusieurs annonces**, chacune pour un service précis
+(ex : une nounou à temps plein et une cuisinière le week-end).
+
+| Méthode | URL | Qui | Description |
+|---------|-----|-----|-------------|
+| POST  | `/api/jobs/` | Client | Publier une annonce |
+| GET   | `/api/jobs/mine/` | Client | Ses annonces (tous statuts) |
+| GET   | `/api/jobs/` | Travailleur | Annonces ouvertes (filtres `service`, `location`, `availability`, `min_budget`) |
+| GET   | `/api/jobs/<id>/` | Les deux | Détail (le client : ses annonces ; le travailleur : annonces ouvertes) |
+| PATCH | `/api/jobs/<id>/` | Client | Modifier, ou changer le statut : `ouverte`, `pourvue`, `fermee` |
+| POST  | `/api/jobs/<id>/interest/` | Travailleur vérifié | Répondre à l'annonce |
+
+Exemple de publication :
+```json
+{"title": "Nounou pour 2 enfants", "service": "nounou", "availability": "temps_plein",
+ "budget": "200", "description": "Du lundi au vendredi, 7h-17h."}
+```
+`location` est facultatif (par défaut : le quartier du profil client), `budget` aussi.
+
+Répondre à une annonce crée la mise en relation avec la famille (champ `job` dans
+`/api/matches/`) : la famille accepte ou refuse comme d'habitude, avec les mêmes règles
+de confidentialité. Les travailleurs voient la famille sous la forme « Sarah K. ».
+Une annonce pourvue ou fermée disparaît de la liste des travailleurs.
+
+---
+
 ## Mise en relation (V1 — app matching)
 
 Tous ces endpoints nécessitent un token JWT (client ou travailleur) **et** un profil créé.
@@ -306,6 +334,7 @@ nounou-backend/
 │   ├── services/      → Catalogue des services (nounou, ménage, cuisine) ✅
 │   ├── workers/       → Profils travailleurs ✅
 │   ├── clients/       → Profils clients (familles) ✅
+│   ├── jobs/          → Annonces des familles ✅
 │   ├── matching/      → Mise en relation (intérêt, match mutuel, refus) ✅
 │   ├── messaging/     → Messagerie après match mutuel + modération ✅
 │   ├── verification/  → Documents (identité, référence) et badge « vérifié » ✅

@@ -16,6 +16,25 @@ from .models import Match
 from .serializers import InterestSerializer, MatchSerializer
 
 NO_PROFILE_MESSAGE = "Vous devez d'abord créer votre profil avant de manifester un intérêt."
+UNVERIFIED_WORKER_MESSAGE = (
+    "Votre profil doit être vérifié par l'équipe NOUNOU+ avant de pouvoir contacter des clients."
+)
+
+
+def interest_response(request, match, created):
+    """Enregistre l'intérêt de l'utilisateur sur ce match et construit la réponse de l'API."""
+    match.set_decision(request.user, Match.DECISION_INTERESTED)
+    if match.is_mutual:
+        message = "C'est un match ! Vous pouvez maintenant voir les coordonnées de l'autre personne."
+    else:
+        message = "Votre intérêt a été enregistré."
+    return Response(
+        {
+            "message": message,
+            "match": MatchSerializer(match, context={"request": request}).data,
+        },
+        status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+    )
 
 
 def _own_profile(user):
@@ -72,26 +91,12 @@ class MatchInterestView(APIView):
         else:
             if not own_profile.is_verified:
                 return Response(
-                    {"detail": "Votre profil doit être vérifié par l'équipe NOUNOU+ "
-                               "avant de pouvoir contacter des clients."},
-                    status=status.HTTP_403_FORBIDDEN,
+                    {"detail": UNVERIFIED_WORKER_MESSAGE}, status=status.HTTP_403_FORBIDDEN
                 )
             client = get_object_or_404(ClientProfile.objects.active(), pk=profile_id)
             match, created = Match.objects.get_or_create(client=client, worker=own_profile)
 
-        match.set_decision(request.user, Match.DECISION_INTERESTED)
-
-        if match.is_mutual:
-            message = "C'est un match ! Vous pouvez maintenant voir les coordonnées de l'autre personne."
-        else:
-            message = "Votre intérêt a été enregistré."
-        return Response(
-            {
-                "message": message,
-                "match": MatchSerializer(match, context={"request": request}).data,
-            },
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
-        )
+        return interest_response(request, match, created)
 
 
 class MatchDeclineView(APIView):

@@ -27,7 +27,7 @@ class MatchQuerySet(models.QuerySet):
             models.Q(client__user=user) | models.Q(worker__user=user),
             client__user__is_active=True,
             worker__user__is_active=True,
-        ).select_related("client__user", "worker__user")
+        ).select_related("client__user", "worker__user", "job")
 
 
 class Match(models.Model):
@@ -58,6 +58,15 @@ class Match(models.Model):
         on_delete=models.CASCADE,
         related_name="matches",
         verbose_name="Travailleur",
+    )
+    job = models.ForeignKey(
+        "jobs.JobRequest",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="matches",
+        verbose_name="Annonce concernée",
+        help_text="Annonce à laquelle le travailleur a répondu (vide si contact direct).",
     )
     client_decision = models.CharField(
         max_length=20,

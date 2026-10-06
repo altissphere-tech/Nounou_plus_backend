@@ -14,6 +14,7 @@ urlpatterns = [
     path("api/accounts/", include("apps.accounts.urls")),
     path("api/workers/", include("apps.workers.urls")),
     path("api/clients/", include("apps.clients.urls")),
+    path("api/jobs/", include("apps.jobs.urls")),
     path("api/services/", include("apps.services.urls")),
     path("api/matches/", include("apps.matching.urls")),
     path("api/matches/<int:match_id>/messages/", include("apps.messaging.urls")),

@@ -37,6 +37,9 @@ class MatchSerializer(serializers.ModelSerializer):
         help_text="Nombre de messages reçus non lus (0 si le match n'est pas mutuel)."
     )
 
+    job = serializers.SerializerMethodField(
+        help_text="Annonce concernée {id, title} ou null si le contact est direct."
+    )
     can_review = serializers.SerializerMethodField(
         help_text="True si vous pouvez maintenant évaluer l'autre personne."
     )
@@ -53,6 +56,7 @@ class MatchSerializer(serializers.ModelSerializer):
             "my_decision",
             "their_decision",
             "other_party",
+            "job",
             "unread_count",
             "can_review",
             "review_available_at",
@@ -73,6 +77,11 @@ class MatchSerializer(serializers.ModelSerializer):
 
     def get_their_decision(self, obj) -> str:
         return obj.other_decision_seen_by(self._user())
+
+    def get_job(self, obj):
+        if obj.job_id is None:
+            return None
+        return {"id": obj.job_id, "title": obj.job.title}
 
     def get_can_review(self, obj) -> bool:
         return obj.can_be_reviewed_by(self._user())
