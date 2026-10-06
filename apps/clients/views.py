@@ -5,6 +5,9 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common import choices
+from common.filters import get_choice, get_decimal, get_text
+from common.pagination import paginated_response
 from common.permissions import IsClient, IsWorker
 
 from .models import ClientProfile
@@ -104,13 +107,34 @@ class ClientProfileListView(APIView):
     GET /api/clients/
 
     Liste des besoins des clients, consultable par les travailleurs pour
-    manifester leur intérêt. Le nom de famille est réduit à son initiale et
-    le téléphone n'est jamais inclus (révélés uniquement après un match mutuel).
+    manifester leur intérêt, par pages de 20 (les plus récents d'abord).
+    Le nom de famille est réduit à son initiale et le téléphone n'est jamais
+    inclus (révélés uniquement après un match mutuel).
+
+    Filtres (tous facultatifs) :
+    - service=nounou            → recherche ce service
+    - location=golf             → quartier contenant ce texte
+    - availability=temps_plein  → disponibilité recherchée exacte
+    - min_budget=150            → budget supérieur ou égal (exclut les budgets non renseignés)
     """
 
     permission_classes = [IsWorker]
 
     def get(self, request):
-        profiles = ClientProfile.objects.active().prefetch_related("services_needed")
-        serializer = ClientProfilePublicSerializer(profiles, many=True)
-        return Response({"count": len(serializer.data), "results": serializer.data})
+        profiles = ClientProfile.objects.active().select_related("user")
+
+        service = get_text(request, "service")
+        if service:
+            profiles = profiles.filter(services_needed__slug=service)
+        location = get_text(request, "location")
+        if location:
+            profiles = profiles.filter(location__icontains=location)
+        availability = get_choice(request, "availability", choices.AVAILABILITY_CHOICES)
+        if availability:
+            profiles = profiles.filter(availability_needed=availability)
+        min_budget = get_decimal(request, "min_budget")
+        if min_budget is not None:
+            profiles = profiles.filter(budget__gte=min_budget)
+
+        profiles = profiles.distinct().order_by("-created_at").prefetch_related("services_needed")
+        return paginated_response(request, self, profiles, ClientProfilePublicSerializer)

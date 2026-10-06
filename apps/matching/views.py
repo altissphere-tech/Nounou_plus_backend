@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from apps.accounts.models import User
 from apps.clients.models import ClientProfile
 from apps.workers.models import WorkerProfile
+from common.pagination import paginated_response
 from common.permissions import IsWorkerOrClient
 
 from .models import Match
@@ -37,8 +38,9 @@ class MatchListView(APIView):
         matches = Match.objects.for_user(request.user).prefetch_related(
             "client__services_needed", "worker__services"
         )
-        serializer = MatchSerializer(matches, many=True, context={"request": request})
-        return Response({"count": len(serializer.data), "results": serializer.data})
+        return paginated_response(
+            request, self, matches, MatchSerializer, context={"request": request}
+        )
 
 
 class MatchInterestView(APIView):

@@ -104,6 +104,32 @@ parmi `nounou`, `menage`, `cuisine` (ex : `"nounou,cuisine"`).
 
 ---
 
+## Recherche et pagination
+
+**Pagination** : toutes les listes sont découpées en pages de 20.
+`?page=2` pour la page suivante, `?page_size=50` pour changer la taille (100 max.).
+Réponse : `{"count": 57, "next": "<url>", "previous": null, "results": [...]}`.
+
+**Rechercher des travailleurs** — `GET /api/workers/` (filtres facultatifs, combinables) :
+
+| Paramètre | Exemple | Effet |
+|---|---|---|
+| `service` | `nounou` | Propose ce service (`nounou`, `menage`, `cuisine`) |
+| `location` | `kenya` | Quartier contenant ce texte (majuscules ignorées) |
+| `availability` | `temps_plein` | `temps_plein`, `temps_partiel` ou `weekends` |
+| `max_salary` | `200` | Prétention salariale ≤ 200 |
+| `min_experience` | `2` | Au moins 2 ans d'expérience |
+| `ordering` | `rating` | Tri : `recent` (défaut), `salary`, `experience`, `rating` |
+
+Exemple : `GET /api/workers/?service=nounou&location=kenya&max_salary=200&ordering=rating`
+
+**Rechercher des besoins clients** (travailleurs) — `GET /api/clients/` :
+`service`, `location`, `availability`, `min_budget` (budget ≥ valeur).
+
+Une valeur invalide (ex : `max_salary=beaucoup`) renvoie une erreur 400 explicative.
+
+---
+
 ## Endpoints disponibles (V1 — app clients)
 
 Tous ces endpoints nécessitent un token JWT d'un compte **client**.

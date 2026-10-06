@@ -188,3 +188,62 @@ class TestClientProfileList:
     def test_sans_token_retourne_401(self):
         response = APIClient().get(self.url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# ------------------------------------------------------------------ #
+# Tests : recherche avec filtres et pagination                        #
+# ------------------------------------------------------------------ #
+
+def _client(n, services, budget, location, availability):
+    user = User.objects.create_user(phone=f"+24381300{n:04d}", role=User.ROLE_CLIENT)
+    profile = ClientProfile.objects.create(
+        user=user,
+        first_name=f"Client{n}",
+        last_name="Test",
+        location=location,
+        availability_needed=availability,
+        budget=Decimal(budget) if budget else None,
+    )
+    profile.services_needed.set(Service.objects.filter(slug__in=services))
+    return profile
+
+
+@pytest.mark.django_db
+class TestClientSearch:
+    url = reverse("clients-list")
+
+    @pytest.fixture
+    def clients(self, db):
+        return [
+            _client(1, ["nounou"], "250", "Golf", "temps_plein"),
+            _client(2, ["cuisine"], "120", "Bel-Air", "weekends"),
+            _client(3, ["nounou", "menage"], None, "Golf Malela", "temps_partiel"),
+        ]
+
+    def _names(self, worker_user, **params):
+        response = auth_client(worker_user).get(self.url, params)
+        assert response.status_code == status.HTTP_200_OK, response.data
+        return {r["first_name"] for r in response.data["results"]}
+
+    def test_filtre_service(self, worker_user, clients):
+        assert self._names(worker_user, service="nounou") == {"Client1", "Client3"}
+
+    def test_filtre_quartier(self, worker_user, clients):
+        assert self._names(worker_user, location="golf") == {"Client1", "Client3"}
+
+    def test_filtre_disponibilite(self, worker_user, clients):
+        assert self._names(worker_user, availability="weekends") == {"Client2"}
+
+    def test_filtre_budget_minimum(self, worker_user, clients):
+        # Le client sans budget renseigné est exclu
+        assert self._names(worker_user, min_budget="150") == {"Client1"}
+
+    def test_budget_invalide_renvoie_400(self, worker_user, clients):
+        response = auth_client(worker_user).get(self.url, {"min_budget": "abc"})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_pagination(self, worker_user, clients):
+        response = auth_client(worker_user).get(self.url, {"page_size": 1})
+        assert response.data["count"] == 3
+        assert len(response.data["results"]) == 1
+        assert response.data["next"] is not None

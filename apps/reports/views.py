@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from apps.accounts.models import User
 from apps.clients.models import ClientProfile
 from apps.workers.models import WorkerProfile
+from common.pagination import paginated_response
 from common.permissions import IsWorkerOrClient
 
 from .models import Report
@@ -30,7 +31,7 @@ class ReportView(APIView):
 
     def get(self, request):
         reports = request.user.reports_made.all()
-        return Response({"results": ReportSerializer(reports, many=True).data})
+        return paginated_response(request, self, reports, ReportSerializer)
 
     def post(self, request):
         serializer = ReportCreateSerializer(data=request.data)

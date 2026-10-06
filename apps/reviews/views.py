@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from apps.clients.models import ClientProfile
 from apps.matching.models import Match
 from apps.workers.models import WorkerProfile
+from common.pagination import paginated_response
 from common.permissions import IsWorkerOrClient
 
 from .models import CLIENT_CRITERIA, WORKER_CRITERIA, Review, rating_summary
@@ -62,24 +63,20 @@ class MatchReviewView(APIView):
         )
 
 
-def _reviews_response(user, criteria):
-    """Résumé (moyennes) + liste des évaluations reçues par un utilisateur."""
+def _reviews_response(request, view, user, criteria):
+    """Résumé (moyennes) + liste paginée des évaluations reçues par un utilisateur."""
     reviews = user.reviews_received.select_related(
         "author__client_profile", "author__worker_profile"
     )
     averages = reviews.aggregate(**{name: Avg(name) for name in criteria})
-    return Response(
-        {
-            "summary": {
-                **rating_summary(user),
-                "criteria": {
-                    name: round(value, 1) if value is not None else None
-                    for name, value in averages.items()
-                },
-            },
-            "results": ReviewSerializer(reviews, many=True).data,
-        }
-    )
+    summary = {
+        **rating_summary(user),
+        "criteria": {
+            name: round(value, 1) if value is not None else None
+            for name, value in averages.items()
+        },
+    }
+    return paginated_response(request, view, reviews, ReviewSerializer, extra={"summary": summary})
 
 
 class WorkerReviewsView(APIView):
@@ -93,7 +90,7 @@ class WorkerReviewsView(APIView):
 
     def get(self, request, profile_id):
         worker = get_object_or_404(WorkerProfile.objects.active().select_related("user"), pk=profile_id)
-        return _reviews_response(worker.user, WORKER_CRITERIA)
+        return _reviews_response(request, self, worker.user, WORKER_CRITERIA)
 
 
 class ClientReviewsView(APIView):
@@ -107,4 +104,4 @@ class ClientReviewsView(APIView):
 
     def get(self, request, profile_id):
         client = get_object_or_404(ClientProfile.objects.active().select_related("user"), pk=profile_id)
-        return _reviews_response(client.user, CLIENT_CRITERIA)
+        return _reviews_response(request, self, client.user, CLIENT_CRITERIA)
