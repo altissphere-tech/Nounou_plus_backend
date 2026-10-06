@@ -19,3 +19,6 @@ DATABASES = {
 
 # Afficher les emails/OTP dans la console en dev (pas de vrai envoi)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# OTP simulé autorisé (code fixe 123456) — jamais en production
+OTP_MOCK_ENABLED = True

@@ -28,6 +28,13 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.services",
     "apps.workers",
+    "apps.clients",
+    "apps.jobs",
+    "apps.matching",
+    "apps.messaging",
+    "apps.verification",
+    "apps.reviews",
+    "apps.reports",
 ]
 
 # --- Middleware ---
@@ -73,6 +80,13 @@ USE_TZ = True
 # --- Fichiers statiques ---
 STATIC_URL = "/static/"
 
+# --- Fichiers envoyés par les utilisateurs (documents de vérification) ---
+# Stockés sur le disque local en développement (dossier media/, ignoré par git).
+# Volontairement AUCUNE adresse publique ne sert ces fichiers : l'admin les ouvre
+# via une page protégée. Pour passer à un stockage S3 plus tard, il suffira de
+# changer le réglage STORAGES, sans toucher au code des apps.
+MEDIA_ROOT = BASE_DIR / "media"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- Django REST Framework ---
@@ -95,6 +109,18 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
+
+# --- OTP simulé (code fixe 123456, sans envoi de SMS) ---
+# Désactivé par défaut : seuls dev.py et test.py l'activent.
+# Tant qu'un vrai fournisseur SMS n'est pas branché (V2), la connexion
+# est donc impossible en production — c'est voulu, pour ne jamais
+# accepter le code 123456 sur un serveur réel.
+OTP_MOCK_ENABLED = False
+
+# --- Évaluations ---
+# Nombre de jours après le premier match mutuel avant de pouvoir s'évaluer
+# (laisse le temps d'une période d'essai).
+REVIEW_DELAY_DAYS = 7
 
 # --- Format des numéros de téléphone (RDC = CD) ---
 PHONENUMBER_DEFAULT_REGION = "CD"

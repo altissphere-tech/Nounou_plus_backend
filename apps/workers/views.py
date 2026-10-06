@@ -1,14 +1,23 @@
 """
 Vues (endpoints) de l'app workers.
 """
+from django.db.models import Avg, F
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common import choices
+from common.filters import get_choice, get_decimal, get_int, get_text
+from common.pagination import paginated_response
+
 from .models import WorkerProfile
 from .permissions import IsWorker, IsWorkerOrClient
-from .serializers import WorkerProfileSerializer, WorkerProfileWriteSerializer
+from .serializers import (
+    WorkerProfilePublicSerializer,
+    WorkerProfileSerializer,
+    WorkerProfileWriteSerializer,
+)
 
 
 class WorkerProfileCreateView(APIView):
@@ -100,21 +109,54 @@ class WorkerProfileListView(APIView):
     """
     GET /api/workers/
 
-    Liste en lecture seule des profils travailleurs vérifiés (is_verified=True).
+    Recherche parmi les profils travailleurs vérifiés, par pages de 20.
     Accessible aux clients ET aux travailleurs authentifiés.
+    Les numéros de téléphone sont masqués et le nom de famille réduit à son initiale.
 
-    Les numéros de téléphone sont masqués dans la réponse.
-    Pas de recherche avancée en V1 — uniquement un tri par date de création.
+    Filtres (tous facultatifs) :
+    - service=nounou            → propose ce service (nounou, menage, cuisine)
+    - location=kenya            → quartier contenant ce texte (majuscules ignorées)
+    - availability=temps_plein  → disponibilité exacte
+    - max_salary=200            → prétention salariale inférieure ou égale
+    - min_experience=2          → au moins 2 ans d'expérience
+    Tri : ordering=recent (défaut) | salary | experience | rating
     """
 
     permission_classes = [IsWorkerOrClient]
 
+    ORDERINGS = {
+        "recent": ["-created_at"],
+        "salary": ["expected_salary", "-created_at"],
+        "experience": ["-years_experience", "-created_at"],
+        "rating": [F("average_rating").desc(nulls_last=True), "-created_at"],
+    }
+
     def get(self, request):
-        profiles = WorkerProfile.objects.filter(is_verified=True).select_related("user")
-        serializer = WorkerProfileSerializer(profiles, many=True)
-        return Response(
-            {
-                "count": profiles.count(),
-                "results": serializer.data,
-            }
+        profiles = WorkerProfile.objects.visible_to_clients().select_related("user")
+
+        service = get_text(request, "service")
+        if service:
+            profiles = profiles.filter(services__slug=service)
+        location = get_text(request, "location")
+        if location:
+            profiles = profiles.filter(location__icontains=location)
+        availability = get_choice(request, "availability", choices.AVAILABILITY_CHOICES)
+        if availability:
+            profiles = profiles.filter(availability=availability)
+        max_salary = get_decimal(request, "max_salary")
+        if max_salary is not None:
+            profiles = profiles.filter(expected_salary__lte=max_salary)
+        min_experience = get_int(request, "min_experience")
+        if min_experience is not None:
+            profiles = profiles.filter(years_experience__gte=min_experience)
+
+        ordering = get_choice(
+            request, "ordering", [(key, key) for key in self.ORDERINGS]
+        ) or "recent"
+        if ordering == "rating":
+            profiles = profiles.annotate(average_rating=Avg("user__reviews_received__overall"))
+        profiles = profiles.distinct().order_by(*self.ORDERINGS[ordering])
+
+        return paginated_response(
+            request, self, profiles.prefetch_related("services"), WorkerProfilePublicSerializer
         )

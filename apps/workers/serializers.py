@@ -5,32 +5,12 @@ Serializers de l'app workers.
 - WorkerProfileWriteSerializer : écriture (création et modification)
 """
 from rest_framework import serializers
+from apps.services.models import Service
+from apps.reviews.models import rating_summary
+from apps.services.serializers import validate_service_slugs
+from common.privacy import mask_last_name
+
 from .models import WorkerProfile
-
-VALID_SERVICES = {
-    WorkerProfile.SERVICE_NOUNOU,
-    WorkerProfile.SERVICE_MENAGE,
-    WorkerProfile.SERVICE_CUISINE,
-}
-
-
-def _validate_services(value: str) -> str:
-    """
-    Valide la chaîne de services.
-    Ex : "nounou,cuisine" → valide
-         "nounou,invalide" → lève une ValidationError
-    """
-    items = [s.strip() for s in value.split(",") if s.strip()]
-    if not items:
-        raise serializers.ValidationError("Au moins un service doit être renseigné.")
-    invalid = set(items) - VALID_SERVICES
-    if invalid:
-        raise serializers.ValidationError(
-            f"Service(s) invalide(s) : {', '.join(invalid)}. "
-            f"Valeurs acceptées : {', '.join(VALID_SERVICES)}."
-        )
-    # Normalise : dédoublonne et trie
-    return ",".join(sorted(set(items)))
 
 
 class WorkerProfileSerializer(serializers.ModelSerializer):
@@ -44,6 +24,9 @@ class WorkerProfileSerializer(serializers.ModelSerializer):
 
     services_list = serializers.SerializerMethodField(
         help_text="Liste des services sous forme de tableau."
+    )
+    rating = serializers.SerializerMethodField(
+        help_text="Note moyenne sur 5 et nombre d'avis reçus, ex : {\"average\": \"4.5\", \"count\": 3}."
     )
     phone_display = serializers.SerializerMethodField(
         help_text="Numéro masqué (ex: +243 8** *** **8) — complet uniquement après match."
@@ -63,11 +46,15 @@ class WorkerProfileSerializer(serializers.ModelSerializer):
             "expected_salary",
             "location",
             "is_verified",
+            "rating",
             "phone_display",
             "created_at",
             "updated_at",
         ]
         read_only_fields = fields
+
+    def get_rating(self, obj) -> dict:
+        return rating_summary(obj.user)
 
     def get_services_list(self, obj) -> list[str]:
         return obj.get_services_list()
@@ -79,6 +66,22 @@ class WorkerProfileSerializer(serializers.ModelSerializer):
         if len(phone) > 6:
             return phone[:5] + "*" * (len(phone) - 6) + phone[-1]
         return "****"
+
+
+class WorkerProfilePublicSerializer(WorkerProfileSerializer):
+    """
+    Version publique du profil, utilisée dans la liste vue par les autres utilisateurs.
+
+    Avant un match mutuel, le nom de famille est réduit à son initiale
+    (ex : "Mutombo" → "M.") afin de ne pas exposer l'identité complète
+    (règle brief §contraintes). Le travailleur voit son propre nom complet
+    via /api/workers/profile/me/.
+    """
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["last_name"] = mask_last_name(instance.last_name)
+        return data
 
 
 class WorkerProfileWriteSerializer(serializers.ModelSerializer):
@@ -104,16 +107,22 @@ class WorkerProfileWriteSerializer(serializers.ModelSerializer):
             "location",
         ]
 
-    def validate_services(self, value: str) -> str:
-        return _validate_services(value)
+    def validate_services(self, value: str) -> list[Service]:
+        return validate_service_slugs(value)
 
     def create(self, validated_data):
-        # L'utilisateur est injecté depuis la vue via `save(user=request.user)`
+        # L'utilisateur connecté est lu depuis le contexte fourni par la vue
         user = self.context["request"].user
-        return WorkerProfile.objects.create(user=user, **validated_data)
+        services = validated_data.pop("services")
+        profile = WorkerProfile.objects.create(user=user, **validated_data)
+        profile.services.set(services)
+        return profile
 
     def update(self, instance, validated_data):
+        services = validated_data.pop("services", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+        if services is not None:
+            instance.services.set(services)
         return instance

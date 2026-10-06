@@ -17,3 +17,6 @@ DATABASES = {
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
+
+# OTP simulé autorisé (code fixe 123456) — jamais en production
+OTP_MOCK_ENABLED = True
