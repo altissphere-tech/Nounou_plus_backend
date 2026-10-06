@@ -329,3 +329,32 @@ class TestWorkerSearch:
     def test_page_inexistante_renvoie_404(self, client_user, workers):
         response = auth_client(client_user).get(self.url, {"page": 99})
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+# ------------------------------------------------------------------ #
+# Tests : fiche d'un travailleur                                      #
+# ------------------------------------------------------------------ #
+
+@pytest.mark.django_db
+class TestWorkerProfileDetail:
+    def test_client_voit_la_fiche_d_un_travailleur_verifie(self, client_user, verified_profile):
+        url = reverse("workers-detail", args=[verified_profile.id])
+        response = auth_client(client_user).get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["first_name"] == "Grace"
+        # Mêmes règles de confidentialité que la liste
+        assert response.data["last_name"] == "M."
+        assert "+243811000002" not in str(response.data)
+
+    def test_profil_non_verifie_introuvable(self, client_user, worker_profile):
+        url = reverse("workers-detail", args=[worker_profile.id])
+        assert auth_client(client_user).get(url).status_code == status.HTTP_404_NOT_FOUND
+
+    def test_compte_suspendu_introuvable(self, client_user, verified_profile):
+        User.objects.filter(pk=verified_profile.user_id).update(is_active=False)
+        url = reverse("workers-detail", args=[verified_profile.id])
+        assert auth_client(client_user).get(url).status_code == status.HTTP_404_NOT_FOUND
+
+    def test_sans_token_retourne_401(self, verified_profile):
+        url = reverse("workers-detail", args=[verified_profile.id])
+        assert APIClient().get(url).status_code == status.HTTP_401_UNAUTHORIZED

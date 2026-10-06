@@ -3,11 +3,10 @@ import type { Me } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
+import { amount } from '../lists/format'
 import type { MyProfile } from '../profile/useMyProfile'
 import { useMyProfile } from '../profile/useMyProfile'
 
-/** Montant lisible : « 200 » plutôt que « 200.00 ». */
-const amount = (value: string) => String(Number(value))
 
 function ProfileCard({ data }: { data: MyProfile }) {
   const { t } = useI18n()

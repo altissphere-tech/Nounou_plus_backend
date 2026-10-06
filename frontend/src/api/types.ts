@@ -77,3 +77,68 @@ export interface ClientProfileInput {
   budget: string | null
   needs_description: string
 }
+
+/** Réponse paginée de l'API (pages de 20). */
+export interface Page<T> {
+  count: number
+  next: string | null
+  previous: string | null
+  results: T[]
+}
+
+/** Profil travailleur tel que le voient les autres (nom réduit à l'initiale). */
+export type PublicWorker = WorkerProfile
+
+export type JobStatus = 'ouverte' | 'pourvue' | 'fermee'
+
+export interface Service {
+  slug: ServiceSlug
+  label: string
+}
+
+/** Annonce vue par la famille qui l'a publiée. */
+export interface MyJob {
+  id: number
+  title: string
+  service: Service
+  availability: Availability
+  budget: string | null
+  location: string
+  description: string
+  status: JobStatus
+  created_at: string
+  interested_workers: number
+}
+
+/** Annonce vue par un travailleur (famille présentée par prénom + initiale). */
+export interface PublicJob extends Omit<MyJob, 'interested_workers'> {
+  client: { profile_id: number; name: string; rating: Rating }
+}
+
+export interface JobInput {
+  title: string
+  service: ServiceSlug
+  availability: Availability
+  budget: string | null
+  location: string
+  description: string
+  status?: JobStatus
+}
+
+export interface Review {
+  id: number
+  author_name: string
+  scores: Record<string, number>
+  overall: string
+  comment: string
+  created_at: string
+}
+
+export interface ReviewsPage extends Page<Review> {
+  summary: { average: string | null; count: number; criteria: Record<string, number | null> }
+}
+
+export interface InterestResponse {
+  message: string
+  match: { id: number; status: 'en_attente' | 'mutuel' | 'refuse' }
+}
