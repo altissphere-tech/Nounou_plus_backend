@@ -142,3 +142,41 @@ export interface InterestResponse {
   message: string
   match: { id: number; status: 'en_attente' | 'mutuel' | 'refuse' }
 }
+
+export type Decision = 'en_attente' | 'interesse' | 'refuse'
+export type MatchStatus = 'en_attente' | 'mutuel' | 'refuse'
+
+/** L'autre personne d'une mise en relation : nom complet et téléphone seulement si match mutuel. */
+export interface OtherParty {
+  id: number // identifiant de son profil (travailleur ou client)
+  first_name: string
+  last_name: string
+  location: string
+  services_list: ServiceSlug[]
+  phone: string | null
+  rating: Rating
+}
+
+export interface Match {
+  id: number
+  status: MatchStatus
+  my_decision: Decision
+  their_decision: Decision
+  other_party: OtherParty
+  job: { id: number; title: string } | null
+  unread_count: number
+  can_review: boolean
+  review_available_at: string | null
+  mutual_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Message {
+  id: number
+  content: string
+  is_mine: boolean
+  is_hidden: boolean
+  read_at: string | null
+  created_at: string
+}

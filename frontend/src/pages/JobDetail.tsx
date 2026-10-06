@@ -5,6 +5,7 @@ import { applyToJob, getJob } from '../api/search'
 import type { PublicJob } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useI18n } from '../i18n/I18nContext'
+import type { TranslationKey } from '../i18n/fr'
 import { RatingLine } from '../lists/cards'
 import { money } from '../lists/format'
 import { useMyProfile } from '../profile/useMyProfile'
@@ -17,7 +18,7 @@ export default function JobDetail() {
   const id = Number(useParams().id)
   const { data: me } = useMyProfile(user!.role)
   const [job, setJob] = useState<PublicJob | null | undefined>(undefined)
-  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null)
+  const [result, setResult] = useState<{ ok: boolean; key: TranslationKey } | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -46,11 +47,11 @@ export default function JobDetail() {
     try {
       const response = await applyToJob(job!.id)
       const mutual = response.match.status === 'mutuel'
-      setResult({ ok: true, text: t(mutual ? 'interest.mutual' : 'jobs.applied') })
+      setResult({ ok: true, key: mutual ? 'interest.mutual' : 'jobs.applied' })
     } catch (err) {
       const status = err instanceof ApiError ? err.status : 0
       const key = status === 403 ? 'jobs.notVerified' : status === 400 ? 'jobs.noProfile' : 'jobs.error'
-      setResult({ ok: false, text: t(key) })
+      setResult({ ok: false, key })
     } finally {
       setBusy(false)
     }
@@ -87,7 +88,7 @@ export default function JobDetail() {
             {t('home.profile.create')}
           </Link>
         )}
-        {result && <p className={result.ok ? 'info-banner' : 'error'} role="status">{result.text}</p>}
+        {result && <p className={result.ok ? 'info-banner' : 'error'} role="status">{t(result.key)}</p>}
         {!result?.ok && (
           <button type="button" className="button primary" onClick={apply} disabled={busy || Boolean(blocker)}>
             {busy ? t('common.loading') : t('jobs.apply')}

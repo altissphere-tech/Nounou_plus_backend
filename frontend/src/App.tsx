@@ -3,12 +3,14 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import Layout from './components/Layout'
 import { I18nProvider, useI18n } from './i18n/I18nContext'
+import Conversation from './pages/Conversation'
 import Home from './pages/Home'
 import JobDetail from './pages/JobDetail'
 import JobForm from './pages/JobForm'
 import Jobs from './pages/Jobs'
 import MyJobs from './pages/MyJobs'
 import Login from './pages/Login'
+import Matches from './pages/Matches'
 import ProfileForm from './pages/ProfileForm'
 import Search from './pages/Search'
 import Register from './pages/Register'
@@ -57,6 +59,8 @@ export default function App() {
               <Route path="/code" element={<Public><VerifyCode /></Public>} />
               <Route path="/accueil" element={<Private><Home /></Private>} />
               <Route path="/profil" element={<Private><ProfileForm /></Private>} />
+              <Route path="/relations" element={<Private><Matches /></Private>} />
+              <Route path="/relations/:id" element={<Private><Conversation /></Private>} />
               {/* Familles */}
               <Route path="/recherche" element={<OnlyFor role="client"><Search /></OnlyFor>} />
               <Route path="/travailleurs/:id" element={<OnlyFor role="client"><WorkerDetail /></OnlyFor>} />
