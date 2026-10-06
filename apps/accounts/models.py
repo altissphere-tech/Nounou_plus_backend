@@ -75,9 +75,17 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=False,
         verbose_name="Téléphone vérifié",
     )
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Compte actif",
+        help_text="Décoché quand le compte est suspendu (plus de connexion possible).",
+    )
+    is_staff = models.BooleanField(
+        default=False,
+        verbose_name="Équipe NOUNOU+",
+        help_text="Peut se connecter à l'interface d'administration.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Inscrit le")
 
     objects = UserManager()
 

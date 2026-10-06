@@ -7,6 +7,11 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from apps.reviews.views import MatchReviewView
 
+# Titres de l'interface d'administration
+admin.site.site_header = "Administration NOUNOU+"
+admin.site.site_title = "NOUNOU+ admin"
+admin.site.index_title = "Tableau de bord"
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     # Renouvellement du token JWT (access expire en 12h, refresh en 7j)
