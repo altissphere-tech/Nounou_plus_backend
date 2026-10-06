@@ -59,7 +59,7 @@ class JobRequest(models.Model):
         blank=True,
         validators=[MinValueValidator(Decimal("0"))],
         verbose_name="Budget mensuel",
-        help_text="Facultatif.",
+        help_text="En francs congolais (CDF). Facultatif.",
     )
     location = models.CharField(
         max_length=200,

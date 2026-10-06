@@ -126,13 +126,13 @@ class Command(BaseCommand):
         self.step(2, "Création des profils")
         self.call("post", "/api/clients/profile/", tc, {
             "first_name": "Sarah", "last_name": "Kasongo", "location": "Golf",
-            "services_needed": "nounou", "availability_needed": "temps_plein", "budget": "200",
+            "services_needed": "nounou", "availability_needed": "temps_plein", "budget": "300000",
         })
         self.ok("Profil famille : Sarah Kasongo, quartier Golf")
         response = self.call("post", "/api/workers/profile/", tw, {
             "first_name": "Grace", "last_name": "Mutombo", "services": "nounou,cuisine",
             "years_experience": 5, "availability": "temps_plein",
-            "expected_salary": "180", "location": "Kenya",
+            "expected_salary": "250000", "location": "Kenya",
         })
         worker_id = response.data["profile"]["id"]
         self.ok("Profil travailleuse : Grace Mutombo, nounou et cuisine, 5 ans d'expérience")
@@ -154,11 +154,11 @@ class Command(BaseCommand):
         self.step(4, "La famille publie une annonce")
         response = self.call("post", "/api/jobs/", tc, {
             "title": "Nounou pour 2 enfants", "service": "nounou",
-            "availability": "temps_plein", "budget": "200",
+            "availability": "temps_plein", "budget": "300000",
             "description": "Du lundi au vendredi, 7h-17h.",
         })
         job_id = response.data["job"]["id"]
-        self.ok("Annonce publiée : « Nounou pour 2 enfants », 200 / mois")
+        self.ok("Annonce publiée : « Nounou pour 2 enfants », 300 000 FC / mois")
 
         # 5. Recherche
         self.step(5, "Recherche")
@@ -166,7 +166,7 @@ class Command(BaseCommand):
         job = next(j for j in response.data["results"] if j["id"] == job_id)
         self.ok(f"La travailleuse trouve l'annonce, publiée par « {job['client']['name']} »")
         self.info("(nom de famille masqué et pas de téléphone avant le match)")
-        response = self.call("get", "/api/workers/?service=nounou&max_salary=200", tc)
+        response = self.call("get", "/api/workers/?service=nounou&max_salary=300000", tc)
         found = next(w for w in response.data["results"] if w["id"] == worker_id)
         self.ok(f"La famille trouve « {found['first_name']} {found['last_name']} » "
                 f"(téléphone affiché : {found['phone_display']})")
