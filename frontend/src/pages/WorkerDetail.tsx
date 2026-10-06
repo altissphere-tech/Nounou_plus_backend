@@ -15,7 +15,7 @@ export default function WorkerDetail() {
   const id = Number(useParams().id)
   const [worker, setWorker] = useState<PublicWorker | null | undefined>(undefined)
   const [reviews, setReviews] = useState<ReviewsPage | null>(null)
-  const [result, setResult] = useState<{ ok: boolean; text: string; noProfile?: boolean } | null>(null)
+  const [result, setResult] = useState<{ ok: boolean; key: TranslationKey; noProfile?: boolean } | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -41,10 +41,10 @@ export default function WorkerDetail() {
     try {
       const response = await expressInterest(worker!.id)
       const mutual = response.match.status === 'mutuel'
-      setResult({ ok: true, text: t(mutual ? 'interest.mutual' : 'interest.sent') })
+      setResult({ ok: true, key: mutual ? 'interest.mutual' : 'interest.sent' })
     } catch (err) {
       const noProfile = err instanceof ApiError && err.status === 400
-      setResult({ ok: false, noProfile, text: t(noProfile ? 'interest.noProfile' : 'interest.error') })
+      setResult({ ok: false, noProfile, key: noProfile ? 'interest.noProfile' : 'interest.error' })
     } finally {
       setBusy(false)
     }
@@ -92,7 +92,7 @@ export default function WorkerDetail() {
 
       <div className="card">
         <p className="muted">🔒 {t('worker.privacy')}</p>
-        {result && <p className={result.ok ? 'info-banner' : 'error'} role="status">{result.text}</p>}
+        {result && <p className={result.ok ? 'info-banner' : 'error'} role="status">{t(result.key)}</p>}
         {!result?.ok && (
           <button type="button" className="button primary" onClick={interest} disabled={busy}>
             {busy ? t('common.loading') : t('interest.button')}
