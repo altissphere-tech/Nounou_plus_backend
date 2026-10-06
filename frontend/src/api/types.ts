@@ -180,3 +180,17 @@ export interface Message {
   read_at: string | null
   created_at: string
 }
+
+export type DocType = 'identite' | 'reference'
+export type DocStatus = 'en_attente' | 'valide' | 'rejete'
+
+export interface VerificationDocument {
+  id: number
+  doc_type: DocType
+  status: DocStatus
+  rejection_reason: string
+  reviewed_at: string | null
+  created_at: string
+}
+
+export type ReportCategory = 'faux_profil' | 'comportement_inapproprie' | 'arnaque' | 'securite' | 'autre'

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { acceptMatch, declineMatch, listMatches } from '../api/matches'
 import type { Match } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
@@ -18,7 +18,35 @@ function PartyName({ match }: { match: Match }) {
   )
 }
 
-function MatchCard({ match, children }: { match: Match; children?: ReactNode }) {
+/** Lien « Signaler ce profil » (le nom est transmis pour l'afficher sur le formulaire). */
+function ReportLink({ match }: { match: Match }) {
+  const { t } = useI18n()
+  const name = `${match.other_party.first_name} ${match.other_party.last_name}`
+  return (
+    <Link to={`/signaler/${match.other_party.id}`} state={{ name }} className="link report-link">
+      ⚑ {t('report.link')}
+    </Link>
+  )
+}
+
+/** Avis : bouton si possible, sinon date à partir de laquelle il le sera. */
+function ReviewAction({ match, now }: { match: Match; now: number }) {
+  const { t, lang } = useI18n()
+  if (match.can_review) {
+    return (
+      <Link to={`/relations/${match.id}/avis`} className="button small secondary">
+        ⭐ {t('review.button')}
+      </Link>
+    )
+  }
+  if (match.review_available_at && new Date(match.review_available_at).getTime() > now) {
+    const date = new Date(match.review_available_at).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB')
+    return <p className="muted small-text">⭐ {t('review.availableOn', { date })}</p>
+  }
+  return null
+}
+
+function MatchCard({ match, now, children }: { match: Match; now: number; children?: ReactNode }) {
   const { t } = useI18n()
   return (
     <div className="card match-card">
@@ -37,6 +65,8 @@ function MatchCard({ match, children }: { match: Match; children?: ReactNode }) 
       <p className="muted">📍 {match.other_party.location}</p>
       <RatingLine rating={match.other_party.rating} />
       {children}
+      <ReviewAction match={match} now={now} />
+      <ReportLink match={match} />
     </div>
   )
 }
@@ -47,7 +77,11 @@ export default function Matches() {
   const { user } = useAuth()
   const [matches, setMatches] = useState<Match[] | null | undefined>(undefined)
   const [version, setVersion] = useState(0)
-  const [feedback, setFeedback] = useState<{ ok: boolean; key: TranslationKey } | null>(null)
+  const [now] = useState(() => Date.now()) // heure de référence pour les dates d'avis
+  const reviewed = (useLocation().state as { reviewed?: boolean } | null)?.reviewed
+  const [feedback, setFeedback] = useState<{ ok: boolean; key: TranslationKey } | null>(
+    reviewed ? { ok: true, key: 'review.sent' } : null,
+  )
 
   useEffect(() => {
     listMatches().then((page) => setMatches(page.results), () => setMatches(null))
@@ -103,7 +137,7 @@ export default function Matches() {
           </h2>
           <p className="muted small">{t('matches.section.incoming.hint')}</p>
           {groups.incoming.map((match) => (
-            <MatchCard key={match.id} match={match}>
+            <MatchCard key={match.id} match={match} now={now}>
               <p className="muted">🔒 {t('worker.privacy')}</p>
               <div className="actions">
                 <button type="button" className="button small primary" onClick={() => accept(match)}>
@@ -123,7 +157,7 @@ export default function Matches() {
           <h2 className="section-title">{t('matches.section.mutual')}</h2>
           <p className="muted small">{t('matches.section.mutual.hint')}</p>
           {groups.mutual.map((match) => (
-            <MatchCard key={match.id} match={match}>
+            <MatchCard key={match.id} match={match} now={now}>
               {match.other_party.phone && <p className="phone">📞 {match.other_party.phone}</p>}
               {match.unread_count > 0 && (
                 <p className="unread-text">{t('matches.unread', { count: String(match.unread_count) })}</p>
@@ -148,7 +182,7 @@ export default function Matches() {
           <h2 className="section-title">{t('matches.section.outgoing')}</h2>
           <p className="muted small">{t('matches.section.outgoing.hint')}</p>
           {groups.outgoing.map((match) => (
-            <MatchCard key={match.id} match={match} />
+            <MatchCard key={match.id} match={match} now={now} />
           ))}
         </>
       )}

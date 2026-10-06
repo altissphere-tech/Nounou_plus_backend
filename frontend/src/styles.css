@@ -861,3 +861,108 @@ select {
 .chat-form .button {
   width: auto;
 }
+
+/* --- Confiance : documents, avis, signalements ------------------------ */
+
+.notice .button.small {
+  align-self: flex-start;
+  margin-top: 6px;
+}
+
+.choices.vertical {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.choices.vertical .chip {
+  border-radius: 12px;
+}
+
+input[type='file'] {
+  font: inherit;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  width: 100%;
+}
+
+.doc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.doc-en_attente {
+  background: var(--accent-light);
+  color: #8a4a00;
+}
+
+.doc-valide {
+  background: #e7f6ec;
+  color: #1e6b3a;
+}
+
+.doc-rejete {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.error-text {
+  color: var(--error);
+  font-size: 0.9rem;
+  margin: 4px 0 0;
+}
+
+.stars {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.stars-row {
+  display: flex;
+  gap: 4px;
+}
+
+.star {
+  font-size: 2.1rem;
+  line-height: 1;
+  color: #d5d9dc;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.star input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.star.on {
+  color: var(--accent);
+}
+
+.star:focus-within {
+  outline: 2px solid var(--brand);
+  border-radius: 6px;
+}
+
+.small-text {
+  font-size: 0.88rem;
+}
+
+.report-link {
+  align-self: flex-start;
+  padding: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.button.danger {
+  background: var(--error);
+  color: #fff;
+}

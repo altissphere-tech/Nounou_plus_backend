@@ -78,6 +78,9 @@ export default function JobDetail() {
         {job.description && <p className="pre-line">{job.description}</p>}
         <p className="muted">{t('jobs.by', { name: job.client.name })}</p>
         <RatingLine rating={job.client.rating} />
+        <Link to={`/signaler/${job.client.profile_id}`} state={{ name: job.client.name }} className="link report-link">
+          ⚑ {t('report.link')}
+        </Link>
       </div>
 
       <div className="card">

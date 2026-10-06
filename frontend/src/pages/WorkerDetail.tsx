@@ -88,6 +88,13 @@ export default function WorkerDetail() {
           </>
         )}
         <p className="field-hint">{t('worker.verifiedNote')}</p>
+        <Link
+          to={`/signaler/${worker.id}`}
+          state={{ name: `${worker.first_name} ${worker.last_name}` }}
+          className="link report-link"
+        >
+          ⚑ {t('report.link')}
+        </Link>
       </div>
 
       <div className="card">

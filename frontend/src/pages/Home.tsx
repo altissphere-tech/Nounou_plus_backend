@@ -78,12 +78,20 @@ function ProfileCard({ data }: { data: MyProfile }) {
           <div className="notice">
             <strong>{t('home.profile.notVerified')}</strong>
             <span>{t('home.profile.notVerified.note')}</span>
+            <Link to="/documents" className="button small primary">
+              {t('home.profile.sendDocs')}
+            </Link>
           </div>
         ))}
 
       <Link to="/profil" className="button secondary">
         {t('home.profile.edit')}
       </Link>
+      {data.kind === 'worker' && data.profile.is_verified && (
+        <Link to="/documents" className="link">
+          {t('home.profile.docs')}
+        </Link>
+      )}
     </div>
   )
 }

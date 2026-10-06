@@ -49,4 +49,15 @@ describe('client API', () => {
     await expect(api('GET', '/api/accounts/me/')).rejects.toBeInstanceOf(ApiError)
     expect(loadTokens()).toBeNull()
   })
+
+  it('envoie les fichiers en multipart, sans forcer le Content-Type', async () => {
+    saveTokens({ access: 'A1', refresh: 'R1' })
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse(201, { ok: true }))
+    const form = new FormData()
+    form.append('doc_type', 'identite')
+    await api('POST', '/api/verification/documents/', form)
+    const init = fetchMock.mock.calls[0][1]!
+    expect(init.body).toBe(form)
+    expect((init.headers as Record<string, string>)['Content-Type']).toBeUndefined()
+  })
 })

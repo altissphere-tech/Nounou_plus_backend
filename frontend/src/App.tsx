@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './auth/AuthContext'
 import Layout from './components/Layout'
 import { I18nProvider, useI18n } from './i18n/I18nContext'
 import Conversation from './pages/Conversation'
+import Documents from './pages/Documents'
 import Home from './pages/Home'
 import JobDetail from './pages/JobDetail'
 import JobForm from './pages/JobForm'
@@ -12,6 +13,8 @@ import MyJobs from './pages/MyJobs'
 import Login from './pages/Login'
 import Matches from './pages/Matches'
 import ProfileForm from './pages/ProfileForm'
+import ReportForm from './pages/ReportForm'
+import ReviewForm from './pages/ReviewForm'
 import Search from './pages/Search'
 import Register from './pages/Register'
 import VerifyCode from './pages/VerifyCode'
@@ -61,6 +64,9 @@ export default function App() {
               <Route path="/profil" element={<Private><ProfileForm /></Private>} />
               <Route path="/relations" element={<Private><Matches /></Private>} />
               <Route path="/relations/:id" element={<Private><Conversation /></Private>} />
+              <Route path="/relations/:id/avis" element={<Private><ReviewForm /></Private>} />
+              <Route path="/signaler/:profileId" element={<Private><ReportForm /></Private>} />
+              <Route path="/documents" element={<OnlyFor role="travailleur"><Documents /></OnlyFor>} />
               {/* Familles */}
               <Route path="/recherche" element={<OnlyFor role="client"><Search /></OnlyFor>} />
               <Route path="/travailleurs/:id" element={<OnlyFor role="client"><WorkerDetail /></OnlyFor>} />
