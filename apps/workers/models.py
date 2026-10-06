@@ -10,6 +10,8 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from common import choices
+
 
 class WorkerProfile(models.Model):
     """
@@ -33,15 +35,11 @@ class WorkerProfile(models.Model):
     ]
 
     # --- Choix de disponibilité ---
-    AVAILABILITY_FULL = "temps_plein"
-    AVAILABILITY_PART = "temps_partiel"
-    AVAILABILITY_WEEKEND = "weekends"
-
-    AVAILABILITY_CHOICES = [
-        (AVAILABILITY_FULL, "Temps plein"),
-        (AVAILABILITY_PART, "Temps partiel"),
-        (AVAILABILITY_WEEKEND, "Weekends uniquement"),
-    ]
+    # (définis dans common/choices.py, partagés avec les profils clients)
+    AVAILABILITY_FULL = choices.AVAILABILITY_FULL
+    AVAILABILITY_PART = choices.AVAILABILITY_PART
+    AVAILABILITY_WEEKEND = choices.AVAILABILITY_WEEKEND
+    AVAILABILITY_CHOICES = choices.AVAILABILITY_CHOICES
 
     # --- Lien vers le compte utilisateur ---
     user = models.OneToOneField(

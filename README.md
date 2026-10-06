@@ -104,6 +104,38 @@ parmi `nounou`, `menage`, `cuisine` (ex : `"nounou,cuisine"`).
 
 ---
 
+## Endpoints disponibles (V1 — app clients)
+
+Tous ces endpoints nécessitent un token JWT d'un compte **client**.
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| POST  | `/api/clients/profile/` | Créer son profil client |
+| GET   | `/api/clients/profile/me/` | Voir son propre profil |
+| PATCH | `/api/clients/profile/me/` | Modifier son propre profil |
+
+Exemple de création :
+```bash
+curl -X POST http://127.0.0.1:8000/api/clients/profile/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <votre_access_token>" \
+  -d '{"first_name": "Sarah", "last_name": "Kasongo", "location": "Bel-Air",
+       "services_needed": "nounou,menage", "availability_needed": "temps_partiel",
+       "budget": "150"}'
+```
+`budget` et `needs_description` sont facultatifs. `availability_needed` vaut
+`temps_plein`, `temps_partiel` ou `weekends`.
+
+---
+
+## Catalogue des services
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/services/` | Liste des services (sans connexion) |
+
+---
+
 ## Interface d'administration
 
 ```bash
@@ -138,8 +170,9 @@ nounou-backend/
 ├── apps/
 │   ├── accounts/      → Comptes, rôles, OTP, JWT ✅
 │   ├── services/      → Catalogue des services (nounou, ménage, cuisine) ✅
-│   └── workers/       → Profils travailleurs ✅
-├── common/            → Utilitaires partagés (à venir)
+│   ├── workers/       → Profils travailleurs ✅
+│   └── clients/       → Profils clients (familles) ✅
+├── common/            → Permissions et listes de choix partagées
 ├── requirements/
 │   ├── base.txt       → Dépendances de production
 │   └── dev.txt        → Dépendances de développement
