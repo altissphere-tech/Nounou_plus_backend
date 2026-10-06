@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "apps.clients",
     "apps.matching",
     "apps.messaging",
+    "apps.verification",
 ]
 
 # --- Middleware ---
@@ -75,6 +76,13 @@ USE_TZ = True
 
 # --- Fichiers statiques ---
 STATIC_URL = "/static/"
+
+# --- Fichiers envoyés par les utilisateurs (documents de vérification) ---
+# Stockés sur le disque local en développement (dossier media/, ignoré par git).
+# Volontairement AUCUNE adresse publique ne sert ces fichiers : l'admin les ouvre
+# via une page protégée. Pour passer à un stockage S3 plus tard, il suffira de
+# changer le réglage STORAGES, sans toucher au code des apps.
+MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

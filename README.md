@@ -165,6 +165,34 @@ Ouverte uniquement entre les deux participants d'un **match mutuel**.
 
 ---
 
+## Vérification des documents (V1 — app verification)
+
+Réservé aux **travailleurs** ayant créé leur profil.
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| POST | `/api/verification/documents/` | Envoyer un document (formulaire multipart : `doc_type` + `file`) |
+| GET  | `/api/verification/documents/` | Voir ses documents, leur statut et son badge |
+
+Exemple d'envoi :
+```bash
+curl -X POST http://127.0.0.1:8000/api/verification/documents/ \
+  -H "Authorization: Bearer <votre_access_token>" \
+  -F doc_type=identite -F file=@carte_electeur.pdf
+```
+
+- `doc_type` : `identite` (pièce d'identité) ou `reference` (lettre de référence, facultative).
+- Formats acceptés : PDF, JPG, PNG — 5 Mo maximum.
+- **Seul l'administrateur voit les documents** : dans `/admin/` → « Documents de
+  vérification », lien « Ouvrir le document », puis statut « Validé » ou « Rejeté »
+  (avec un motif que le travailleur verra).
+- Le badge « vérifié » est accordé dès qu'une pièce d'identité est validée. Ce badge
+  ne constitue pas une garantie d'absence de risque.
+- Les fichiers sont stockés dans le dossier `media/` (jamais envoyé sur GitHub) et ne
+  sont accessibles par aucune adresse publique.
+
+---
+
 ## Catalogue des services
 
 | Méthode | URL | Description |
@@ -180,9 +208,10 @@ Ouverte uniquement entre les deux participants d'un **match mutuel**.
 python manage.py createsuperuser
 ```
 
-Puis ouvrir **http://127.0.0.1:8000/admin/**. C'est là que l'administrateur valide
-les profils travailleurs (action « Marquer comme vérifié »). Seuls les profils
-vérifiés apparaissent dans `/api/workers/`.
+Puis ouvrir **http://127.0.0.1:8000/admin/**. C'est là que l'administrateur examine
+les documents envoyés par les travailleurs et accorde le badge « vérifié » (voir la
+section « Vérification des documents »). Seuls les profils vérifiés apparaissent
+dans `/api/workers/`.
 
 ---
 
@@ -210,7 +239,8 @@ nounou-backend/
 │   ├── workers/       → Profils travailleurs ✅
 │   ├── clients/       → Profils clients (familles) ✅
 │   ├── matching/      → Mise en relation (intérêt, match mutuel, refus) ✅
-│   └── messaging/     → Messagerie après match mutuel + modération ✅
+│   ├── messaging/     → Messagerie après match mutuel + modération ✅
+│   └── verification/  → Documents (identité, référence) et badge « vérifié » ✅
 ├── common/            → Permissions, listes de choix et règles de confidentialité partagées
 ├── requirements/
 │   ├── base.txt       → Dépendances de production
