@@ -1,0 +1,26 @@
+import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { useI18n } from '../i18n/I18nContext'
+import Logo from './Logo'
+
+/** Cadre commun à tous les écrans : en-tête (logo + langue) et contenu centré. */
+export default function Layout({ children }: { children: ReactNode }) {
+  const { lang, setLang, t } = useI18n()
+  return (
+    <div className="app">
+      <header className="header">
+        <Link to="/" className="header-logo">
+          <Logo size={22} />
+        </Link>
+        <button
+          type="button"
+          className="lang-switch"
+          onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
+        >
+          {t('lang.switch')}
+        </button>
+      </header>
+      <main className="content">{children}</main>
+    </div>
+  )
+}
