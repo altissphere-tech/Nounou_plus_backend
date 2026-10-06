@@ -156,3 +156,35 @@ class TestClientProfileMe:
     def test_sans_token_retourne_401(self):
         response = APIClient().get(self.url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# ------------------------------------------------------------------ #
+# Tests : liste des clients vue par les travailleurs                  #
+# ------------------------------------------------------------------ #
+
+@pytest.mark.django_db
+class TestClientProfileList:
+    url = reverse("clients-list")
+
+    def test_travailleur_voit_les_besoins_clients(self, worker_user, client_profile):
+        response = auth_client(worker_user).get(self.url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 1
+        result = response.data["results"][0]
+        assert result["first_name"] == "Jean"
+        assert result["services_list"] == ["nounou"]
+        assert result["budget"] == "250.00"
+
+    def test_nom_masque_et_telephone_absent(self, worker_user, client_profile):
+        result = auth_client(worker_user).get(self.url).data["results"][0]
+        assert result["last_name"] == "I."
+        assert "phone" not in result
+        assert "+243822000001" not in str(result)
+
+    def test_client_ne_peut_pas_voir_la_liste(self, client_user, client_profile):
+        response = auth_client(client_user).get(self.url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_sans_token_retourne_401(self):
+        response = APIClient().get(self.url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED

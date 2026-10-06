@@ -5,10 +5,14 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from common.permissions import IsClient
+from common.permissions import IsClient, IsWorker
 
 from .models import ClientProfile
-from .serializers import ClientProfileSerializer, ClientProfileWriteSerializer
+from .serializers import (
+    ClientProfilePublicSerializer,
+    ClientProfileSerializer,
+    ClientProfileWriteSerializer,
+)
 
 
 class ClientProfileCreateView(APIView):
@@ -93,3 +97,20 @@ class ClientProfileMeView(APIView):
                 "profile": ClientProfileSerializer(profile).data,
             }
         )
+
+
+class ClientProfileListView(APIView):
+    """
+    GET /api/clients/
+
+    Liste des besoins des clients, consultable par les travailleurs pour
+    manifester leur intérêt. Le nom de famille est réduit à son initiale et
+    le téléphone n'est jamais inclus (révélés uniquement après un match mutuel).
+    """
+
+    permission_classes = [IsWorker]
+
+    def get(self, request):
+        profiles = ClientProfile.objects.prefetch_related("services_needed")
+        serializer = ClientProfilePublicSerializer(profiles, many=True)
+        return Response({"count": len(serializer.data), "results": serializer.data})

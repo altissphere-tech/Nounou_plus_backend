@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 from apps.services.models import Service
 from apps.services.serializers import validate_service_slugs
+from common.privacy import mask_last_name
 
 from .models import ClientProfile
 
@@ -37,6 +38,20 @@ class ClientProfileSerializer(serializers.ModelSerializer):
 
     def get_services_list(self, obj) -> list[str]:
         return obj.get_services_list()
+
+
+class ClientProfilePublicSerializer(ClientProfileSerializer):
+    """
+    Version publique du profil client, vue par les travailleurs.
+
+    Avant un match mutuel, le nom de famille est réduit à son initiale et le
+    téléphone n'est jamais inclus. Les besoins (services, budget…) restent visibles.
+    """
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["last_name"] = mask_last_name(instance.last_name)
+        return data
 
 
 class ClientProfileWriteSerializer(serializers.ModelSerializer):

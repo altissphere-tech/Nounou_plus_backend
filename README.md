@@ -113,6 +113,7 @@ Tous ces endpoints nécessitent un token JWT d'un compte **client**.
 | POST  | `/api/clients/profile/` | Créer son profil client |
 | GET   | `/api/clients/profile/me/` | Voir son propre profil |
 | PATCH | `/api/clients/profile/me/` | Modifier son propre profil |
+| GET   | `/api/clients/` | Liste des besoins clients — **réservé aux travailleurs** (nom réduit à l'initiale, sans téléphone) |
 
 Exemple de création :
 ```bash
@@ -125,6 +126,26 @@ curl -X POST http://127.0.0.1:8000/api/clients/profile/ \
 ```
 `budget` et `needs_description` sont facultatifs. `availability_needed` vaut
 `temps_plein`, `temps_partiel` ou `weekends`.
+
+---
+
+## Mise en relation (V1 — app matching)
+
+Tous ces endpoints nécessitent un token JWT (client ou travailleur) **et** un profil créé.
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| POST | `/api/matches/interest/` | Se déclarer intéressé par un profil : `{"profile_id": 12}` |
+| GET  | `/api/matches/` | Voir ses mises en relation |
+| POST | `/api/matches/<id>/decline/` | Refuser une mise en relation |
+
+Règles :
+1. Un client choisit un **profil travailleur** (vérifiés uniquement) ; un travailleur
+   choisit un **profil client**. Un travailleur doit être vérifié pour contacter un client.
+2. Quand les deux sont intéressés, le statut passe à `mutuel` : le nom complet et le
+   téléphone de l'autre personne apparaissent dans `other_party`.
+3. Un refus n'est jamais révélé à l'autre personne : pour elle, la demande reste
+   `en_attente`. On peut revenir sur un refus en se déclarant de nouveau intéressé.
 
 ---
 
@@ -171,8 +192,9 @@ nounou-backend/
 │   ├── accounts/      → Comptes, rôles, OTP, JWT ✅
 │   ├── services/      → Catalogue des services (nounou, ménage, cuisine) ✅
 │   ├── workers/       → Profils travailleurs ✅
-│   └── clients/       → Profils clients (familles) ✅
-├── common/            → Permissions et listes de choix partagées
+│   ├── clients/       → Profils clients (familles) ✅
+│   └── matching/      → Mise en relation (intérêt, match mutuel, refus) ✅
+├── common/            → Permissions, listes de choix et règles de confidentialité partagées
 ├── requirements/
 │   ├── base.txt       → Dépendances de production
 │   └── dev.txt        → Dépendances de développement

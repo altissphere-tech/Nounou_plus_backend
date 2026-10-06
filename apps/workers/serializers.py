@@ -7,6 +7,7 @@ Serializers de l'app workers.
 from rest_framework import serializers
 from apps.services.models import Service
 from apps.services.serializers import validate_service_slugs
+from common.privacy import mask_last_name
 
 from .models import WorkerProfile
 
@@ -71,8 +72,7 @@ class WorkerProfilePublicSerializer(WorkerProfileSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        last_name = (instance.last_name or "").strip()
-        data["last_name"] = f"{last_name[0].upper()}." if last_name else ""
+        data["last_name"] = mask_last_name(instance.last_name)
         return data
 
 
