@@ -1,13 +1,17 @@
 /*
  * Style de l'application NOUNOU+ — pensé d'abord pour le téléphone.
- * Les couleurs de la marque sont définies une seule fois ci-dessous :
- * il suffira de les remplacer par celles du logo officiel.
+ * Couleurs de la marque, reprises du logo officiel (brand/logo-original.webp) :
+ *   violet #3E0C98 (dégradé #4610A4 → #360A8F), orange #F7941D, blanc.
+ * L'orange sert d'accent (icônes, « + », badges) mais jamais pour du texte
+ * sur fond blanc, car il serait trop peu lisible.
  */
 :root {
-  --brand: #0e7c66;
-  --brand-dark: #0a5c4c;
-  --brand-light: #e6f4f1;
-  --accent: #f2a541;
+  --brand: #3e0c98;
+  --brand-dark: #2d0873;
+  --brand-gradient: linear-gradient(135deg, #4610a4 0%, #360a8f 100%);
+  --brand-light: #f1ebfb;
+  --accent: #f7941d;
+  --accent-light: #fef1e0;
 
   --text: #1d2a30;
   --muted: #5b6b73;
@@ -91,20 +95,64 @@ p {
 /* --- Logo ------------------------------------------------------------ */
 
 .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
   font-weight: 800;
   letter-spacing: 0.02em;
   color: var(--brand);
+}
+
+.logo-icon {
+  display: block;
+  border-radius: 22%;
 }
 
 .logo-plus {
   color: var(--accent);
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 /* --- Accueil --------------------------------------------------------- */
 
 .welcome {
   text-align: center;
-  padding-top: 32px;
+}
+
+.welcome-hero {
+  margin: -20px -16px 24px;
+  padding: 36px 16px 30px;
+  background: var(--brand-gradient);
+  color: #fff;
+  border-radius: 0 0 28px 28px;
+}
+
+.welcome-hero .logo {
+  color: #fff;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.welcome-hero .logo-icon {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+}
+
+.welcome-hero .logo-name {
+  font-size: 2rem;
+}
+
+.welcome-hero .tagline {
+  color: #fff;
+  opacity: 0.92;
+  margin: 14px 0 0;
 }
 
 .welcome .stack {
@@ -239,8 +287,9 @@ input:focus {
 }
 
 .button.primary {
-  background: var(--brand);
+  background: var(--brand-gradient);
   color: #fff;
+  box-shadow: 0 4px 14px rgba(62, 12, 152, 0.25);
 }
 
 .button.primary:hover {
@@ -309,8 +358,8 @@ input:focus {
   font-weight: 600;
   padding: 4px 10px;
   border-radius: 999px;
-  background: var(--brand-light);
-  color: var(--brand-dark);
+  background: var(--accent-light);
+  color: #8a4a00;
 }
 
 /* --- Détails du compte ----------------------------------------------- */

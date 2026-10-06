@@ -6,8 +6,10 @@ export default function Welcome() {
   const { t } = useI18n()
   return (
     <section className="welcome">
-      <Logo size={44} />
-      <p className="tagline">{t('app.tagline')}</p>
+      <div className="welcome-hero">
+        <Logo size={96} />
+        <p className="tagline">{t('app.tagline')}</p>
+      </div>
       <h1>{t('welcome.title')}</h1>
       <p className="muted">{t('welcome.intro')}</p>
       <div className="stack">
