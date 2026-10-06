@@ -1,0 +1,124 @@
+# NOUNOU+ — Backend API
+
+Marketplace de mise en relation entre familles et travailleurs domestiques à Lubumbashi, RDC.
+
+---
+
+## Prérequis
+
+- Python 3.12+
+- pip
+
+---
+
+## Installation (première fois)
+
+```bash
+# 1. Créer un environnement virtuel
+python -m venv venv
+
+# 2. Activer l'environnement virtuel
+# Windows :
+venv\Scripts\activate
+# macOS / Linux :
+source venv/bin/activate
+
+# 3. Installer les dépendances
+pip install -r requirements/dev.txt
+
+# 4. Copier le fichier de configuration
+copy .env.example .env
+# Puis ouvrir .env et changer SECRET_KEY par une valeur aléatoire
+```
+
+---
+
+## Lancer le serveur
+
+```bash
+# Appliquer les migrations (crée la base de données SQLite)
+python manage.py migrate
+
+# Démarrer le serveur de développement
+python manage.py runserver
+```
+
+L'API est accessible sur : **http://127.0.0.1:8000/**
+
+---
+
+## Endpoints disponibles (V1 — app accounts)
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| POST | `/api/accounts/register/` | Créer un compte (client ou travailleur) |
+| POST | `/api/accounts/otp/request/` | Recevoir un code OTP sur son téléphone |
+| POST | `/api/accounts/otp/verify/` | Valider le code OTP et obtenir un token JWT |
+| GET  | `/api/accounts/me/` | Voir son profil (token JWT requis) |
+
+### Exemple d'utilisation
+
+**1. Inscription**
+```bash
+curl -X POST http://127.0.0.1:8000/api/accounts/register/ \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "+243812345678", "role": "client"}'
+```
+
+**2. Demander un OTP** *(le code s'affiche dans la console du serveur en V1)*
+```bash
+curl -X POST http://127.0.0.1:8000/api/accounts/otp/request/ \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "+243812345678"}'
+```
+
+**3. Vérifier l'OTP** *(code toujours `123456` en V1)*
+```bash
+curl -X POST http://127.0.0.1:8000/api/accounts/otp/verify/ \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "+243812345678", "code": "123456"}'
+```
+→ Retourne `access` et `refresh` (tokens JWT)
+
+**4. Voir son profil**
+```bash
+curl http://127.0.0.1:8000/api/accounts/me/ \
+  -H "Authorization: Bearer <votre_access_token>"
+```
+
+---
+
+## Lancer les tests
+
+```bash
+pytest apps/accounts/tests.py -v
+```
+
+---
+
+## Structure du projet
+
+```
+nounou-backend/
+├── config/            → Configuration Django (settings, urls, wsgi)
+│   └── settings/
+│       ├── base.py    → Paramètres communs
+│       ├── dev.py     → Développement local (SQLite)
+│       ├── prod.py    → Production (PostgreSQL prêt)
+│       └── test.py    → Tests automatisés
+├── apps/
+│   └── accounts/      → Comptes, rôles, OTP, JWT ✅
+├── common/            → Utilitaires partagés (à venir)
+├── requirements/
+│   ├── base.txt       → Dépendances de production
+│   └── dev.txt        → Dépendances de développement
+└── manage.py          → Commandes Django
+```
+
+---
+
+## Notes importantes
+
+- **OTP simulé en V1** : le code est toujours `123456` et s'affiche dans la console. Ne jamais utiliser en production.
+- **Aucun secret dans le code** : toutes les valeurs sensibles sont dans `.env` (ne jamais committer ce fichier).
+- **Base de données** : SQLite en dev, PostgreSQL préparé pour la production (aucune réécriture nécessaire).
