@@ -7,35 +7,46 @@ fonctionne — sans écrire de code. Comptez **15 minutes** la première fois.
 
 ## Étape 0 — Récupérer la dernière version (une seule fois)
 
-> ⚠️ **Avant tout**, copiez votre fichier `.env` dans un autre dossier (ex : le Bureau).
-> La nouvelle version ne suit plus ce fichier dans git : il peut disparaître lors de la mise à jour.
+> ⚠️ La nouvelle version ne suit plus `.env`, `db.sqlite3` ni le dossier `venv` dans git :
+> changer de branche **les supprime** du dossier. On les sauvegarde donc d'abord.
 
-Dans le terminal, dans le dossier du projet :
+Dans PowerShell, dans le dossier du projet, **une commande à la fois** :
 
-```bash
+```powershell
+# 1. Sortir de l'environnement Python (sinon Windows bloque la suppression de venv)
+deactivate
+
+# 2. Sauvegarder la configuration et la base de données (un dossier au-dessus)
+Copy-Item .env ..\env_sauvegarde.txt
+Copy-Item db.sqlite3 ..\db_sauvegarde.sqlite3
+
+# 3. Télécharger et changer de branche (-f : remplace db.sqlite3, déjà sauvegardé)
 git fetch origin
-git checkout claude/funny-cray-8bklxl
-git pull
+git checkout -f claude/funny-cray-8bklxl
+
+# 4. Remettre la configuration et la base de données
+Copy-Item ..\env_sauvegarde.txt .env
+Copy-Item ..\db_sauvegarde.sqlite3 db.sqlite3
+
+# 5. Recréer un environnement Python propre
+Remove-Item -Recurse -Force venv -ErrorAction SilentlyContinue
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements\dev.txt
+
+# 6. Mettre à jour la base de données
+python manage.py migrate
 ```
 
-Puis :
+Puis **changez la `SECRET_KEY`** (l'ancienne a été publiée sur GitHub) :
+```powershell
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+notepad .env
+```
+Remplacez la valeur après `SECRET_KEY=` par celle affichée, puis enregistrez.
 
-1. **Remettez votre `.env`** dans le dossier du projet (ou copiez `.env.example` en `.env`).
-2. **Changez la `SECRET_KEY`** dans `.env` (l'ancienne a été publiée sur GitHub) :
-   ```bash
-   python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-   ```
-   Copiez la valeur affichée après `SECRET_KEY=`.
-3. **Recréez l'environnement Python** (le dossier `venv` a pu être supprimé) :
-   ```bash
-   python -m venv venv
-   venv\Scripts\activate
-   pip install -r requirements/dev.txt
-   ```
-4. **Mettez à jour la base de données** :
-   ```bash
-   python manage.py migrate
-   ```
+> 💡 Si une commande `git` affiche « Connection was reset » ou « RPC failed », c'est une
+> coupure réseau passagère : relancez simplement la commande.
 
 ---
 
@@ -138,3 +149,6 @@ Rappel du principe :
 | `SECRET_KEY` introuvable | Le fichier `.env` manque : copiez `.env.example` en `.env` |
 | `no such table` | Lancez `python manage.py migrate` |
 | Port déjà utilisé | Un autre serveur tourne : fermez-le (Ctrl+C) ou utilisez `runserver 8001` |
+| `Your local changes … would be overwritten` | Suivez l'étape 0 (sauvegarde puis `git checkout -f`) |
+| `RPC failed` / `Connection was reset` | Coupure réseau passagère : relancez la commande |
+| `Activate.ps1 cannot be loaded` | Lancez une fois : `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
