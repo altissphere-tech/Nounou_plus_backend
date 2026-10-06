@@ -68,12 +68,14 @@ type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 
 async function send(method: Method, path: string, body: unknown, access?: string): Promise<Response> {
   const headers: Record<string, string> = { Accept: 'application/json' }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // Fichiers (FormData) : le navigateur choisit lui-même le format « multipart »
+  const isForm = body instanceof FormData
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   if (access) headers.Authorization = `Bearer ${access}`
   return fetch(path, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   })
 }
 
