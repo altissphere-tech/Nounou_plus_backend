@@ -5,11 +5,16 @@ Pourquoi personnaliser ? Django utilise l'email ou un nom d'utilisateur par déf
 Ici, l'identifiant unique est le numéro de téléphone (adapté au contexte RDC).
 """
 import logging
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 
 logger = logging.getLogger(__name__)
+
+
+class OTPUnavailableError(Exception):
+    """Levée quand aucun moyen d'envoyer un OTP n'est configuré (ex : en production en V1)."""
 
 
 class UserManager(BaseUserManager):
@@ -97,7 +102,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         """
         Génère et stocke un OTP.
         En V1 : toujours '123456'. En V2, remplacer par un vrai générateur + SMS.
+        Refuse de fonctionner si OTP_MOCK_ENABLED est désactivé (production).
         """
+        if not settings.OTP_MOCK_ENABLED:
+            raise OTPUnavailableError("Aucun service d'envoi d'OTP n'est configuré.")
         self.otp_code = self.OTP_MOCK_CODE
         self.save(update_fields=["otp_code"])
         # Affiche le code en console (visible dans les logs du serveur en dev)
@@ -110,6 +118,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def verify_otp(self, code: str) -> bool:
         """Vérifie le code OTP soumis par l'utilisateur. Efface le code après succès."""
+        if not settings.OTP_MOCK_ENABLED:
+            return False
         if self.otp_code and self.otp_code == code:
             self.otp_code = None
             self.phone_verified = True

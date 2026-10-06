@@ -150,6 +150,7 @@ nounou-backend/
 
 ## Notes importantes
 
-- **OTP simulé en V1** : le code est toujours `123456` et s'affiche dans la console. Ne jamais utiliser en production.
+- **OTP simulé en V1** : le code est toujours `123456` et s'affiche dans la console. Il n'est actif qu'en développement et en test (`OTP_MOCK_ENABLED`). En production, l'inscription et la connexion renvoient une erreur 503 tant qu'un vrai service SMS n'est pas branché.
+- **Données personnelles avant match** : dans la liste `/api/workers/`, le téléphone est masqué et le nom de famille réduit à son initiale (ex : « Grace M. »). Le travailleur voit son nom complet sur son propre profil.
 - **Aucun secret dans le code** : toutes les valeurs sensibles sont dans `.env` (ne jamais committer ce fichier).
 - **Base de données** : SQLite en dev, PostgreSQL préparé pour la production (aucune réécriture nécessaire).

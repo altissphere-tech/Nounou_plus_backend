@@ -155,6 +155,8 @@ class TestWorkerProfileMe:
         response = auth_client(worker_user).get(self.url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["first_name"] == "Marie"
+        # Le travailleur voit son propre nom complet
+        assert response.data["last_name"] == "Kabila"
 
     def test_voir_profil_inexistant_retourne_404(self, worker_user):
         response = auth_client(worker_user).get(self.url)
@@ -219,6 +221,11 @@ class TestWorkerProfileList:
         response = auth_client(client_user).get(self.url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["count"] == 0
+
+    def test_nom_de_famille_masque_dans_la_liste(self, client_user, verified_profile):
+        result = auth_client(client_user).get(self.url).data["results"][0]
+        assert result["first_name"] == "Grace"
+        assert result["last_name"] == "M."
 
     def test_telephone_masque_dans_la_liste(self, client_user, verified_profile):
         response = auth_client(client_user).get(self.url)

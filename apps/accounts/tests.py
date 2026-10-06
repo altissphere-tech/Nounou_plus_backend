@@ -171,3 +171,43 @@ class TestMe:
         """Sans token JWT, /me/ retourne 401."""
         response = api_client.get(reverse("accounts-me"))
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# ------------------------------------------------------------------ #
+# Tests : OTP simulé désactivé (comportement en production)          #
+# ------------------------------------------------------------------ #
+
+@pytest.mark.django_db
+class TestOTPMockDisabled:
+    @pytest.fixture(autouse=True)
+    def disable_mock(self, settings):
+        settings.OTP_MOCK_ENABLED = False
+
+    def test_inscription_refusee_sans_service_otp(self, api_client):
+        response = api_client.post(
+            reverse("accounts-register"),
+            {"phone": "+243812345679", "role": "client"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        # Le compte ne doit pas avoir été créé
+        assert not User.objects.filter(phone="+243812345679").exists()
+
+    def test_demande_otp_refusee(self, api_client):
+        User.objects.create_user(phone="+243812345679", role=User.ROLE_CLIENT)
+        response = api_client.post(
+            reverse("accounts-otp-request"), {"phone": "+243812345679"}, format="json"
+        )
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+
+    def test_code_123456_refuse(self, api_client):
+        user = User.objects.create_user(phone="+243812345679", role=User.ROLE_CLIENT)
+        # Même si un ancien code simulé est resté en base, il est refusé
+        user.otp_code = User.OTP_MOCK_CODE
+        user.save()
+        response = api_client.post(
+            reverse("accounts-otp-verify"),
+            {"phone": "+243812345679", "code": "123456"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST

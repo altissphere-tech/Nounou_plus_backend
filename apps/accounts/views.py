@@ -2,18 +2,37 @@
 Vues (endpoints) de l'app accounts.
 Chaque vue correspond à une URL et traite une action précise.
 """
+from django.db import transaction
 from rest_framework import status
+from rest_framework.exceptions import APIException
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .models import OTPUnavailableError
 from .serializers import (
     OTPRequestSerializer,
     OTPVerifySerializer,
     RegisterSerializer,
     UserSerializer,
 )
+
+
+class OTPServiceUnavailable(APIException):
+    """Réponse 503 quand l'envoi d'OTP n'est pas disponible (ex : production en V1)."""
+
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "L'envoi de codes de vérification n'est pas encore disponible."
+    default_code = "otp_unavailable"
+
+
+def _send_otp(user) -> None:
+    """Génère l'OTP de l'utilisateur, ou renvoie une erreur 503 si l'envoi est indisponible."""
+    try:
+        user.generate_otp()
+    except OTPUnavailableError:
+        raise OTPServiceUnavailable()
 
 
 def _get_tokens(user) -> dict:
@@ -38,9 +57,11 @@ class RegisterView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        # On déclenche immédiatement l'envoi de l'OTP après l'inscription
-        user.generate_otp()
+        # Si l'OTP ne peut pas être envoyé, le compte n'est pas créé (annulation complète)
+        with transaction.atomic():
+            user = serializer.save()
+            # On déclenche immédiatement l'envoi de l'OTP après l'inscription
+            _send_otp(user)
         return Response(
             {
                 "message": "Compte créé. Un code OTP a été envoyé sur votre téléphone.",
@@ -64,7 +85,7 @@ class OTPRequestView(APIView):
         serializer = OTPRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.get_user()
-        user.generate_otp()
+        _send_otp(user)
         return Response(
             {"message": "Un nouveau code OTP a été envoyé sur votre téléphone."},
             status=status.HTTP_200_OK,

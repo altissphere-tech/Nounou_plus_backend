@@ -96,5 +96,12 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
+# --- OTP simulé (code fixe 123456, sans envoi de SMS) ---
+# Désactivé par défaut : seuls dev.py et test.py l'activent.
+# Tant qu'un vrai fournisseur SMS n'est pas branché (V2), la connexion
+# est donc impossible en production — c'est voulu, pour ne jamais
+# accepter le code 123456 sur un serveur réel.
+OTP_MOCK_ENABLED = False
+
 # --- Format des numéros de téléphone (RDC = CD) ---
 PHONENUMBER_DEFAULT_REGION = "CD"

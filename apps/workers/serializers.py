@@ -78,6 +78,23 @@ class WorkerProfileSerializer(serializers.ModelSerializer):
         return "****"
 
 
+class WorkerProfilePublicSerializer(WorkerProfileSerializer):
+    """
+    Version publique du profil, utilisée dans la liste vue par les autres utilisateurs.
+
+    Avant un match mutuel, le nom de famille est réduit à son initiale
+    (ex : "Mutombo" → "M.") afin de ne pas exposer l'identité complète
+    (règle brief §contraintes). Le travailleur voit son propre nom complet
+    via /api/workers/profile/me/.
+    """
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        last_name = (instance.last_name or "").strip()
+        data["last_name"] = f"{last_name[0].upper()}." if last_name else ""
+        return data
+
+
 class WorkerProfileWriteSerializer(serializers.ModelSerializer):
     """
     Sérialisation en écriture — utilisé pour créer ou modifier un profil.

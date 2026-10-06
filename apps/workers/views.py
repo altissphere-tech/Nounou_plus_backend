@@ -8,7 +8,11 @@ from rest_framework.views import APIView
 
 from .models import WorkerProfile
 from .permissions import IsWorker, IsWorkerOrClient
-from .serializers import WorkerProfileSerializer, WorkerProfileWriteSerializer
+from .serializers import (
+    WorkerProfilePublicSerializer,
+    WorkerProfileSerializer,
+    WorkerProfileWriteSerializer,
+)
 
 
 class WorkerProfileCreateView(APIView):
@@ -103,7 +107,7 @@ class WorkerProfileListView(APIView):
     Liste en lecture seule des profils travailleurs vérifiés (is_verified=True).
     Accessible aux clients ET aux travailleurs authentifiés.
 
-    Les numéros de téléphone sont masqués dans la réponse.
+    Les numéros de téléphone sont masqués et le nom de famille réduit à son initiale.
     Pas de recherche avancée en V1 — uniquement un tri par date de création.
     """
 
@@ -111,7 +115,7 @@ class WorkerProfileListView(APIView):
 
     def get(self, request):
         profiles = WorkerProfile.objects.filter(is_verified=True).select_related("user")
-        serializer = WorkerProfileSerializer(profiles, many=True)
+        serializer = WorkerProfilePublicSerializer(profiles, many=True)
         return Response(
             {
                 "count": profiles.count(),
