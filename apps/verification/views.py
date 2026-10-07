@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 
 from common.permissions import IsWorker
 from common.schema import AUTH_ERRORS, MESSAGE_ONLY, error, with_message
+from common.throttles import throttle
 
 from .models import WorkerReference
 from .serializers import (
@@ -32,6 +33,7 @@ class VerificationDocumentsView(APIView):
     """
 
     permission_classes = [IsWorker]
+    throttle_classes = [throttle("uploads", methods=("POST",))]
 
     def _get_worker(self, request):
         return getattr(request.user, "worker_profile", None)
@@ -101,6 +103,7 @@ class ReferenceListView(APIView):
     """
 
     permission_classes = [IsWorker]
+    throttle_classes = [throttle("uploads", methods=("POST",))]
 
     @extend_schema(
         tags=["Vérification"],

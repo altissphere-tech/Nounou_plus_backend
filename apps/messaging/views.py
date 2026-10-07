@@ -14,6 +14,7 @@ from apps.notifications.models import Notification, display_name, notify
 from apps.matching.models import Match
 from common.permissions import IsWorkerOrClient
 from common.schema import AUTH_ERRORS, error
+from common.throttles import throttle
 
 from .models import Message
 from .serializers import MessageCreateSerializer, MessageSerializer
@@ -31,6 +32,7 @@ class ConversationView(APIView):
     """
 
     permission_classes = [IsWorkerOrClient]
+    throttle_classes = [throttle("messages", methods=("POST",))]
 
     def _get_open_match(self, request, match_id):
         """Retourne le match si l'utilisateur y participe et qu'il est mutuel, sinon une erreur."""

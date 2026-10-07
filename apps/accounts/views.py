@@ -18,12 +18,17 @@ from rest_framework.exceptions import APIException
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.reports.models import warnings_for
 from common.schema import AUTH_ERRORS, MESSAGE_ONLY, error, with_message
+from common.throttles import (
+    LoginEmailThrottle,
+    OtpVerifyPhoneThrottle,
+    SmsPhoneThrottle,
+    throttle,
+)
 
 from . import photos, social
 from .models import OTPUnavailableError, SocialAccount, User
@@ -91,6 +96,7 @@ class RegisterView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_classes = [throttle("register"), throttle("sms_ip"), SmsPhoneThrottle]
 
     @extend_schema(
         tags=["Comptes"],
@@ -136,6 +142,7 @@ class OTPRequestView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_classes = [throttle("sms_ip"), SmsPhoneThrottle]
 
     @extend_schema(
         tags=["Comptes"],
@@ -168,6 +175,7 @@ class OTPVerifyView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_classes = [throttle("otp_verify_ip"), OtpVerifyPhoneThrottle]
 
     @extend_schema(
         tags=["Comptes"],
@@ -263,8 +271,7 @@ class EmailLoginView(APIView):
     """POST /api/accounts/login/ — connexion par e-mail + mot de passe."""
 
     permission_classes = [AllowAny]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "auth"
+    throttle_classes = [throttle("auth"), LoginEmailThrottle]
 
     @extend_schema(
         tags=["Comptes"],
@@ -288,8 +295,7 @@ class PasswordForgotView(APIView):
     """
 
     permission_classes = [AllowAny]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "auth"
+    throttle_classes = [throttle("auth"), LoginEmailThrottle]
     MESSAGE = "Si un compte existe avec cette adresse, un e-mail vient d'être envoyé."
 
     @extend_schema(
@@ -327,8 +333,7 @@ class PasswordResetView(APIView):
     """POST /api/accounts/password/reset/ — choisir un nouveau mot de passe avec le lien reçu."""
 
     permission_classes = [AllowAny]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "auth"
+    throttle_classes = [throttle("auth")]
 
     @extend_schema(
         tags=["Comptes"],
@@ -417,8 +422,7 @@ class SocialLoginView(APIView):
     """
 
     permission_classes = [AllowAny]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "auth"
+    throttle_classes = [throttle("auth")]
 
     @extend_schema(
         tags=["Comptes"],
@@ -481,6 +485,7 @@ class MyPhotoView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [throttle("uploads", methods=("POST",))]
     parser_classes = [MultiPartParser]
 
     @extend_schema(

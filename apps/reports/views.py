@@ -14,6 +14,7 @@ from apps.workers.models import WorkerProfile
 from common.pagination import paginated_response
 from common.schema import AUTH_ERRORS, PAGINATION_PARAMETERS, error, paginated, with_message
 from common.permissions import IsWorkerOrClient
+from common.throttles import throttle
 
 from .models import Report
 from .serializers import ReportCreateSerializer, ReportSerializer
@@ -30,6 +31,7 @@ class ReportView(APIView):
     """
 
     permission_classes = [IsWorkerOrClient]
+    throttle_classes = [throttle("reports")]
 
     @extend_schema(
         tags=["Signalements"],

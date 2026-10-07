@@ -15,6 +15,7 @@ from common.filters import get_choice, get_decimal, get_text
 from common.pagination import paginated_response
 from common.schema import AUTH_ERRORS, PAGINATION_PARAMETERS, error, paginated, with_message
 from common.permissions import IsClient, IsWorker, IsWorkerOrClient
+from common.throttles import throttle
 
 from .models import JobRequest
 from .serializers import JobRequestPublicSerializer, JobRequestSerializer, JobRequestWriteSerializer
@@ -188,6 +189,7 @@ class JobInterestView(APIView):
     """
 
     permission_classes = [IsWorker]
+    throttle_classes = [throttle("interest")]
 
     @extend_schema(
         tags=["Annonces"],

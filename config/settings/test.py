@@ -21,10 +21,10 @@ PASSWORD_HASHERS = [
 # OTP simulé autorisé (code fixe 123456) — jamais en production
 OTP_MOCK_ENABLED = True
 
-# Pas de limite d'essais pendant les tests
+# Pas de limite d'essais pendant les tests (sauf dans les tests qui les vérifient)
 REST_FRAMEWORK = {
     **REST_FRAMEWORK,  # noqa: F405
-    "DEFAULT_THROTTLE_RATES": {"auth": "10000/min"},
+    "DEFAULT_THROTTLE_RATES": {scope: "10000/min" for scope in THROTTLE_RATES},  # noqa: F405
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"

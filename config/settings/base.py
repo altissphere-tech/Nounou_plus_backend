@@ -93,6 +93,21 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# --- Limites d'essais (par appareil = adresse IP, ou par numéro / e-mail / utilisateur) ---
+THROTTLE_RATES = {
+    "auth": "10/min",  # connexion e-mail, mot de passe oublié, Google / Apple (par appareil)
+    "login_email": "20/hour",  # par adresse e-mail visée
+    "sms_ip": "20/hour",  # envois de codes SMS par appareil
+    "sms_phone": "5/hour",  # envois de codes SMS par numéro
+    "otp_verify_ip": "30/hour",  # essais de code par appareil
+    "otp_verify_phone": "10/hour",  # essais de code par numéro
+    "register": "10/hour",  # inscriptions par appareil
+    "messages": "30/min",  # messages envoyés par utilisateur
+    "interest": "100/day",  # « je suis intéressé(e) » par utilisateur
+    "reports": "10/day",  # signalements par utilisateur
+    "uploads": "20/hour",  # photos, documents et références par utilisateur
+}
+
 # --- Django REST Framework ---
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -106,8 +121,12 @@ REST_FRAMEWORK = {
     ),
     # Génère la description de l'API (OpenAPI) utilisée par la documentation interactive
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    # Limite les essais de mot de passe et les e-mails « mot de passe oublié » (par adresse IP)
-    "DEFAULT_THROTTLE_RATES": {"auth": "10/min"},
+    # Limites d'essais anti-abus (voir common/throttles.py)
+    "DEFAULT_THROTTLE_RATES": THROTTLE_RATES,
+    # Nombre de proxys de confiance devant Django (0 en local). Sans ce réglage,
+    # l'en-tête X-Forwarded-For, que n'importe qui peut inventer, servirait à
+    # contourner les limites. En production derrière un proxy : NUM_PROXIES=1.
+    "NUM_PROXIES": config("NUM_PROXIES", default=0, cast=int),
 }
 
 # --- Documentation interactive de l'API (/api/docs/) ---
