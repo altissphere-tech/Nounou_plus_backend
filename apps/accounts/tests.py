@@ -824,3 +824,24 @@ def test_image_geante_refusee(photo_user):
     Image.new("1", (8000, 8000)).save(buffer, format="PNG")  # 64 millions de pixels, fichier minuscule
     huge = SimpleUploadedFile("piege.png", buffer.getvalue(), content_type="image/png")
     assert client.post(reverse("accounts-photo"), {"photo": huge}, format="multipart").status_code == 400
+
+
+
+@pytest.mark.django_db
+def test_session_expire_apres_30_minutes_d_inactivite(settings):
+    """Le refresh expire 30 min après sa dernière utilisation (fenêtre glissante)."""
+    from datetime import timedelta
+
+    from rest_framework_simplejwt.settings import api_settings
+
+    assert api_settings.REFRESH_TOKEN_LIFETIME == timedelta(minutes=30)
+    assert api_settings.ACCESS_TOKEN_LIFETIME < api_settings.REFRESH_TOKEN_LIFETIME
+    user = User.objects.create_user(phone="+243812300030", role="client")
+    _, refresh = tokens_for(user)
+    renewed = refresh_status(refresh)
+    assert renewed.status_code == 200  # utilisé à temps : nouveau refresh, nouvelle fenêtre
+    from common.authentication import tokens_for as make_tokens
+
+    stale = make_tokens(user)
+    stale.set_exp(lifetime=-timedelta(seconds=1))  # 30 min écoulées sans activité
+    assert refresh_status(str(stale)).status_code == 401

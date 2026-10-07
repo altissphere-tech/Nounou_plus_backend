@@ -470,6 +470,10 @@ const en: Record<TranslationKey, string> = {
   'confirmEmail.continue': 'Continue',
   'home.confirmEmail': 'Confirm your email address',
   'home.confirmEmail.hint': 'A link was sent to {email}. Tap here to resend it.',
+  'idle.title': 'Still there?',
+  'idle.text': 'With no activity, you will be signed out in {seconds} seconds to protect your account.',
+  'idle.stay': 'Stay signed in',
+  'idle.loggedOut': 'You were signed out after 30 minutes of inactivity. Sign in again to continue.',
 }
 
 export default en

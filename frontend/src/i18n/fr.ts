@@ -469,6 +469,10 @@ const fr = {
   'confirmEmail.continue': 'Continuer',
   'home.confirmEmail': 'Confirmez votre adresse e-mail',
   'home.confirmEmail.hint': 'Un lien a été envoyé à {email}. Touchez ici pour le renvoyer.',
+  'idle.title': 'Toujours là ?',
+  'idle.text': 'Sans activité, vous serez déconnecté(e) dans {seconds} secondes, pour protéger votre compte.',
+  'idle.stay': 'Rester connecté(e)',
+  'idle.loggedOut': 'Vous avez été déconnecté(e) après 30 minutes d’inactivité. Reconnectez-vous pour continuer.',
 } as const
 
 export default fr

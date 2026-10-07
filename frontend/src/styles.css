@@ -1956,3 +1956,26 @@ input[type='file'] {
   text-decoration: none;
   border: 1.5px solid #f3cf9a;
 }
+
+/* --- Avertissement d'inactivité ------------------------------------------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(26, 21, 48, 0.55);
+}
+
+.card.modal {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.idle-banner {
+  margin-bottom: 12px;
+  text-align: left;
+}

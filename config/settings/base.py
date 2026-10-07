@@ -195,12 +195,19 @@ SPECTACULAR_SETTINGS = {
 }
 
 # --- JWT (tokens d'authentification) ---
-# Le jeton « access » est court (30 min) : l'application le renouvelle toute seule avec
-# le « refresh » (7 jours). Chaque renouvellement remplace le refresh et met l'ancien
-# sur liste noire : un refresh volé et déjà utilisé ne sert plus.
+# Déconnexion après inactivité (choix du fondateur : 30 minutes, avertissement 1 min avant).
+# - Dans l'application : seuls les gestes de la personne comptent comme activité.
+# - Sur le serveur : le jeton « refresh » expire 30 min après sa dernière utilisation
+#   (il est remplacé à chaque renouvellement : fenêtre glissante). Application fermée
+#   plus de 30 min = nouvelle connexion obligatoire.
+# Le jeton « access » (10 min) est renouvelé automatiquement tant que la session est active.
+# Un refresh ne sert qu'une fois (liste noire après rotation) : un refresh volé et déjà
+# utilisé ne sert plus.
+SESSION_IDLE_MINUTES = config("SESSION_IDLE_MINUTES", default=30, cast=int)
+
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
+    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=SESSION_IDLE_MINUTES),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),

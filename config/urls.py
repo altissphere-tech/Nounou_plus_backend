@@ -22,16 +22,17 @@ urlpatterns = [
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="api-schema"), name="api-docs"),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="api-schema"), name="api-redoc"),
-    # Renouvellement du token JWT (access expire en 30 min, refresh en 7 j)
+    # Renouvellement du token JWT (access : 10 min ; refresh : 30 min d'inactivité)
     path(
         "api/token/refresh/",
         extend_schema_view(
             post=extend_schema(
                 tags=["Comptes"],
                 summary="Renouveler le token d'accès (avec le token refresh)",
-                description="Le token `access` expire après 30 min. Envoyez le `refresh` "
-                "(valable 7 jours) pour en obtenir un nouveau, sans redemander de code SMS. "
-                "Un refresh ne sert qu'une fois : la réponse en contient un nouveau.",
+                description="Le token `access` expire après 10 min. Envoyez le `refresh` "
+                "pour en obtenir un nouveau, sans redemander de code SMS. Un refresh ne sert "
+                "qu'une fois (la réponse en contient un nouveau) et expire après 30 min "
+                "d'inactivité.",
                 auth=[],
             )
         )(TokenRefreshView).as_view(),

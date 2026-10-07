@@ -2,8 +2,9 @@
  * Petit client pour l'API NOUNOU+.
  *
  * - Ajoute automatiquement le token de connexion (JWT) à chaque requête.
- * - Si le token d'accès a expiré (30 min), le renouvelle une fois avec le token
- *   « refresh » (7 jours) puis relance la requête, sans redemander de code SMS.
+ * - Si le token d'accès a expiré (10 min), le renouvelle une fois avec le token
+ *   « refresh » (valable 30 min après sa dernière utilisation) puis relance la
+ *   requête, sans redemander de code SMS.
  *   Un refresh ne sert qu'une fois (le serveur en renvoie un nouveau) : si plusieurs
  *   requêtes échouent en même temps, un seul renouvellement est lancé et partagé.
  * - Transforme les erreurs de l'API en ApiError, plus simples à afficher.
