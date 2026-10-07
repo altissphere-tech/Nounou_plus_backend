@@ -14,7 +14,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import status
 from rest_framework import serializers as drf_serializers
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -23,6 +23,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.reports.models import warnings_for
+from common import security_log
 from common.authentication import tokens_for
 from common.schema import AUTH_ERRORS, MESSAGE_ONLY, error, with_message
 from common.throttles import (
@@ -227,8 +228,12 @@ class OTPVerifyView(APIView):
     )
     def post(self, request):
         serializer = OTPVerifySerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return _login_response(serializer.validated_data["user"], "Connexion réussie.")
+        if not serializer.is_valid():
+            security_log.event("code_sms_refuse", request, numero=security_log.fingerprint(request.data.get("phone")))
+            raise ValidationError(serializer.errors)
+        user = serializer.validated_data["user"]
+        security_log.event("connexion", request, compte=user.pk, methode="sms")
+        return _login_response(user, "Connexion réussie.")
 
 
 class MeView(APIView):
@@ -304,8 +309,12 @@ class EmailLoginView(APIView):
     )
     def post(self, request):
         serializer = EmailLoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return _login_response(serializer.validated_data["user"], "Connexion réussie.")
+        if not serializer.is_valid():
+            security_log.event("connexion_refusee", request, email=security_log.fingerprint(request.data.get("email")))
+            raise ValidationError(serializer.errors)
+        user = serializer.validated_data["user"]
+        security_log.event("connexion", request, compte=user.pk, methode="email")
+        return _login_response(user, "Connexion réussie.")
 
 
 class PasswordForgotView(APIView):
@@ -335,6 +344,10 @@ class PasswordForgotView(APIView):
         user = User.objects.filter(
             email=serializer.validated_data["email"].strip().lower(), email_verified=True, is_active=True
         ).first()
+        security_log.event(
+            "mot_de_passe_oublie", request, email=security_log.fingerprint(serializer.validated_data["email"]),
+            compte=user.pk if user else "-",
+        )
         if user is not None:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
@@ -385,6 +398,7 @@ class PasswordResetView(APIView):
         user.set_password(data["password"])
         user.save(update_fields=["password"])
         user.end_all_sessions()  # un éventuel voleur de session est déconnecté
+        security_log.event("mot_de_passe_reinitialise", request, compte=user.pk)
         return Response({"message": "Mot de passe modifié. Vous pouvez vous connecter."})
 
 
@@ -410,6 +424,7 @@ class PasswordChangeView(APIView):
         request.user.save(update_fields=["password"])
         # Les autres appareils sont déconnectés ; celui-ci reçoit de nouveaux jetons
         request.user.end_all_sessions()
+        security_log.event("mot_de_passe_change", request, compte=request.user.pk)
         return _login_response(request.user, "Mot de passe enregistré. Vos autres appareils sont déconnectés.")
 
 
@@ -432,6 +447,7 @@ class EmailChangeView(APIView):
         serializer.is_valid(raise_exception=True)
         if serializer.validated_data["email"] != request.user.email:
             emails.set_email(request.user, serializer.validated_data["email"])  # lien envoyé
+            security_log.event("email_change", request, compte=request.user.pk)
         return Response(
             {
                 "message": "Adresse e-mail enregistrée. Confirmez-la avec le lien reçu par e-mail.",
@@ -481,6 +497,7 @@ class SocialLoginView(APIView):
         try:
             identity = social.verify_id_token(provider, data["id_token"])
         except social.SocialAuthError:
+            security_log.event("jeton_social_refuse", request, service=provider)
             return Response(
                 {"detail": "La connexion a échoué. Réessayez."}, status=status.HTTP_400_BAD_REQUEST
             )
@@ -496,6 +513,7 @@ class SocialLoginView(APIView):
         if user is not None:
             if not user.is_active:
                 return Response({"detail": SUSPENDED_MESSAGE}, status=status.HTTP_400_BAD_REQUEST)
+            security_log.event("connexion", request, compte=user.pk, methode=provider)
             return _login_response(user, "Connexion réussie.")
 
         if not data.get("role") or not data.get("phone"):
@@ -633,6 +651,7 @@ class LogoutAllView(APIView):
     )
     def post(self, request):
         request.user.end_all_sessions()
+        security_log.event("deconnexion_partout", request, compte=request.user.pk)
         return Response({"message": "Tous vos appareils ont été déconnectés."})
 
 

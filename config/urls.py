@@ -1,6 +1,7 @@
 """
 URLs centrales du projet — chaque app ajoute ses propres routes ici.
 """
+from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.utils import extend_schema, extend_schema_view
@@ -16,7 +17,7 @@ admin.site.site_title = "NOUNOU+ admin"
 admin.site.index_title = "Tableau de bord"
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path(settings.ADMIN_URL, admin.site.urls),
     # Documentation interactive de l'API
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="api-schema"), name="api-docs"),

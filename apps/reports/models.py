@@ -115,6 +115,10 @@ class Report(models.Model):
         self.save()
 
         target = self.target
+        if status != previous_status:
+            from common.security_log import event
+
+            event("signalement_decide", decision=status, compte=target.pk, par=getattr(admin_user, "pk", "-"))
         if status == self.STATUS_WARNED and previous_status != self.STATUS_WARNED:
             from apps.notifications.models import Notification, notify
 

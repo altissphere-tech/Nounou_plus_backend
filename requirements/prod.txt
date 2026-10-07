@@ -1,0 +1,3 @@
+-r base.txt
+# Pilote PostgreSQL (production)
+psycopg[binary]==3.3.6

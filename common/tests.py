@@ -114,3 +114,54 @@ class TestThrottles:
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {RefreshToken.for_user(user).access_token}")
         # GET d'une conversation inexistante : 404, jamais 429
         assert {client.get(reverse("messages-conversation", args=[999])).status_code for _ in range(5)} == {404}
+
+
+# ------------------------------------------------------------------ #
+# En-têtes de sécurité et journal                                      #
+# ------------------------------------------------------------------ #
+
+
+@pytest.mark.django_db
+class TestSecurityHeaders:
+    def test_reponses_api(self):
+        response = APIClient().get("/api/services/")
+        assert response["Content-Security-Policy"].startswith("default-src 'none'")
+        assert response["Cache-Control"] == "no-store"  # données jamais gardées en cache
+        assert response["X-Content-Type-Options"] == "nosniff"
+        assert response["X-Frame-Options"] == "DENY"
+        assert "camera=()" in response["Permissions-Policy"]
+
+    def test_photos_publiques_peuvent_etre_mises_en_cache(self):
+        response = APIClient().get("/api/photos/inconnue.jpg")
+        assert response.status_code == 404
+        assert response.get("Cache-Control") != "no-store"
+
+
+@pytest.fixture
+def security_log(caplog):
+    """Le journal de sécurité ne remonte pas au journal général : on l'écoute directement."""
+    import logging
+
+    logger = logging.getLogger("nounou.security")
+    logger.addHandler(caplog.handler)
+    caplog.set_level("INFO", logger="nounou.security")
+    yield caplog
+    logger.removeHandler(caplog.handler)
+
+
+@pytest.mark.django_db
+class TestSecurityLog:
+    def test_echec_de_connexion_note_sans_donnee_personnelle(self, security_log):
+        caplog = security_log
+        APIClient().post(reverse("accounts-login"), {"email": "marie@example.com", "password": "Secret123!"}, format="json")
+        line = caplog.text
+        assert "connexion_refusee" in line
+        assert "marie" not in line and "Secret123" not in line
+
+    def test_limite_atteinte_notee(self, security_log, rates):
+        caplog = security_log
+        rates(auth="1/min")
+        client = APIClient()
+        for _ in range(2):
+            client.post(reverse("accounts-login"), {"email": "a@b.cd", "password": "x"}, format="json")
+        assert "limite_atteinte" in caplog.text and "EmailLoginView" in caplog.text

@@ -51,6 +51,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "common.middleware.SecurityHeadersMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -121,6 +122,8 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",
     ),
+    # Les limites atteintes (réponses 429) sont notées dans le journal de sécurité
+    "EXCEPTION_HANDLER": "common.security_log.exception_handler",
     # Génère la description de l'API (OpenAPI) utilisée par la documentation interactive
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     # Limites d'essais anti-abus (voir common/throttles.py)
@@ -233,6 +236,29 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="NOUNOU+ <no-reply@nou
 # --- Connexion Google / Apple (vide = bouton désactivé) ---
 GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")
 APPLE_CLIENT_ID = config("APPLE_CLIENT_ID", default="")
+
+# --- Adresse de l'administration ---
+# Une adresse moins évidente que « admin/ » limite les robots qui testent des mots de passe.
+ADMIN_URL = config("ADMIN_URL", default="admin/")
+
+# --- Journal de sécurité ---
+# Le journal « nounou.security » note les événements utiles pour repérer un abus
+# (échecs de connexion, limites atteintes, mots de passe changés, suspensions…).
+# Jamais de mot de passe, de code, de jeton ni de numéro complet : un identifiant
+# de compte ou une empreinte suffit.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "security": {"format": "{asctime} SECURITE {message}", "style": "{"},
+    },
+    "handlers": {
+        "security_console": {"class": "logging.StreamHandler", "formatter": "security"},
+    },
+    "loggers": {
+        "nounou.security": {"handlers": ["security_console"], "level": "INFO", "propagate": False},
+    },
+}
 
 # --- Format des numéros de téléphone (RDC = CD) ---
 PHONENUMBER_DEFAULT_REGION = "CD"

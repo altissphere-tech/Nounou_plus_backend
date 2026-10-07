@@ -8,6 +8,22 @@ from rest_framework import serializers
 from .models import ALLOWED_EXTENSIONS, MAX_FILE_SIZE_MB, VerificationRecord, WorkerReference
 
 
+# Premiers octets (« signature ») de chaque format accepté
+SIGNATURES = {
+    "pdf": [b"%PDF-"],
+    "jpg": [b"\xff\xd8\xff"],
+    "jpeg": [b"\xff\xd8\xff"],
+    "png": [b"\x89PNG\r\n\x1a\n"],
+}
+
+
+def content_matches_extension(uploaded) -> bool:
+    extension = uploaded.name.rsplit(".", 1)[-1].lower() if "." in uploaded.name else ""
+    head = uploaded.read(8)
+    uploaded.seek(0)
+    return any(head.startswith(signature) for signature in SIGNATURES.get(extension, []))
+
+
 class VerificationRecordSerializer(serializers.ModelSerializer):
     """Un document vu par le travailleur qui l'a envoyé (sans le fichier)."""
 
@@ -36,6 +52,12 @@ class VerificationUploadSerializer(serializers.ModelSerializer):
         if value.size > MAX_FILE_SIZE_MB * 1024 * 1024:
             raise serializers.ValidationError(
                 f"Le fichier dépasse la taille maximale de {MAX_FILE_SIZE_MB} Mo."
+            )
+        # Le contenu doit correspondre à l'extension : un « .pdf » qui contient en
+        # réalité une page web ou un programme est refusé
+        if not content_matches_extension(value):
+            raise serializers.ValidationError(
+                "Le contenu du fichier ne correspond pas à son type (PDF, JPG ou PNG attendu)."
             )
         return value
 

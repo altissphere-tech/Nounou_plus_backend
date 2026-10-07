@@ -11,15 +11,13 @@ récupérer ensuite son compte (prise de contrôle).
 Une adresse non vérifiée ne « bloque » personne : si une autre personne l'utilise
 et la vérifie (ou se connecte avec Google), elle lui est attribuée.
 """
-import logging
-
 from django.conf import settings
 from django.core import signing
 from django.core.mail import send_mail
 
-from .models import User
+from common.security_log import event
 
-logger = logging.getLogger("nounou.security")
+from .models import User
 
 SALT = "nounou.email-verification"
 MAX_AGE_SECONDS = 3 * 24 * 3600  # le lien est valable 3 jours
@@ -71,5 +69,5 @@ def confirm(token: str) -> User | None:
     if not user.email_verified:
         user.email_verified = True
         user.save(update_fields=["email_verified"])
-        logger.info("email_verified user=%s", user.pk)
+        event("email_confirme", compte=user.pk)
     return user

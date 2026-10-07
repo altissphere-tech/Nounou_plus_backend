@@ -279,3 +279,25 @@ class TestReferences:
         VerificationRecord.objects.get().review(admin_user, VerificationRecord.STATUS_APPROVED)
         notification = Notification.objects.get(user=worker.user)
         assert notification.kind == "document_reviewed" and notification.params["approved"] is True
+
+
+@pytest.mark.django_db
+class TestFileContent:
+    """Le contenu réel du fichier doit correspondre à son extension."""
+
+    @pytest.mark.parametrize(
+        "name, content",
+        [
+            ("carte.pdf", b"<html><script>alert(1)</script></html>"),  # page web déguisée
+            ("carte.jpg", b"%PDF-1.4 faux jpg"),
+            ("carte.png", b"MZ\x90\x00 programme Windows"),
+        ],
+    )
+    def test_faux_fichier_refuse(self, worker, name, content):
+        response = upload(worker.user, file=SimpleUploadedFile(name, content, content_type="application/pdf"))
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert VerificationRecord.objects.count() == 0
+
+    def test_vrai_png_accepte(self, worker):
+        png = b"\x89PNG\r\n\x1a\n" + b"0" * 50
+        assert upload(worker.user, file=SimpleUploadedFile("carte.png", png, content_type="image/png")).status_code == 201

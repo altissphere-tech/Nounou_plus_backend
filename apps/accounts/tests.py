@@ -814,3 +814,13 @@ class TestEmailVerification:
         assert created.data["user"]["email"] == "marie@gmail.com"
         assert created.data["user"]["email_verified"] is True
         assert User.objects.get(phone="+243812300009").email is None
+
+
+@pytest.mark.django_db
+def test_image_geante_refusee(photo_user):
+    """Une image piégée (énorme une fois décompressée) est refusée sans être décompressée."""
+    _, client = photo_user
+    buffer = BytesIO()
+    Image.new("1", (8000, 8000)).save(buffer, format="PNG")  # 64 millions de pixels, fichier minuscule
+    huge = SimpleUploadedFile("piege.png", buffer.getvalue(), content_type="image/png")
+    assert client.post(reverse("accounts-photo"), {"photo": huge}, format="multipart").status_code == 400
