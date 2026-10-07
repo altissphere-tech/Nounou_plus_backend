@@ -2,8 +2,10 @@
  * Petit client pour l'API NOUNOU+.
  *
  * - Ajoute automatiquement le token de connexion (JWT) à chaque requête.
- * - Si le token d'accès a expiré (12 h), le renouvelle une fois avec le token
+ * - Si le token d'accès a expiré (30 min), le renouvelle une fois avec le token
  *   « refresh » (7 jours) puis relance la requête, sans redemander de code SMS.
+ *   Un refresh ne sert qu'une fois (le serveur en renvoie un nouveau) : si plusieurs
+ *   requêtes échouent en même temps, un seul renouvellement est lancé et partagé.
  * - Transforme les erreurs de l'API en ApiError, plus simples à afficher.
  */
 
@@ -89,8 +91,17 @@ async function parse(response: Response): Promise<unknown> {
   }
 }
 
-/** Renouvelle le token d'accès. Retourne les nouveaux tokens, ou null si la session a expiré. */
-async function refreshTokens(tokens: Tokens): Promise<Tokens | null> {
+let refreshing: Promise<Tokens | null> | null = null
+
+/** Renouvelle le token d'accès (un seul renouvellement à la fois). Null si la session a expiré. */
+function refreshTokens(tokens: Tokens): Promise<Tokens | null> {
+  refreshing ??= doRefresh(tokens).finally(() => {
+    refreshing = null
+  })
+  return refreshing
+}
+
+async function doRefresh(tokens: Tokens): Promise<Tokens | null> {
   const response = await send('POST', '/api/token/refresh/', { refresh: tokens.refresh })
   if (!response.ok) return null
   const data = (await parse(response)) as Partial<Tokens>
@@ -136,4 +147,11 @@ export async function apiBlobUrl(path: string): Promise<string> {
   }
   if (!response.ok) throw new ApiError(response.status, null)
   return URL.createObjectURL(await response.blob())
+}
+
+/** Déconnexion de cet appareil : le serveur révoque le refresh (sans attendre sa réponse). */
+export function revokeSession(): void {
+  const tokens = loadTokens()
+  saveTokens(null)
+  if (tokens) send('POST', '/api/accounts/logout/', { refresh: tokens.refresh }).catch(() => {})
 }

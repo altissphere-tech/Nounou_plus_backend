@@ -19,9 +19,11 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.reports.models import warnings_for
+from common.authentication import tokens_for
 from common.schema import AUTH_ERRORS, MESSAGE_ONLY, error, with_message
 from common.throttles import (
     LoginEmailThrottle,
@@ -67,7 +69,7 @@ def _send_otp(user) -> None:
 
 def _get_tokens(user) -> dict:
     """Génère une paire de tokens JWT (access + refresh) pour un utilisateur."""
-    refresh = RefreshToken.for_user(user)
+    refresh = tokens_for(user)
     return {
         "refresh": str(refresh),
         "access": str(refresh.access_token),
@@ -361,6 +363,7 @@ class PasswordResetView(APIView):
             return Response({"password": exc.messages}, status=status.HTTP_400_BAD_REQUEST)
         user.set_password(data["password"])
         user.save(update_fields=["password"])
+        user.end_all_sessions()  # un éventuel voleur de session est déconnecté
         return Response({"message": "Mot de passe modifié. Vous pouvez vous connecter."})
 
 
@@ -372,15 +375,21 @@ class PasswordChangeView(APIView):
     @extend_schema(
         tags=["Comptes"],
         summary="Créer ou changer mon mot de passe",
+        description="Déconnecte les autres appareils. La réponse contient de nouveaux `tokens`.",
         request=PasswordChangeSerializer,
-        responses={200: MESSAGE_ONLY, 400: error("Mot de passe actuel incorrect ou trop faible.")},
+        responses={
+            200: _login_schema("PasswordChangeResponse"),
+            400: error("Mot de passe actuel incorrect ou trop faible."),
+        },
     )
     def post(self, request):
         serializer = PasswordChangeSerializer(data=request.data, context={"user": request.user})
         serializer.is_valid(raise_exception=True)
         request.user.set_password(serializer.validated_data["new_password"])
         request.user.save(update_fields=["password"])
-        return Response({"message": "Mot de passe enregistré."})
+        # Les autres appareils sont déconnectés ; celui-ci reçoit de nouveaux jetons
+        request.user.end_all_sessions()
+        return _login_response(request.user, "Mot de passe enregistré. Vos autres appareils sont déconnectés.")
 
 
 class EmailChangeView(APIView):
@@ -554,3 +563,45 @@ class PublicPhotoView(APIView):
         response = FileResponse(user.photo.open("rb"), content_type="image/jpeg")
         response["Cache-Control"] = "public, max-age=86400"
         return response
+
+
+class LogoutView(APIView):
+    """
+    POST /api/accounts/logout/   { "refresh": "…" }
+
+    Déconnexion de cet appareil : le jeton refresh est mis sur liste noire.
+    Répond toujours 200 (un jeton déjà invalide ne change rien).
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    @extend_schema(
+        tags=["Comptes"],
+        summary="Se déconnecter (cet appareil)",
+        auth=[],
+        request=inline_serializer(name="LogoutRequest", fields={"refresh": drf_serializers.CharField()}),
+        responses={200: MESSAGE_ONLY},
+    )
+    def post(self, request):
+        try:
+            RefreshToken(str(request.data.get("refresh", ""))).blacklist()
+        except TokenError:
+            pass
+        return Response({"message": "Déconnecté."})
+
+
+class LogoutAllView(APIView):
+    """POST /api/accounts/logout-all/ — se déconnecter de tous les appareils (y compris celui-ci)."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["Comptes"],
+        summary="Se déconnecter de tous les appareils",
+        request=None,
+        responses={200: MESSAGE_ONLY, **AUTH_ERRORS},
+    )
+    def post(self, request):
+        request.user.end_all_sessions()
+        return Response({"message": "Tous vos appareils ont été déconnectés."})

@@ -375,6 +375,8 @@ class TestSecuritySettings:
             reverse("accounts-password-change"), {"new_password": PASSWORD}, format="json"
         )
         assert response.status_code == 200
+        # Les anciens jetons sont révoqués : on continue avec les nouveaux
+        authenticated_client.credentials(HTTP_AUTHORIZATION=f"Bearer {response.data['tokens']['access']}")
         # Ensuite, le mot de passe actuel est demandé pour changer l'e-mail
         response = authenticated_client.post(
             reverse("accounts-email"), {"email": "nouveau@example.com"}, format="json"
@@ -632,3 +634,80 @@ class TestPhoto:
         assert client.delete(reverse("accounts-photo")).status_code == 200
         user.refresh_from_db()
         assert user.photo_status == "aucune" and not user.photo
+
+
+# ------------------------------------------------------------------ #
+# Sessions révocables (déconnexion, changement de mot de passe)       #
+# ------------------------------------------------------------------ #
+
+
+def tokens_for(user):
+    from common.authentication import tokens_for as make_tokens
+
+    refresh = make_tokens(user)
+    return str(refresh.access_token), str(refresh)
+
+
+def as_bearer(access):
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+    return client
+
+
+def refresh_status(refresh):
+    return APIClient().post(reverse("token-refresh"), {"refresh": refresh}, format="json")
+
+
+@pytest.mark.django_db
+class TestSessions:
+    @pytest.fixture
+    def user(self, db):
+        return User.objects.create_user(phone="+243812300020", role="client", email="s@example.com", password=PASSWORD)
+
+    def test_refresh_ne_sert_qu_une_fois(self, user):
+        _, refresh = tokens_for(user)
+        first = refresh_status(refresh)
+        assert first.status_code == 200 and first.data["refresh"] != refresh
+        assert refresh_status(refresh).status_code == 401  # réutilisation refusée
+
+    def test_deconnexion_revoque_le_refresh(self, user):
+        _, refresh = tokens_for(user)
+        assert APIClient().post(reverse("accounts-logout"), {"refresh": refresh}, format="json").status_code == 200
+        assert refresh_status(refresh).status_code == 401
+        # Jeton inconnu ou déjà révoqué : réponse identique
+        assert APIClient().post(reverse("accounts-logout"), {"refresh": "nimporte"}, format="json").status_code == 200
+
+    def test_changement_de_mot_de_passe_deconnecte_les_autres_appareils(self, user):
+        other_access, other_refresh = tokens_for(user)
+        mine = as_bearer(tokens_for(user)[0])
+        response = mine.post(
+            reverse("accounts-password-change"),
+            {"current_password": PASSWORD, "new_password": "AutreSecret99"},
+            format="json",
+        )
+        assert response.status_code == 200
+        assert as_bearer(other_access).get(reverse("accounts-me")).status_code == 401
+        assert refresh_status(other_refresh).status_code == 401
+        # L'appareil qui a changé le mot de passe continue avec ses nouveaux jetons
+        assert as_bearer(response.data["tokens"]["access"]).get(reverse("accounts-me")).status_code == 200
+
+    def test_reinitialisation_deconnecte_partout(self, user):
+        access, refresh = tokens_for(user)
+        api = APIClient()
+        api.post(reverse("accounts-password-forgot"), {"email": "s@example.com"}, format="json")
+        uid, token = re.search(r"uid=([^&\s]+)&token=(\S+)", mail.outbox[0].body).groups()
+        api.post(reverse("accounts-password-reset"), {"uid": uid, "token": token, "password": "NouveauSecret42"}, format="json")
+        assert as_bearer(access).get(reverse("accounts-me")).status_code == 401
+        assert refresh_status(refresh).status_code == 401
+
+    def test_deconnexion_de_tous_les_appareils(self, user):
+        access, refresh = tokens_for(user)
+        assert as_bearer(access).post(reverse("accounts-logout-all")).status_code == 200
+        assert as_bearer(access).get(reverse("accounts-me")).status_code == 401
+        assert refresh_status(refresh).status_code == 401
+
+    def test_compte_suspendu_ne_peut_plus_renouveler(self, user):
+        _, refresh = tokens_for(user)
+        user.is_active = False
+        user.save()
+        assert refresh_status(refresh).status_code == 401

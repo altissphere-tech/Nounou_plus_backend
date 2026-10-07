@@ -454,6 +454,10 @@ const fr = {
   'security.password.saved': 'Mot de passe enregistré.',
   'security.linked': 'Comptes liés',
   'security.error': 'Enregistrement impossible. Vérifiez les informations.',
+  'security.sessions': 'Appareils connectés',
+  'security.sessions.hint': 'Téléphone perdu ou activité suspecte ? Déconnectez tous les appareils où votre compte est ouvert, y compris celui-ci.',
+  'security.sessions.button': 'Se déconnecter de tous les appareils',
+  'security.sessions.confirm': 'Déconnecter tous les appareils, y compris celui-ci ?',
 } as const
 
 export default fr

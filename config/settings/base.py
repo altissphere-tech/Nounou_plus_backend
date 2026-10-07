@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     # Bibliothèques tierces
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",  # jetons « refresh » révoqués (déconnexion)
     "phonenumber_field",
     "drf_spectacular",
     "drf_spectacular_sidecar",  # fichiers de la page de documentation, servis localement
@@ -111,7 +112,7 @@ THROTTLE_RATES = {
 # --- Django REST Framework ---
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "common.authentication.JWTAuthentication",  # JWT + révocation (voir le fichier)
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
@@ -190,11 +191,16 @@ SPECTACULAR_SETTINGS = {
 }
 
 # --- JWT (tokens d'authentification) ---
+# Le jeton « access » est court (30 min) : l'application le renouvelle toute seule avec
+# le « refresh » (7 jours). Chaque renouvellement remplace le refresh et met l'ancien
+# sur liste noire : un refresh volé et déjà utilisé ne sert plus.
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=12),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "TOKEN_REFRESH_SERIALIZER": "common.authentication.TokenRefreshSerializer",
 }
 
 # --- OTP simulé (code fixe 123456, sans envoi de SMS) ---

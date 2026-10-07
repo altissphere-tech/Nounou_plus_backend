@@ -455,6 +455,10 @@ const en: Record<TranslationKey, string> = {
   'security.password.saved': 'Password saved.',
   'security.linked': 'Linked accounts',
   'security.error': 'Could not save. Check the information.',
+  'security.sessions': 'Signed-in devices',
+  'security.sessions.hint': 'Lost your phone or noticed suspicious activity? Sign out of every device where your account is open, including this one.',
+  'security.sessions.button': 'Sign out of all devices',
+  'security.sessions.confirm': 'Sign out of all devices, including this one?',
 }
 
 export default en

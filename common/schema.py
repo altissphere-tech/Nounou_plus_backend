@@ -6,6 +6,7 @@ Nos vues renvoient souvent des réponses « enveloppées », par exemple
 {"count": …, "next": …, "previous": …, "results": [...]}. Ces fonctions
 décrivent ces formats une seule fois pour toute l'API.
 """
+from drf_spectacular.contrib.rest_framework_simplejwt import SimpleJWTScheme
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, inline_serializer
 from rest_framework import serializers
 
@@ -50,3 +51,9 @@ AUTH_ERRORS = {
     401: error("Token absent, invalide ou expiré (ou compte suspendu)."),
     403: error("Votre rôle (client / travailleur) n'a pas accès à cette action."),
 }
+
+
+class RevocableJWTScheme(SimpleJWTScheme):
+    """Documentation : notre authentification JWT (révocable) se présente comme celle de simplejwt."""
+
+    target_class = "common.authentication.JWTAuthentication"

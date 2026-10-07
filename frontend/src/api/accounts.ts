@@ -43,8 +43,9 @@ export const forgotPassword = (email: string) =>
 export const resetPassword = (uid: string, token: string, password: string) =>
   api<{ message: string }>('POST', '/api/accounts/password/reset/', { uid, token, password })
 
+/** Change le mot de passe : les autres appareils sont déconnectés, la réponse contient de nouveaux jetons. */
 export const changePassword = (newPassword: string, currentPassword?: string) =>
-  api<{ message: string }>('POST', '/api/accounts/password/change/', {
+  api<LoginResponse>('POST', '/api/accounts/password/change/', {
     new_password: newPassword,
     ...(currentPassword ? { current_password: currentPassword } : {}),
   })
@@ -54,6 +55,8 @@ export const changeEmail = (email: string, currentPassword?: string) =>
     email,
     ...(currentPassword ? { current_password: currentPassword } : {}),
   })
+
+export const logoutEverywhere = () => api<{ message: string }>('POST', '/api/accounts/logout-all/')
 
 export function getMe() {
   return api<Me>('GET', '/api/accounts/me/')

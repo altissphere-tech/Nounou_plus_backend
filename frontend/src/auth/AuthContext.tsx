@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { getMe, verifyCode } from '../api/accounts'
-import { ApiError, loadTokens, saveTokens, setSessionExpiredHandler } from '../api/client'
+import { ApiError, loadTokens, revokeSession, saveTokens, setSessionExpiredHandler } from '../api/client'
 import type { Tokens } from '../api/client'
 import type { Me } from '../api/types'
 
@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [unreachable, setUnreachable] = useState(false)
 
   const logout = useCallback(() => {
-    saveTokens(null)
+    revokeSession()
     setUnreachable(false)
     setUser(null)
   }, [])

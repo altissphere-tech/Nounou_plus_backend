@@ -7,6 +7,8 @@ from .views import (
     AuthOptionsView,
     EmailChangeView,
     EmailLoginView,
+    LogoutAllView,
+    LogoutView,
     MeView,
     MyPhotoView,
     OTPRequestView,
@@ -31,4 +33,6 @@ urlpatterns = [
     path("password/change/", PasswordChangeView.as_view(), name="accounts-password-change"),
     path("email/", EmailChangeView.as_view(), name="accounts-email"),
     path("photo/", MyPhotoView.as_view(), name="accounts-photo"),
+    path("logout/", LogoutView.as_view(), name="accounts-logout"),
+    path("logout-all/", LogoutAllView.as_view(), name="accounts-logout-all"),
 ]

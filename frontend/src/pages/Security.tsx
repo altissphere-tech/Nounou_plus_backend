@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { CheckCircle2 } from 'lucide-react'
-import { changeEmail, changePassword, requestCode, verifyCode } from '../api/accounts'
+import { changeEmail, changePassword, logoutEverywhere, requestCode, verifyCode } from '../api/accounts'
 import { useAuth } from '../auth/AuthContext'
 import { errorText } from '../components/errors'
 import Field from '../components/Field'
@@ -134,7 +134,7 @@ function EmailCard() {
 
 function PasswordCard() {
   const { t, lang } = useI18n()
-  const { user, reload } = useAuth()
+  const { user, startSession } = useAuth()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [feedback, setFeedback] = useState<Feedback>(null)
@@ -143,8 +143,8 @@ function PasswordCard() {
     event.preventDefault()
     setFeedback(null)
     try {
-      await changePassword(next, current || undefined)
-      await reload()
+      const response = await changePassword(next, current || undefined)
+      await startSession(response.tokens) // les anciens jetons ne sont plus valables
       setCurrent('')
       setNext('')
       setFeedback({ ok: true, text: t('security.password.saved') })
@@ -170,6 +170,34 @@ function PasswordCard() {
         {user!.has_password ? t('security.password.change') : t('security.password.create')}
       </button>
     </form>
+  )
+}
+
+/** « Se déconnecter de tous les appareils » (téléphone perdu, session suspecte). */
+function SessionsCard() {
+  const { t } = useI18n()
+  const { logout } = useAuth()
+  const [error, setError] = useState(false)
+
+  async function everywhere() {
+    if (!window.confirm(t('security.sessions.confirm'))) return
+    try {
+      await logoutEverywhere()
+      logout()
+    } catch {
+      setError(true)
+    }
+  }
+
+  return (
+    <div className="card">
+      <h2>{t('security.sessions')}</h2>
+      <p className="muted small-text">{t('security.sessions.hint')}</p>
+      {error && <p className="error">{t('security.error')}</p>}
+      <button type="button" className="button small danger-outline" onClick={everywhere}>
+        {t('security.sessions.button')}
+      </button>
+    </div>
   )
 }
 
@@ -205,6 +233,7 @@ export default function Security() {
       <PhoneCard />
       <EmailCard />
       <PasswordCard />
+      <SessionsCard />
       {user!.social_providers.length > 0 && (
         <div className="card">
           <h2>{t('security.linked')}</h2>
