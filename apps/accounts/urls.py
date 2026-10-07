@@ -3,11 +3,32 @@ Routes de l'app accounts.
 Ces URLs sont montées sous le préfixe /api/accounts/ dans config/urls.py.
 """
 from django.urls import path
-from .views import MeView, OTPRequestView, OTPVerifyView, RegisterView
+from .views import (
+    AuthOptionsView,
+    EmailChangeView,
+    EmailLoginView,
+    MeView,
+    MyPhotoView,
+    OTPRequestView,
+    OTPVerifyView,
+    PasswordChangeView,
+    PasswordForgotView,
+    PasswordResetView,
+    RegisterView,
+    SocialLoginView,
+)
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="accounts-register"),
     path("otp/request/", OTPRequestView.as_view(), name="accounts-otp-request"),
     path("otp/verify/", OTPVerifyView.as_view(), name="accounts-otp-verify"),
     path("me/", MeView.as_view(), name="accounts-me"),
+    path("auth-options/", AuthOptionsView.as_view(), name="accounts-auth-options"),
+    path("login/", EmailLoginView.as_view(), name="accounts-login"),
+    path("social/", SocialLoginView.as_view(), name="accounts-social"),
+    path("password/forgot/", PasswordForgotView.as_view(), name="accounts-password-forgot"),
+    path("password/reset/", PasswordResetView.as_view(), name="accounts-password-reset"),
+    path("password/change/", PasswordChangeView.as_view(), name="accounts-password-change"),
+    path("email/", EmailChangeView.as_view(), name="accounts-email"),
+    path("photo/", MyPhotoView.as_view(), name="accounts-photo"),
 ]

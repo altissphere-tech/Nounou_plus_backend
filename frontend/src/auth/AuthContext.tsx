@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 import { getMe, verifyCode } from '../api/accounts'
 import { ApiError, loadTokens, saveTokens, setSessionExpiredHandler } from '../api/client'
+import type { Tokens } from '../api/client'
 import type { Me } from '../api/types'
 
 interface AuthValue {
@@ -13,6 +14,8 @@ interface AuthValue {
    */
   unreachable: boolean
   login: (phone: string, code: string) => Promise<void>
+  /** Ouvre la session avec des tokens déjà obtenus (e-mail, Google, Apple, inscription). */
+  startSession: (tokens: Tokens) => Promise<void>
   logout: () => void
   reload: () => Promise<void>
 }
@@ -47,13 +50,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = useCallback(
-    async (phone: string, code: string) => {
-      const response = await verifyCode(phone, code)
-      saveTokens(response.tokens)
+  const startSession = useCallback(
+    async (tokens: Tokens) => {
+      saveTokens(tokens)
       await reload()
     },
     [reload],
+  )
+
+  const login = useCallback(
+    async (phone: string, code: string) => {
+      const response = await verifyCode(phone, code)
+      await startSession(response.tokens)
+    },
+    [startSession],
   )
 
   useEffect(() => {
@@ -74,8 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [reload])
 
   const value = useMemo(
-    () => ({ user, unreachable, login, logout, reload }),
-    [user, unreachable, login, logout, reload],
+    () => ({ user, unreachable, login, startSession, logout, reload }),
+    [user, unreachable, login, startSession, logout, reload],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

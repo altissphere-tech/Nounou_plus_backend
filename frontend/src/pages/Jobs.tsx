@@ -2,6 +2,8 @@ import { useSearchParams } from 'react-router-dom'
 import { searchJobs } from '../api/search'
 import type { PublicJob } from '../api/types'
 import { useI18n } from '../i18n/I18nContext'
+import PageHead from '../components/PageHead'
+import ServiceChips from '../lists/ServiceChips'
 import { JobCard } from '../lists/cards'
 import Filters, { filtersFromParams } from '../lists/Filters'
 import type { FilterDefinition, FilterValues } from '../lists/Filters'
@@ -24,14 +26,16 @@ export default function Jobs() {
 
   return (
     <section className="stack">
-      <h1>{t('jobs.title')}</h1>
+      <PageHead title={t('jobs.title')}>
+        <ServiceChips value={filters.service ?? ''} onChange={(service) => setParams({ ...filters, service })} />
+      </PageHead>
       <Filters
         key={params.toString()}
         definitions={FILTERS}
         values={filters}
         onApply={(values: FilterValues) => setParams(values)}
       />
-      {!list.loading && !list.failed && <p className="muted">{t('list.count', { count: String(list.count) })}</p>}
+      {!list.loading && !list.failed && <p className="list-count">{t('list.count', { count: String(list.count) })}</p>}
       {!list.loading && !list.failed && list.count === 0 && <p className="card muted">{t('jobs.empty')}</p>}
       {list.items.map((job) => (
         <JobCard key={job.id} job={job} />

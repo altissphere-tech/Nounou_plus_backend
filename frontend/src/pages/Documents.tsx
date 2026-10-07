@@ -6,7 +6,9 @@ import { myDocuments, uploadDocument } from '../api/trust'
 import type { DocType, VerificationDocument } from '../api/types'
 import { errorText } from '../components/errors'
 import Field from '../components/Field'
+import PageHead from '../components/PageHead'
 import { useI18n } from '../i18n/I18nContext'
+import References from '../profile/References'
 
 const MAX_SIZE = 5 * 1024 * 1024 // 5 Mo, comme sur le serveur
 const DOC_TYPES: DocType[] = ['identite', 'reference']
@@ -65,7 +67,7 @@ export default function Documents() {
 
   return (
     <section className="stack">
-      <h1>{t('docs.title')}</h1>
+      <PageHead back={t('common.back')} title={t('docs.title')} />
       <div className={`notice ${data.is_verified ? 'success' : ''}`}>
         <strong>{data.is_verified ? `✔ ${t('docs.verified')}` : t('docs.notVerified')}</strong>
         <span>{t('docs.intro')}</span>
@@ -111,6 +113,8 @@ export default function Documents() {
           </div>
         ))}
       </div>
+
+      <References />
     </section>
   )
 }

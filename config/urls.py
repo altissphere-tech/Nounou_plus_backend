@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from apps.accounts.views import PublicPhotoView
 from apps.reviews.views import MatchReviewView
 
 # Titres de l'interface d'administration
@@ -45,4 +46,7 @@ urlpatterns = [
     path("api/matches/<int:match_id>/review/", MatchReviewView.as_view(), name="matches-review"),
     path("api/reviews/", include("apps.reviews.urls")),
     path("api/reports/", include("apps.reports.urls")),
+    path("api/notifications/", include("apps.notifications.urls")),
+    path("api/favorites/", include("apps.favorites.urls")),
+    path("api/photos/<str:name>", PublicPhotoView.as_view(), name="public-photo"),
 ]

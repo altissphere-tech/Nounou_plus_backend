@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { ReportCategory, VerificationDocument } from './types'
+import type { ReportCategory, VerificationDocument, WorkerReference } from './types'
 
 // Endpoints « Vérification », « Évaluations » et « Signalements ».
 
@@ -22,3 +22,13 @@ export const sendReview = (matchId: number, scores: Record<string, number>, comm
 
 export const sendReport = (profileId: number, category: ReportCategory, description: string) =>
   api<{ message: string }>('POST', '/api/reports/', { profile_id: profileId, category, description })
+
+// --- Références (coordonnées vues par l'équipe NOUNOU+ seulement) -------------
+
+export const myReferences = () => api<WorkerReference[]>('GET', '/api/verification/references/')
+
+export const addReference = (data: { name: string; phone: string; relationship: string }) =>
+  api<{ reference: WorkerReference }>('POST', '/api/verification/references/', data)
+
+export const removeReference = (id: number) =>
+  api<{ message: string }>('DELETE', `/api/verification/references/${id}/`)

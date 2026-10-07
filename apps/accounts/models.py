@@ -3,6 +3,13 @@ Modèle User personnalisé pour NOUNOU+.
 
 Pourquoi personnaliser ? Django utilise l'email ou un nom d'utilisateur par défaut.
 Ici, l'identifiant unique est le numéro de téléphone (adapté au contexte RDC).
+
+Moyens de connexion (choix du fondateur) :
+- numéro de téléphone + code SMS (toujours possible) ;
+- e-mail + mot de passe (facultatif, avec « mot de passe oublié ») ;
+- compte Google ou Apple (voir SocialAccount et social.py).
+Le numéro de téléphone reste obligatoire pour tous : c'est la coordonnée
+montrée à l'autre personne après un match mutuel.
 """
 import logging
 from django.conf import settings
@@ -26,9 +33,12 @@ class UserManager(BaseUserManager):
         if role not in [User.ROLE_CLIENT, User.ROLE_WORKER, User.ROLE_ADMIN]:
             raise ValueError(f"Rôle invalide : {role}")
         user = self.model(phone=phone, role=role, **extra_fields)
-        # En V1, pas de mot de passe : l'authentification se fait uniquement par OTP.
-        # On fixe un mot de passe inutilisable pour respecter le contrat Django.
-        user.set_unusable_password()
+        # Sans mot de passe, la connexion se fait par code SMS (ou Google / Apple) :
+        # on fixe alors un mot de passe inutilisable pour respecter le contrat Django.
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
         user.save(using=self._db)
         return user
 
@@ -75,6 +85,39 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=False,
         verbose_name="Téléphone vérifié",
     )
+    # --- Photo de profil (visible par tous après validation par l'équipe) ---
+    PHOTO_NONE = "aucune"
+    PHOTO_PENDING = "en_attente"
+    PHOTO_APPROVED = "validee"
+    PHOTO_REJECTED = "rejetee"
+    PHOTO_STATUS_CHOICES = [
+        (PHOTO_NONE, "Aucune photo"),
+        (PHOTO_PENDING, "En attente de validation"),
+        (PHOTO_APPROVED, "Validée"),
+        (PHOTO_REJECTED, "Refusée"),
+    ]
+    photo = models.ImageField(upload_to="photos/", blank=True, verbose_name="Photo de profil")
+    photo_status = models.CharField(
+        max_length=20,
+        choices=PHOTO_STATUS_CHOICES,
+        default=PHOTO_NONE,
+        verbose_name="Statut de la photo",
+        help_text="La photo n'est montrée aux autres qu'une fois validée par l'équipe NOUNOU+.",
+    )
+    photo_rejection_reason = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name="Motif du refus de la photo",
+        help_text="Visible par la personne.",
+    )
+    email = models.EmailField(
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name="E-mail",
+        help_text="Facultatif : permet de se connecter avec un mot de passe.",
+    )
     is_active = models.BooleanField(
         default=True,
         verbose_name="Compte actif",
@@ -99,6 +142,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.phone} ({self.role})"
+
+    def save(self, *args, **kwargs):
+        # Une adresse e-mail est enregistrée en minuscules (« Marie@Gmail.com » = « marie@gmail.com »)
+        if self.email:
+            self.email = self.email.strip().lower()
+        else:
+            self.email = None  # plusieurs comptes sans e-mail ne doivent pas entrer en conflit
+        super().save(*args, **kwargs)
 
     # ------------------------------------------------------------------
     # Logique OTP (simulée en V1)
@@ -134,3 +185,41 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.save(update_fields=["otp_code", "phone_verified"])
             return True
         return False
+
+
+class PhotoToReview(User):
+    """Vue « Photos à valider » dans l'administration (mêmes comptes, liste dédiée)."""
+
+    class Meta:
+        proxy = True
+        verbose_name = "Photo de profil"
+        verbose_name_plural = "Photos de profil"
+
+
+class SocialAccount(models.Model):
+    """Lien entre un compte NOUNOU+ et un compte Google ou Apple."""
+
+    PROVIDER_GOOGLE = "google"
+    PROVIDER_APPLE = "apple"
+    PROVIDER_CHOICES = [(PROVIDER_GOOGLE, "Google"), (PROVIDER_APPLE, "Apple")]
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="social_accounts", verbose_name="Compte"
+    )
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, verbose_name="Service")
+    uid = models.CharField(
+        max_length=255,
+        verbose_name="Identifiant chez le service",
+        help_text="Identifiant fourni par Google ou Apple (jamais un mot de passe).",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Lié le")
+
+    class Meta:
+        verbose_name = "Compte Google / Apple"
+        verbose_name_plural = "Comptes Google / Apple"
+        constraints = [
+            models.UniqueConstraint(fields=["provider", "uid"], name="unique_social_account"),
+        ]
+
+    def __str__(self):
+        return f"{self.get_provider_display()} — {self.user}"

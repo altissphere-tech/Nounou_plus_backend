@@ -218,3 +218,64 @@ class TestAdmin:
         )
         worker.refresh_from_db()
         assert worker.is_verified is True
+
+
+# ------------------------------------------------------------------ #
+# Tests : références                                                   #
+# ------------------------------------------------------------------ #
+
+from apps.notifications.models import Notification  # noqa: E402
+from apps.verification.models import WorkerReference  # noqa: E402
+
+REFS = reverse("verification-references")
+
+
+def add_reference(user, phone="+243899000001", name="Mme Kabila"):
+    return auth_client(user).post(
+        REFS, {"name": name, "phone": phone, "relationship": "Ancienne employeuse"}, format="json"
+    )
+
+
+@pytest.mark.django_db
+class TestReferences:
+    def test_ajout_et_liste(self, worker):
+        response = add_reference(worker.user)
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["reference"]["status"] == "en_attente"
+        listed = auth_client(worker.user).get(REFS).data
+        assert listed[0]["name"] == "Mme Kabila"
+        assert "team_note" not in listed[0]
+
+    def test_trois_references_maximum(self, worker):
+        for i in range(3):
+            assert add_reference(worker.user, phone=f"+24389900000{i + 1}").status_code == 201
+        assert add_reference(worker.user, phone="+243899000009").status_code == 400
+
+    def test_pas_son_propre_numero_ni_doublon(self, worker):
+        assert add_reference(worker.user, phone=str(worker.user.phone)).status_code == 400
+        add_reference(worker.user)
+        assert add_reference(worker.user).status_code == 400
+
+    def test_reference_verifiee_coche_la_confiance_sans_rien_reveler(self, worker, admin_user):
+        add_reference(worker.user)
+        worker.is_verified = True
+        worker.save()
+        WorkerReference.objects.get().review(admin_user, WorkerReference.STATUS_VERIFIED)
+        family = User.objects.create_user(phone="+243855000050", role=User.ROLE_CLIENT)
+        data = auth_client(family).get(reverse("workers-detail", args=[worker.id])).data
+        assert data["trust"] == {"phone": False, "identity": True, "references": True}
+        assert "Kabila" not in str(data) and "899000001" not in str(data)
+        assert Notification.objects.get(user=worker.user).kind == "reference_reviewed"
+
+    def test_retirer_une_reference(self, worker):
+        ref_id = add_reference(worker.user).data["reference"]["id"]
+        other = User.objects.create_user(phone="+243855000051", role=User.ROLE_WORKER)
+        assert auth_client(other).delete(reverse("verification-reference-detail", args=[ref_id])).status_code == 404
+        assert auth_client(worker.user).delete(reverse("verification-reference-detail", args=[ref_id])).status_code == 200
+        assert WorkerReference.objects.count() == 0
+
+    def test_document_examine_notifie(self, worker, admin_user):
+        upload(worker.user)
+        VerificationRecord.objects.get().review(admin_user, VerificationRecord.STATUS_APPROVED)
+        notification = Notification.objects.get(user=worker.user)
+        assert notification.kind == "document_reviewed" and notification.params["approved"] is True

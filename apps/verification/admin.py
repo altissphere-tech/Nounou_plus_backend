@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import path, reverse
 from django.utils.html import format_html
 
-from .models import VerificationRecord
+from .models import VerificationRecord, WorkerReference
 
 
 @admin.register(VerificationRecord)
@@ -83,3 +83,52 @@ class VerificationRecordAdmin(admin.ModelAdmin):
         self.message_user(
             request, f"{queryset.count()} document(s) validé(s).", level=messages.SUCCESS
         )
+
+
+@admin.register(WorkerReference)
+class WorkerReferenceAdmin(admin.ModelAdmin):
+    """
+    Références à appeler. Après l'appel, choisir « Vérifiée » ou « Non confirmée »
+    (le travailleur est notifié ; la note reste interne à l'équipe).
+    """
+
+    list_display = ["name", "phone", "relationship", "worker", "status", "created_at"]
+    list_filter = ["status"]
+    search_fields = ["name", "phone", "worker__first_name", "worker__last_name"]
+    list_select_related = ["worker__user"]
+    fields = [
+        "worker",
+        "name",
+        "phone",
+        "relationship",
+        "status",
+        "team_note",
+        "reviewed_by",
+        "reviewed_at",
+        "created_at",
+    ]
+    readonly_fields = ["worker", "name", "phone", "relationship", "reviewed_by", "reviewed_at", "created_at"]
+    actions = ["mark_verified", "mark_not_confirmed"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def save_model(self, request, obj, form, change):
+        if change and "status" in form.changed_data:
+            obj.review(request.user, obj.status)
+        else:
+            super().save_model(request, obj, form, change)
+
+    @admin.action(description="Marquer comme vérifiées (appel concluant)")
+    def mark_verified(self, request, queryset):
+        for reference in queryset.select_related("worker__user"):
+            reference.review(request.user, WorkerReference.STATUS_VERIFIED)
+        self.message_user(
+            request, f"{queryset.count()} référence(s) vérifiée(s).", level=messages.SUCCESS
+        )
+
+    @admin.action(description="Marquer comme non confirmées")
+    def mark_not_confirmed(self, request, queryset):
+        for reference in queryset.select_related("worker__user"):
+            reference.review(request.user, WorkerReference.STATUS_REJECTED)
+        self.message_user(request, f"{queryset.count()} référence(s) non confirmée(s).")

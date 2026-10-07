@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import User
 from apps.clients.models import ClientProfile
+from apps.notifications.models import Notification, display_name, notify
 from apps.workers.models import WorkerProfile
 from common.pagination import paginated_response
 from common.schema import AUTH_ERRORS, PAGINATION_PARAMETERS, error, paginated, with_message
@@ -28,9 +29,26 @@ _INTEREST_RESPONSE = with_message("InterestResponse", "match", MatchSerializer)
 INTEREST_RESPONSES = {200: _INTEREST_RESPONSE, 201: _INTEREST_RESPONSE}
 
 
+def _notify_interest(match, user, was_mutual: bool) -> None:
+    """
+    Prévient l'autre personne : « intérêt reçu » ou « c'est un match ».
+    Rien n'est envoyé à quelqu'un qui a déjà refusé (son refus reste discret).
+    """
+    client_side = match.is_client_side(user)
+    me, other = (match.client, match.worker) if client_side else (match.worker, match.client)
+    if match.is_mutual and not was_mutual:
+        notify(other.user, Notification.KIND_MATCH, match_id=match.id, name=display_name(me, full=True))
+    elif not match.is_mutual and match.decision_of(other.user) == Match.DECISION_PENDING:
+        notify(other.user, Notification.KIND_INTEREST, match_id=match.id, name=display_name(me, full=False))
+
+
 def interest_response(request, match, created):
     """Enregistre l'intérêt de l'utilisateur sur ce match et construit la réponse de l'API."""
+    already_interested = match.decision_of(request.user) == Match.DECISION_INTERESTED
+    was_mutual = match.is_mutual
     match.set_decision(request.user, Match.DECISION_INTERESTED)
+    if not already_interested:
+        _notify_interest(match, request.user, was_mutual)
     if match.is_mutual:
         message = "C'est un match ! Vous pouvez maintenant voir les coordonnées de l'autre personne."
     else:

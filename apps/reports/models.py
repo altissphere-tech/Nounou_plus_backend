@@ -115,6 +115,10 @@ class Report(models.Model):
         self.save()
 
         target = self.target
+        if status == self.STATUS_WARNED and previous_status != self.STATUS_WARNED:
+            from apps.notifications.models import Notification, notify
+
+            notify(target, Notification.KIND_WARNING)
         if status == self.STATUS_SUSPENDED and target.is_active:
             target.is_active = False
             target.save(update_fields=["is_active"])

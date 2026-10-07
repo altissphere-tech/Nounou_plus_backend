@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { applyToJob, getJob } from '../api/search'
 import type { PublicJob } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
+import Avatar from '../components/Avatar'
+import FavoriteButton from '../components/FavoriteButton'
+import PageHead from '../components/PageHead'
+import Stats from '../components/Stats'
 import { RatingLine } from '../lists/cards'
 import { money } from '../lists/format'
 import { useMyProfile } from '../profile/useMyProfile'
@@ -14,7 +18,6 @@ import { useMyProfile } from '../profile/useMyProfile'
 export default function JobDetail() {
   const { t, lang } = useI18n()
   const { user } = useAuth()
-  const navigate = useNavigate()
   const id = Number(useParams().id)
   const { data: me } = useMyProfile(user!.role)
   const [job, setJob] = useState<PublicJob | null | undefined>(undefined)
@@ -59,22 +62,21 @@ export default function JobDetail() {
 
   return (
     <section className="stack">
-      <button type="button" className="link back" onClick={() => navigate(-1)}>
-        ← {t('jobs.back')}
-      </button>
-      <div className="card">
-        <h1 className="profile-name">{job.title}</h1>
-        <div className="tags">
-          <span className="tag">{t(`service.${job.service.slug}`)}</span>
+      <PageHead back={t('jobs.back')} overline={t('jobs.by', { name: job.client.name })} title={job.title}>
+        <div className="head-row">
+          <Avatar name={job.client.name} src={job.client.photo_url} size={56} />
+          <span className="head-pill">{t(`service.${job.service.slug}`)}</span>
+          <FavoriteButton kind="jobs" id={job.id} name={job.title} onDark />
         </div>
-        <dl className="details">
-          <dt>{t('filters.location')}</dt>
-          <dd>{job.location}</dd>
-          <dt>{t('filters.availability')}</dt>
-          <dd>{t(`availability.${job.availability}`)}</dd>
-          <dt>{t('jobs.budget')}</dt>
-          <dd>{job.budget ? t('home.profile.perMonth', { amount: money(job.budget, lang) }) : t('jobs.noBudget')}</dd>
-        </dl>
+      </PageHead>
+      <Stats
+        items={[
+          { label: t('jobs.budget'), value: job.budget ? money(job.budget, lang) : t('jobs.noBudget'), accent: true },
+          { label: t('filters.availability'), value: t(`availability.${job.availability}`) },
+          { label: t('filters.location'), value: job.location },
+        ]}
+      />
+      <div className="card">
         {job.description && <p className="pre-line">{job.description}</p>}
         <p className="muted">{t('jobs.by', { name: job.client.name })}</p>
         <RatingLine rating={job.client.rating} />

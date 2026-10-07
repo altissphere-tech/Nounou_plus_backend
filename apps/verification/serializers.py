@@ -5,7 +5,7 @@ Le fichier lui-même n'est jamais renvoyé dans l'API : seul l'administrateur pe
 """
 from rest_framework import serializers
 
-from .models import ALLOWED_EXTENSIONS, MAX_FILE_SIZE_MB, VerificationRecord
+from .models import ALLOWED_EXTENSIONS, MAX_FILE_SIZE_MB, VerificationRecord, WorkerReference
 
 
 class VerificationRecordSerializer(serializers.ModelSerializer):
@@ -52,3 +52,32 @@ class VerificationUploadSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return VerificationRecord.objects.create(worker=self.context["worker"], **validated_data)
+
+
+class WorkerReferenceSerializer(serializers.ModelSerializer):
+    """Une référence vue par le travailleur qui l'a donnée (sans la note de l'équipe)."""
+
+    class Meta:
+        model = WorkerReference
+        fields = ["id", "name", "phone", "relationship", "status", "reviewed_at", "created_at"]
+        read_only_fields = ["id", "status", "reviewed_at", "created_at"]
+
+    def validate(self, attrs):
+        worker = self.context["worker"]
+        active = worker.references.exclude(status=WorkerReference.STATUS_REJECTED)
+        if active.count() >= WorkerReference.MAX_PER_WORKER:
+            raise serializers.ValidationError(
+                f"Vous avez déjà {WorkerReference.MAX_PER_WORKER} références. "
+                "Supprimez-en une pour en ajouter une autre."
+            )
+        same_phone = worker.references.filter(phone=attrs["phone"])
+        if same_phone.exclude(status=WorkerReference.STATUS_REJECTED).exists():
+            raise serializers.ValidationError({"phone": "Cette référence a déjà été ajoutée."})
+        if attrs["phone"] == worker.user.phone:
+            raise serializers.ValidationError(
+                {"phone": "Une référence doit être une autre personne que vous."}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        return WorkerReference.objects.create(worker=self.context["worker"], **validated_data)
