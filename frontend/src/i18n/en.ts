@@ -474,6 +474,7 @@ const en: Record<TranslationKey, string> = {
   'idle.text': 'With no activity, you will be signed out in {seconds} seconds to protect your account.',
   'idle.stay': 'Stay signed in',
   'idle.loggedOut': 'You were signed out after 30 minutes of inactivity. Sign in again to continue.',
+  'nav.label': 'Main navigation',
 }
 
 export default en

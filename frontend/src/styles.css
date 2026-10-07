@@ -1979,3 +1979,252 @@ input[type='file'] {
   margin-bottom: 12px;
   text-align: left;
 }
+
+/* --- Mise en page : colonnes et grilles ---------------------------------- */
+/* Sur téléphone, tout reste empilé ; les grilles s'ouvrent sur les écrans larges. */
+
+.side-logo {
+  display: none;
+}
+
+.col,
+.card-grid,
+.detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-card .col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Tablette */
+@media (min-width: 700px) {
+  .content {
+    max-width: 760px;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+}
+
+/* --- Grand écran (ordinateur) -------------------------------------------- */
+
+@media (min-width: 1024px) {
+  /* Menu à gauche à la place de la barre du bas */
+  .app.with-nav {
+    padding-bottom: 0;
+    padding-left: 260px;
+  }
+
+  .bottom-nav {
+    top: 0;
+    right: auto;
+    width: 260px;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 4px;
+    padding: 20px 16px;
+    box-shadow: 1px 0 0 var(--border);
+    z-index: 3;
+  }
+
+  .side-logo {
+    display: block;
+    padding: 4px 10px 24px;
+    text-decoration: none;
+  }
+
+  .bottom-nav-item {
+    flex: none;
+    max-width: none;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+  }
+
+  .bottom-nav-item > span:last-child {
+    overflow: visible;
+  }
+
+  .bottom-nav-item.active {
+    background: var(--brand-light);
+  }
+
+  .bottom-nav-item.active::after {
+    display: none;
+  }
+
+  .bottom-nav .badge-dot {
+    right: -10px;
+  }
+
+  /* Le logo est dans le menu : l'en-tête ne garde que la langue et la cloche */
+  .with-nav .header {
+    justify-content: flex-end;
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+
+  .with-nav .header-logo {
+    display: none;
+  }
+
+  /* Contenu sur toute la largeur disponible */
+  .with-nav .content {
+    max-width: none;
+    margin: 0;
+    padding: 20px 40px 56px;
+  }
+
+  .with-nav .page-head {
+    margin: -20px -40px 8px;
+    padding: 14px 40px 30px;
+    border-radius: 0 0 32px 32px;
+  }
+
+  .with-nav .page-head h1 {
+    font-size: 1.9rem;
+  }
+
+  /* Pages de lecture et formulaires : largeur confortable, alignés à gauche */
+  .with-nav .content > section > :not(.page-head):not(.card-grid):not(.detail-grid):not(.profile-card) {
+    width: 100%;
+    max-width: 820px;
+  }
+
+  /* Listes (profils, annonces, relations, favoris) : grille de cartes */
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 18px;
+  }
+
+  /* Fiches : contenu à gauche, actions à droite (restent visibles en défilant) */
+  .detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+    gap: 24px;
+    align-items: start;
+    max-width: 1200px;
+  }
+
+  .detail-grid > aside {
+    position: sticky;
+    top: 88px;
+  }
+
+  /* Accueil : profil à gauche, confiance et vérification à droite */
+  .card.profile-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr);
+    gap: 32px;
+    max-width: 1100px;
+    padding: 28px;
+  }
+
+  /* Conversation : plus de barre en bas */
+  .with-nav .chat-form {
+    bottom: 0;
+  }
+
+  .with-nav .chat > :not(.page-head) {
+    width: 100%;
+    max-width: 900px;
+  }
+
+  /* Accueil : boutons à leur taille, alignés à gauche */
+  .profile-card .button,
+  .profile-card .link {
+    align-self: flex-start;
+  }
+
+  .profile-card .button {
+    width: auto;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  /* Visiteurs : accueil en deux colonnes, formulaires centrés */
+  .app:not(.with-nav) .content {
+    max-width: 1180px;
+    padding: 32px 40px 56px;
+  }
+
+  .welcome {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 56px;
+    row-gap: 12px;
+    align-items: start;
+    text-align: left;
+  }
+
+  .welcome > * {
+    grid-column: 2;
+  }
+
+  .welcome-hero {
+    grid-column: 1;
+    grid-row: 1 / span 8;
+    position: sticky;
+    top: 96px;
+    margin: 0;
+    min-height: 560px;
+    padding: 48px 32px;
+    border-radius: 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .welcome h1 {
+    font-size: 2rem;
+    margin-top: 24px;
+  }
+
+  .welcome .stack {
+    max-width: 420px;
+  }
+
+  .welcome-why {
+    margin-top: 36px;
+  }
+
+  .auth-card {
+    max-width: 520px;
+    margin: 24px auto 0;
+    padding: 32px;
+  }
+
+  /* Inscription : les deux profils côte à côte */
+  .auth-card:has(.roles) {
+    max-width: 780px;
+  }
+
+  .auth-card .roles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .auth-card .roles legend {
+    margin-bottom: 10px;
+  }
+
+  /* Pages ouvertes à tous (aide, conditions) sans menu */
+  .app:not(.with-nav) .page-head {
+    margin: -32px -40px 8px;
+    padding: 14px 40px 30px;
+  }
+}

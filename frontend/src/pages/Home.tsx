@@ -35,68 +35,71 @@ function ProfileCard({ data }: { data: MyProfile }) {
     : t('home.profile.noRating')
 
   return (
-    <div className="card">
-      <h2 className="overline">{t('home.profile.title')}</h2>
-      <div className="person">
-        <Avatar name={`${p.first_name} ${p.last_name}`} src={photo} size={56} />
-        <div>
-          <p className="profile-name">
-            {p.first_name} {p.last_name}
-          </p>
-          <p className="muted">📍 {p.location}</p>
-        </div>
-      </div>
-      <div className="tags">
-        {p.services_list.map((slug) => (
-          <span key={slug} className="tag">
-            {t(`service.${slug}`)}
-          </span>
-        ))}
-      </div>
-      <dl className="details">
-        {data.kind === 'worker' ? (
-          <>
-            <dt>{t('profile.availability.worker')}</dt>
-            <dd>{t(`availability.${data.profile.availability}`)}</dd>
-            <dt>{t('profile.experience')}</dt>
-            <dd>{t('home.profile.years', { count: String(data.profile.years_experience) })}</dd>
-            <dt>{t('summary.salary')}</dt>
-            <dd>{t('home.profile.perMonth', { amount: money(data.profile.expected_salary, lang) })}</dd>
-          </>
-        ) : (
-          <>
-            <dt>{t('profile.availability.client')}</dt>
-            <dd>{t(`availability.${data.profile.availability_needed}`)}</dd>
-            {data.profile.budget !== null && (
-              <>
-                <dt>{t('jobs.budget')}</dt>
-                <dd>{t('home.profile.perMonth', { amount: money(data.profile.budget, lang) })}</dd>
-              </>
-            )}
-          </>
-        )}
-      </dl>
-      <p className="muted">⭐ {rating}</p>
-
-      {data.kind === 'worker' && <TrustScore trust={data.profile.trust} />}
-      {data.kind === 'worker' &&
-        !data.profile.is_verified && (
-          <div className="notice">
-            <strong>{t('home.profile.notVerified')}</strong>
-            <span>{t('home.profile.notVerified.note')}</span>
-            <Link to="/documents" className="button small primary">
-              {t('home.profile.sendDocs')}
-            </Link>
+    <div className="card profile-card">
+      <div className="col">
+        <h2 className="overline">{t('home.profile.title')}</h2>
+        <div className="person">
+          <Avatar name={`${p.first_name} ${p.last_name}`} src={photo} size={56} />
+          <div>
+            <p className="profile-name">
+              {p.first_name} {p.last_name}
+            </p>
+            <p className="muted">📍 {p.location}</p>
           </div>
-        )}
-
-      <Link to="/profil" className="button secondary">
-        {t('home.profile.edit')}
-      </Link>
-      {data.kind === 'worker' && data.profile.is_verified && (
-        <Link to="/documents" className="link">
-          {t('home.profile.docs')}
+        </div>
+        <div className="tags">
+          {p.services_list.map((slug) => (
+            <span key={slug} className="tag">
+              {t(`service.${slug}`)}
+            </span>
+          ))}
+        </div>
+        <dl className="details">
+          {data.kind === 'worker' ? (
+            <>
+              <dt>{t('profile.availability.worker')}</dt>
+              <dd>{t(`availability.${data.profile.availability}`)}</dd>
+              <dt>{t('profile.experience')}</dt>
+              <dd>{t('home.profile.years', { count: String(data.profile.years_experience) })}</dd>
+              <dt>{t('summary.salary')}</dt>
+              <dd>{t('home.profile.perMonth', { amount: money(data.profile.expected_salary, lang) })}</dd>
+            </>
+          ) : (
+            <>
+              <dt>{t('profile.availability.client')}</dt>
+              <dd>{t(`availability.${data.profile.availability_needed}`)}</dd>
+              {data.profile.budget !== null && (
+                <>
+                  <dt>{t('jobs.budget')}</dt>
+                  <dd>{t('home.profile.perMonth', { amount: money(data.profile.budget, lang) })}</dd>
+                </>
+              )}
+            </>
+          )}
+        </dl>
+        <p className="muted">⭐ {rating}</p>
+        <Link to="/profil" className="button secondary">
+          {t('home.profile.edit')}
         </Link>
+        {data.kind === 'worker' && data.profile.is_verified && (
+          <Link to="/documents" className="link">
+            {t('home.profile.docs')}
+          </Link>
+        )}
+      </div>
+      {data.kind === 'worker' && (
+        <div className="col">
+          <TrustScore trust={data.profile.trust} />
+          {!data.profile.is_verified && (
+            <div className="notice">
+              <strong>{t('home.profile.notVerified')}</strong>
+              <span>{t('home.profile.notVerified.note')}</span>
+              <Link to="/documents" className="button small primary">
+                {t('home.profile.sendDocs')}
+              </Link>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

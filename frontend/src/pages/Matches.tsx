@@ -139,19 +139,21 @@ export default function Matches() {
             {t('matches.section.incoming')} <span className="count">{groups.incoming.length}</span>
           </h2>
           <p className="muted small">{t('matches.section.incoming.hint')}</p>
-          {groups.incoming.map((match) => (
-            <MatchCard key={match.id} match={match} now={now}>
-              <p className="muted">🔒 {t('worker.privacy')}</p>
-              <div className="actions">
-                <button type="button" className="button small primary" onClick={() => accept(match)}>
-                  {t('matches.accept')}
-                </button>
-                <button type="button" className="button small secondary" onClick={() => decline(match)}>
-                  {t('matches.decline')}
-                </button>
-              </div>
-            </MatchCard>
-          ))}
+          <div className="card-grid">
+            {groups.incoming.map((match) => (
+              <MatchCard key={match.id} match={match} now={now}>
+                <p className="muted">🔒 {t('worker.privacy')}</p>
+                <div className="actions">
+                  <button type="button" className="button small primary" onClick={() => accept(match)}>
+                    {t('matches.accept')}
+                  </button>
+                  <button type="button" className="button small secondary" onClick={() => decline(match)}>
+                    {t('matches.decline')}
+                  </button>
+                </div>
+              </MatchCard>
+            ))}
+          </div>
         </>
       )}
 
@@ -159,24 +161,26 @@ export default function Matches() {
         <>
           <h2 className="section-title overline">{t('matches.section.mutual')}</h2>
           <p className="muted small">{t('matches.section.mutual.hint')}</p>
-          {groups.mutual.map((match) => (
-            <MatchCard key={match.id} match={match} now={now}>
-              {match.other_party.phone && <p className="phone">📞 {match.other_party.phone}</p>}
-              {match.unread_count > 0 && (
-                <p className="unread-text">{t('matches.unread', { count: String(match.unread_count) })}</p>
-              )}
-              <div className="actions">
-                <Link to={`/relations/${match.id}`} className="button small primary">
-                  💬 {t('matches.write')}
-                </Link>
-                {match.other_party.phone && (
-                  <a href={`tel:${match.other_party.phone}`} className="button small secondary">
-                    {t('matches.call')}
-                  </a>
+          <div className="card-grid">
+            {groups.mutual.map((match) => (
+              <MatchCard key={match.id} match={match} now={now}>
+                {match.other_party.phone && <p className="phone">📞 {match.other_party.phone}</p>}
+                {match.unread_count > 0 && (
+                  <p className="unread-text">{t('matches.unread', { count: String(match.unread_count) })}</p>
                 )}
-              </div>
-            </MatchCard>
-          ))}
+                <div className="actions">
+                  <Link to={`/relations/${match.id}`} className="button small primary">
+                    💬 {t('matches.write')}
+                  </Link>
+                  {match.other_party.phone && (
+                    <a href={`tel:${match.other_party.phone}`} className="button small secondary">
+                      {t('matches.call')}
+                    </a>
+                  )}
+                </div>
+              </MatchCard>
+            ))}
+          </div>
         </>
       )}
 
@@ -184,9 +188,11 @@ export default function Matches() {
         <>
           <h2 className="section-title overline">{t('matches.section.outgoing')}</h2>
           <p className="muted small">{t('matches.section.outgoing.hint')}</p>
-          {groups.outgoing.map((match) => (
-            <MatchCard key={match.id} match={match} now={now} />
-          ))}
+          <div className="card-grid">
+            {groups.outgoing.map((match) => (
+              <MatchCard key={match.id} match={match} now={now} />
+            ))}
+          </div>
         </>
       )}
 

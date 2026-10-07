@@ -62,83 +62,88 @@ export default function WorkerDetail() {
           <FavoriteButton kind="workers" id={worker.id} name={`${worker.first_name} ${worker.last_name}`} onDark />
         </div>
       </PageHead>
-      <Stats
-        items={[
-          { label: t('stats.experience'), value: t('stats.years', { count: String(worker.years_experience) }) },
-          { label: t('stats.salary'), value: money(worker.expected_salary, lang), accent: true },
-          { label: t('stats.rating'), value: worker.rating.average ? `${worker.rating.average} ★` : '—' },
-        ]}
-      />
+      <div className="detail-grid">
+        <div className="col">
+          <Stats
+            items={[
+              { label: t('stats.experience'), value: t('stats.years', { count: String(worker.years_experience) }) },
+              { label: t('stats.salary'), value: money(worker.expected_salary, lang), accent: true },
+              { label: t('stats.rating'), value: worker.rating.average ? `${worker.rating.average} ★` : '—' },
+            ]}
+          />
 
-      <div className="card">
-        <TrustScore trust={worker.trust} />
-      </div>
+          <div className="card">
+            <TrustScore trust={worker.trust} />
+          </div>
 
-      <div className="card">
-        <h2 className="overline">{t('filters.location')}</h2>
-        <p>📍 {worker.location}</p>
-        <h2 className="overline">{t('filters.service')}</h2>
-        <div className="tags">
-          {worker.services_list.map((slug) => (
-            <span key={slug} className="tag">
-              {t(`service.${slug}`)}
-            </span>
-          ))}
-        </div>
-        {worker.bio && (
-          <>
-            <h2 className="overline">{t('worker.about')}</h2>
-            <p className="pre-line">{worker.bio}</p>
-          </>
-        )}
-        <Link
-          to={`/signaler/${worker.id}`}
-          state={{ name: `${worker.first_name} ${worker.last_name}` }}
-          className="link report-link"
-        >
-          ⚑ {t('report.link')}
-        </Link>
-      </div>
-
-      <div className="card">
-        <p className="muted">🔒 {t('worker.privacy')}</p>
-        {result && <p className={result.ok ? 'info-banner' : 'error'} role="status">{t(result.key)}</p>}
-        {!result?.ok && (
-          <button type="button" className="button primary" onClick={interest} disabled={busy}>
-            {busy ? t('common.loading') : t('interest.button')}
-          </button>
-        )}
-        {result?.noProfile && (
-          <Link to="/profil" className="button secondary">
-            {t('home.profile.create')}
-          </Link>
-        )}
-      </div>
-
-      <div className="card">
-        <h2 className="overline">{t('worker.reviews')}</h2>
-        {!reviews || reviews.count === 0 ? (
-          <p className="muted">{t('worker.noReviews')}</p>
-        ) : (
-          <>
-            <dl className="details">
-              {Object.entries(reviews.summary.criteria).map(([name, value]) => (
-                <div key={name} className="contents">
-                  <dt>{t(`criteria.${name}` as TranslationKey)}</dt>
-                  <dd>{value ?? '—'}/5</dd>
-                </div>
+          <div className="card">
+            <h2 className="overline">{t('filters.location')}</h2>
+            <p>📍 {worker.location}</p>
+            <h2 className="overline">{t('filters.service')}</h2>
+            <div className="tags">
+              {worker.services_list.map((slug) => (
+                <span key={slug} className="tag">
+                  {t(`service.${slug}`)}
+                </span>
               ))}
-            </dl>
-            {reviews.results.map((review) => (
-              <div key={review.id} className="review">
-                <strong>
-                  ⭐ {review.overall}/5 · {review.author_name}
-                </strong>
-                {review.comment && <p className="pre-line">{review.comment}</p>}
-              </div>
-            ))}
-          </>
-        )}
+            </div>
+            {worker.bio && (
+              <>
+                <h2 className="overline">{t('worker.about')}</h2>
+                <p className="pre-line">{worker.bio}</p>
+              </>
+            )}
+            <Link
+              to={`/signaler/${worker.id}`}
+              state={{ name: `${worker.first_name} ${worker.last_name}` }}
+              className="link report-link"
+            >
+              ⚑ {t('report.link')}
+            </Link>
+          </div>
+        </div>
+        <aside className="col">
+          <div className="card">
+            <p className="muted">🔒 {t('worker.privacy')}</p>
+            {result && <p className={result.ok ? 'info-banner' : 'error'} role="status">{t(result.key)}</p>}
+            {!result?.ok && (
+              <button type="button" className="button primary" onClick={interest} disabled={busy}>
+                {busy ? t('common.loading') : t('interest.button')}
+              </button>
+            )}
+            {result?.noProfile && (
+              <Link to="/profil" className="button secondary">
+                {t('home.profile.create')}
+              </Link>
+            )}
+          </div>
+
+          <div className="card">
+            <h2 className="overline">{t('worker.reviews')}</h2>
+            {!reviews || reviews.count === 0 ? (
+              <p className="muted">{t('worker.noReviews')}</p>
+            ) : (
+              <>
+                <dl className="details">
+                  {Object.entries(reviews.summary.criteria).map(([name, value]) => (
+                    <div key={name} className="contents">
+                      <dt>{t(`criteria.${name}` as TranslationKey)}</dt>
+                      <dd>{value ?? '—'}/5</dd>
+                    </div>
+                  ))}
+                </dl>
+                {reviews.results.map((review) => (
+                  <div key={review.id} className="review">
+                    <strong>
+                      ⭐ {review.overall}/5 · {review.author_name}
+                    </strong>
+                    {review.comment && <p className="pre-line">{review.comment}</p>}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </aside>
       </div>
     </section>
   )
