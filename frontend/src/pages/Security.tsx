@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { CheckCircle2 } from 'lucide-react'
-import { changeEmail, changePassword, logoutEverywhere, requestCode, verifyCode } from '../api/accounts'
+import {
+  changeEmail,
+  changePassword,
+  logoutEverywhere,
+  requestCode,
+  resendEmailLink,
+  verifyCode,
+} from '../api/accounts'
 import { useAuth } from '../auth/AuthContext'
 import { errorText } from '../components/errors'
 import Field from '../components/Field'
@@ -115,9 +122,37 @@ function EmailCard() {
     }
   }
 
+  async function resend() {
+    setFeedback(null)
+    try {
+      await resendEmailLink()
+      setFeedback({ ok: true, text: t('security.email.resent') })
+    } catch (err) {
+      setFeedback({ ok: false, text: errorText(err, lang, t, 'security.error') })
+    }
+  }
+
   return (
     <form className="card" onSubmit={submit}>
       <h2>{t('email.label')}</h2>
+      {user!.email && (
+        <p>
+          <strong>{user!.email}</strong>{' '}
+          {user!.email_verified ? (
+            <span className="verified">✔ {t('security.email.verified')}</span>
+          ) : (
+            <span className="badge">{t('security.email.notVerified')}</span>
+          )}
+        </p>
+      )}
+      {user!.email && !user!.email_verified && (
+        <>
+          <p className="muted small-text">{t('security.email.why')}</p>
+          <button type="button" className="button small secondary" onClick={resend}>
+            {t('security.email.resend')}
+          </button>
+        </>
+      )}
       <Field label={t('security.email.label')} hint={t('security.email.hint')}>
         <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>

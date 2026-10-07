@@ -11,6 +11,7 @@ export interface User {
   role: Role
   phone_verified: boolean
   email: string | null
+  email_verified: boolean
   has_password: boolean
   social_providers: SocialProvider[]
   photo_status: PhotoStatus

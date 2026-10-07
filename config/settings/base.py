@@ -107,6 +107,7 @@ THROTTLE_RATES = {
     "interest": "100/day",  # « je suis intéressé(e) » par utilisateur
     "reports": "10/day",  # signalements par utilisateur
     "uploads": "20/hour",  # photos, documents et références par utilisateur
+    "email_send": "5/hour",  # liens de confirmation d'e-mail renvoyés par utilisateur
 }
 
 # --- Django REST Framework ---

@@ -1950,3 +1950,9 @@ input[type='file'] {
   color: var(--brand);
   font-weight: 700;
 }
+
+.notice.email-notice {
+  color: inherit;
+  text-decoration: none;
+  border: 1.5px solid #f3cf9a;
+}

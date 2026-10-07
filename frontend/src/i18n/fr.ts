@@ -458,6 +458,17 @@ const fr = {
   'security.sessions.hint': 'Téléphone perdu ou activité suspecte ? Déconnectez tous les appareils où votre compte est ouvert, y compris celui-ci.',
   'security.sessions.button': 'Se déconnecter de tous les appareils',
   'security.sessions.confirm': 'Déconnecter tous les appareils, y compris celui-ci ?',
+  'security.email.verified': 'Confirmée',
+  'security.email.notVerified': 'À confirmer',
+  'security.email.why': 'Ouvrez le lien reçu par e-mail. Tant que l’adresse n’est pas confirmée, « mot de passe oublié » ne fonctionne pas avec elle.',
+  'security.email.resend': 'Renvoyer le lien',
+  'security.email.resent': 'Lien envoyé. Regardez votre boîte e-mail (et les courriers indésirables).',
+  'confirmEmail.title': 'Confirmation de l’adresse e-mail',
+  'confirmEmail.ok': 'Adresse e-mail confirmée. Merci !',
+  'confirmEmail.error': 'Ce lien n’est plus valable. Demandez-en un nouveau dans « Sécurité ».',
+  'confirmEmail.continue': 'Continuer',
+  'home.confirmEmail': 'Confirmez votre adresse e-mail',
+  'home.confirmEmail.hint': 'Un lien a été envoyé à {email}. Touchez ici pour le renvoyer.',
 } as const
 
 export default fr

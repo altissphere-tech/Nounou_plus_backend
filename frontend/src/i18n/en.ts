@@ -459,6 +459,17 @@ const en: Record<TranslationKey, string> = {
   'security.sessions.hint': 'Lost your phone or noticed suspicious activity? Sign out of every device where your account is open, including this one.',
   'security.sessions.button': 'Sign out of all devices',
   'security.sessions.confirm': 'Sign out of all devices, including this one?',
+  'security.email.verified': 'Confirmed',
+  'security.email.notVerified': 'Not confirmed',
+  'security.email.why': 'Open the link sent by email. Until the address is confirmed, “forgot password” does not work with it.',
+  'security.email.resend': 'Resend the link',
+  'security.email.resent': 'Link sent. Check your inbox (and spam folder).',
+  'confirmEmail.title': 'Email confirmation',
+  'confirmEmail.ok': 'Email address confirmed. Thank you!',
+  'confirmEmail.error': 'This link is no longer valid. Ask for a new one in “Safety”.',
+  'confirmEmail.continue': 'Continue',
+  'home.confirmEmail': 'Confirm your email address',
+  'home.confirmEmail.hint': 'A link was sent to {email}. Tap here to resend it.',
 }
 
 export default en

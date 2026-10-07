@@ -32,11 +32,12 @@ from common.throttles import (
     throttle,
 )
 
-from . import photos, social
+from . import emails, photos, social
 from .models import OTPUnavailableError, SocialAccount, User
 from .serializers import (
     SUSPENDED_MESSAGE,
     EmailChangeSerializer,
+    EmailConfirmSerializer,
     EmailLoginSerializer,
     MeSerializer,
     OTPRequestSerializer,
@@ -80,6 +81,12 @@ TOKENS = inline_serializer(
     name="Tokens",
     fields={"refresh": drf_serializers.CharField(), "access": drf_serializers.CharField()},
 )
+TOKENS_OPTIONAL = inline_serializer(
+    name="RegisterTokens",
+    fields={"refresh": drf_serializers.CharField(), "access": drf_serializers.CharField()},
+    required=False,
+    help_text="Seulement pour une inscription avec e-mail.",
+)
 
 
 def _login_response(user, message: str, status_code=status.HTTP_200_OK) -> Response:
@@ -87,6 +94,17 @@ def _login_response(user, message: str, status_code=status.HTTP_200_OK) -> Respo
         {"message": message, "tokens": _get_tokens(user), "user": UserSerializer(user).data},
         status=status_code,
     )
+
+
+def _login_schema(name: str):
+    return inline_serializer(
+        name=name,
+        fields={"message": drf_serializers.CharField(), "tokens": TOKENS, "user": UserSerializer()},
+    )
+
+
+REGISTER_SMS_MESSAGE = "Un code de vérification a été envoyé par SMS."
+OTP_SENT_MESSAGE = "Si ce numéro est inscrit sur NOUNOU+, un code vient d'être envoyé par SMS."
 
 
 class RegisterView(APIView):
@@ -103,13 +121,22 @@ class RegisterView(APIView):
     @extend_schema(
         tags=["Comptes"],
         summary="Créer un compte (client ou travailleur)",
-        description="Sans e-mail : un code SMS est envoyé (puis `otp/verify/`). "
-        "Avec e-mail + mot de passe : la réponse contient directement les `tokens`.",
+        description="Sans e-mail : un code SMS est envoyé (puis `otp/verify/`) ; si le numéro "
+        "est déjà inscrit, la réponse est identique et le titulaire reçoit un code de connexion. "
+        "Avec e-mail + mot de passe : la réponse contient directement les `tokens`, et un lien "
+        "de confirmation est envoyé à l'adresse.",
         auth=[],
         request=RegisterSerializer,
         responses={
-            201: with_message("RegisterResponse", "user", UserSerializer),
-            400: error("Numéro invalide ou déjà utilisé, ou rôle invalide."),
+            201: inline_serializer(
+                name="RegisterResponse",
+                fields={
+                    "message": drf_serializers.CharField(),
+                    "tokens": TOKENS_OPTIONAL,
+                    "user": UserSerializer(required=False),
+                },
+            ),
+            400: error("Numéro invalide, rôle invalide, ou (avec e-mail) numéro / e-mail déjà utilisés."),
             503: error("Envoi des codes SMS indisponible (le compte n'est pas créé)."),
         },
     )
@@ -119,20 +146,22 @@ class RegisterView(APIView):
         if serializer.validated_data.get("email"):
             # Inscription avec e-mail + mot de passe : connecté tout de suite, sans code SMS.
             # Le numéro pourra être confirmé plus tard (écran « Sécurité »).
-            user = serializer.save()
-            return _login_response(user, "Compte créé.", status.HTTP_201_CREATED)
-        # Si l'OTP ne peut pas être envoyé, le compte n'est pas créé (annulation complète)
-        with transaction.atomic():
-            user = serializer.save()
-            # On déclenche immédiatement l'envoi de l'OTP après l'inscription
-            _send_otp(user)
-        return Response(
-            {
-                "message": "Compte créé. Un code OTP a été envoyé sur votre téléphone.",
-                "user": UserSerializer(user).data,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+            with transaction.atomic():
+                user = serializer.save()
+            return _login_response(
+                user, "Compte créé. Confirmez votre adresse avec le lien reçu par e-mail.", status.HTTP_201_CREATED
+            )
+        existing = User.objects.filter(phone=serializer.validated_data["phone"]).first()
+        if existing is not None:
+            # Numéro déjà inscrit : même réponse qu'une inscription (on ne révèle pas qui est
+            # inscrit) ; le titulaire reçoit un code et se connecte à son compte existant.
+            _send_otp(existing)
+        else:
+            # Si l'OTP ne peut pas être envoyé, le compte n'est pas créé (annulation complète)
+            with transaction.atomic():
+                user = serializer.save()
+                _send_otp(user)
+        return Response({"message": REGISTER_SMS_MESSAGE}, status=status.HTTP_201_CREATED)
 
 
 class OTPRequestView(APIView):
@@ -153,7 +182,7 @@ class OTPRequestView(APIView):
         request=OTPRequestSerializer,
         responses={
             200: MESSAGE_ONLY,
-            400: error("Numéro inconnu ou compte suspendu."),
+            400: error("Numéro mal écrit."),
             503: error("Envoi des codes SMS indisponible."),
         },
     )
@@ -161,11 +190,9 @@ class OTPRequestView(APIView):
         serializer = OTPRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.get_user()
-        _send_otp(user)
-        return Response(
-            {"message": "Un nouveau code OTP a été envoyé sur votre téléphone."},
-            status=status.HTTP_200_OK,
-        )
+        if user is not None:
+            _send_otp(user)
+        return Response({"message": OTP_SENT_MESSAGE}, status=status.HTTP_200_OK)
 
 
 class OTPVerifyView(APIView):
@@ -195,7 +222,7 @@ class OTPVerifyView(APIView):
                     "user": UserSerializer(),
                 },
             ),
-            400: error("Numéro inconnu, compte suspendu ou code invalide."),
+            400: error("Code invalide (ou numéro inconnu : même réponse), ou compte suspendu."),
         },
     )
     def post(self, request):
@@ -225,13 +252,6 @@ class MeView(APIView):
         # Avertissements de l'équipe NOUNOU+ (sans jamais révéler qui a signalé)
         data["warnings"] = warnings_for(request.user)
         return Response(data)
-
-
-def _login_schema(name: str):
-    return inline_serializer(
-        name=name,
-        fields={"message": drf_serializers.CharField(), "tokens": TOKENS, "user": UserSerializer()},
-    )
 
 
 class AuthOptionsView(APIView):
@@ -311,8 +331,9 @@ class PasswordForgotView(APIView):
     def post(self, request):
         serializer = PasswordForgotSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # Seule une adresse vérifiée reçoit le lien (sinon : prise de contrôle possible)
         user = User.objects.filter(
-            email=serializer.validated_data["email"].strip().lower(), is_active=True
+            email=serializer.validated_data["email"].strip().lower(), email_verified=True, is_active=True
         ).first()
         if user is not None:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -409,9 +430,14 @@ class EmailChangeView(APIView):
     def post(self, request):
         serializer = EmailChangeSerializer(data=request.data, context={"user": request.user})
         serializer.is_valid(raise_exception=True)
-        request.user.email = serializer.validated_data["email"]
-        request.user.save(update_fields=["email"])
-        return Response({"message": "Adresse e-mail enregistrée.", "user": UserSerializer(request.user).data})
+        if serializer.validated_data["email"] != request.user.email:
+            emails.set_email(request.user, serializer.validated_data["email"])  # lien envoyé
+        return Response(
+            {
+                "message": "Adresse e-mail enregistrée. Confirmez-la avec le lien reçu par e-mail.",
+                "user": UserSerializer(request.user).data,
+            }
+        )
 
 
 class SocialNotConfigured(APIException):
@@ -462,8 +488,9 @@ class SocialLoginView(APIView):
         link = SocialAccount.objects.filter(provider=provider, uid=identity.uid).select_related("user").first()
         user = link.user if link else None
         if user is None and identity.email:
-            # Même adresse e-mail confirmée par Google/Apple : on relie au compte existant
-            user = User.objects.filter(email=identity.email).first()
+            # Même adresse confirmée par Google/Apple ET vérifiée chez nous : on relie au
+            # compte existant. Une adresse non vérifiée ne suffit pas (prise de contrôle).
+            user = User.objects.filter(email=identity.email, email_verified=True).first()
             if user is not None:
                 SocialAccount.objects.create(user=user, provider=provider, uid=identity.uid)
         if user is not None:
@@ -481,7 +508,9 @@ class SocialLoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         with transaction.atomic():
-            user = User.objects.create_user(phone=data["phone"], role=data["role"], email=identity.email)
+            user = User.objects.create_user(phone=data["phone"], role=data["role"])
+            if identity.email:
+                emails.set_email(user, identity.email, verified=True)  # confirmée par Google / Apple
             SocialAccount.objects.create(user=user, provider=provider, uid=identity.uid)
         return _login_response(user, "Compte créé.", status.HTTP_201_CREATED)
 
@@ -605,3 +634,48 @@ class LogoutAllView(APIView):
     def post(self, request):
         request.user.end_all_sessions()
         return Response({"message": "Tous vos appareils ont été déconnectés."})
+
+
+class EmailConfirmView(APIView):
+    """POST /api/accounts/email/confirm/   { "token": "…" } — lien reçu par e-mail."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [throttle("auth")]
+
+    @extend_schema(
+        tags=["Comptes"],
+        summary="Confirmer mon adresse e-mail (lien reçu)",
+        auth=[],
+        request=EmailConfirmSerializer,
+        responses={200: MESSAGE_ONLY, 400: error("Lien invalide ou périmé.")},
+    )
+    def post(self, request):
+        serializer = EmailConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if emails.confirm(serializer.validated_data["token"]) is None:
+            return Response(
+                {"detail": "Ce lien n'est plus valable. Demandez-en un nouveau depuis « Sécurité »."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response({"message": "Adresse e-mail confirmée."})
+
+
+class EmailResendView(APIView):
+    """POST /api/accounts/email/resend/ — renvoyer le lien de confirmation."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [throttle("email_send")]
+
+    @extend_schema(
+        tags=["Comptes"],
+        summary="Renvoyer le lien de confirmation de mon e-mail",
+        request=None,
+        responses={200: MESSAGE_ONLY, 400: error("Pas d'adresse, ou adresse déjà confirmée."), **AUTH_ERRORS},
+    )
+    def post(self, request):
+        user = request.user
+        if not user.email or user.email_verified:
+            return Response({"detail": "Aucune adresse à confirmer."}, status=status.HTTP_400_BAD_REQUEST)
+        emails.send_verification(user)
+        return Response({"message": "Lien envoyé. Regardez votre boîte e-mail."})

@@ -56,6 +56,11 @@ export const changeEmail = (email: string, currentPassword?: string) =>
     ...(currentPassword ? { current_password: currentPassword } : {}),
   })
 
+export const confirmEmail = (token: string) =>
+  api<{ message: string }>('POST', '/api/accounts/email/confirm/', { token })
+
+export const resendEmailLink = () => api<{ message: string }>('POST', '/api/accounts/email/resend/')
+
 export const logoutEverywhere = () => api<{ message: string }>('POST', '/api/accounts/logout-all/')
 
 export function getMe() {

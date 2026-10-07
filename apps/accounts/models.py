@@ -118,6 +118,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name="E-mail",
         help_text="Facultatif : permet de se connecter avec un mot de passe.",
     )
+    email_verified = models.BooleanField(
+        default=False,
+        verbose_name="E-mail vérifié",
+        help_text="Lien de confirmation ouvert (ou adresse confirmée par Google / Apple).",
+    )
     is_active = models.BooleanField(
         default=True,
         verbose_name="Compte actif",
