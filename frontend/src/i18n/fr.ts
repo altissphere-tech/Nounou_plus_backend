@@ -473,6 +473,7 @@ const fr = {
   'idle.text': 'Sans activité, vous serez déconnecté(e) dans {seconds} secondes, pour protéger votre compte.',
   'idle.stay': 'Rester connecté(e)',
   'idle.loggedOut': 'Vous avez été déconnecté(e) après 30 minutes d’inactivité. Reconnectez-vous pour continuer.',
+  'nav.label': 'Navigation principale',
 } as const
 
 export default fr

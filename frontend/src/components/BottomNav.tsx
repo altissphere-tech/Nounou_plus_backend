@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Briefcase, CircleUser, ClipboardList, Heart, House, Search } from 'lucide-react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { listMatches } from '../api/matches'
 import { useAuth } from '../auth/AuthContext'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
 import { newsCount, onNewsRefresh } from '../matches/groups'
+import Logo from './Logo'
 
 /**
  * Nombre de nouveautés (intérêts reçus + messages non lus), recompté à chaque
@@ -33,7 +34,10 @@ function useNews(enabled: boolean): number {
   return enabled ? count : 0
 }
 
-/** Barre de navigation en bas de l'écran (utilisateurs connectés). */
+/**
+ * Navigation des utilisateurs connectés : barre en bas sur téléphone,
+ * menu vertical à gauche sur ordinateur (avec le logo).
+ */
 export default function BottomNav() {
   const { user } = useAuth()
   const { t } = useI18n()
@@ -57,7 +61,10 @@ export default function BottomNav() {
         ]
 
   return (
-    <nav className="bottom-nav">
+    <nav className="bottom-nav" aria-label={t('nav.label')}>
+      <Link to="/accueil" className="side-logo" aria-label="NOUNOU+">
+        <Logo size={30} />
+      </Link>
       {items.map((item) => (
         <NavLink key={item.to} to={item.to} className="bottom-nav-item">
           <span aria-hidden="true" className="bottom-nav-icon">

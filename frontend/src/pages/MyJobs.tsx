@@ -26,9 +26,11 @@ export default function MyJobs() {
         + {t('myJobs.new')}
       </Link>
       {!list.loading && !list.failed && list.count === 0 && <p className="card muted">{t('myJobs.empty')}</p>}
-      {list.items.map((job) => (
-        <MyJobCard key={job.id} job={job} onStatus={(status) => changeStatus(job, status)} />
-      ))}
+      <div className="card-grid">
+        {list.items.map((job) => (
+          <MyJobCard key={job.id} job={job} onStatus={(status) => changeStatus(job, status)} />
+        ))}
+      </div>
       <ListFooter loading={list.loading} failed={list.failed} hasMore={list.hasMore} onMore={list.loadMore} />
     </section>
   )

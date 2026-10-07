@@ -44,9 +44,11 @@ export default function Search() {
       />
       {!list.loading && !list.failed && <p className="list-count">{t('list.count', { count: String(list.count) })}</p>}
       {!list.loading && !list.failed && list.count === 0 && <p className="card muted">{t('search.empty')}</p>}
-      {list.items.map((worker) => (
-        <WorkerCard key={worker.id} worker={worker} />
-      ))}
+      <div className="card-grid">
+        {list.items.map((worker) => (
+          <WorkerCard key={worker.id} worker={worker} />
+        ))}
+      </div>
       <ListFooter loading={list.loading} failed={list.failed} hasMore={list.hasMore} onMore={list.loadMore} />
     </section>
   )

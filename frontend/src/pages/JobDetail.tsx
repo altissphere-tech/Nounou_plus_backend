@@ -69,36 +69,41 @@ export default function JobDetail() {
           <FavoriteButton kind="jobs" id={job.id} name={job.title} onDark />
         </div>
       </PageHead>
-      <Stats
-        items={[
-          { label: t('jobs.budget'), value: job.budget ? money(job.budget, lang) : t('jobs.noBudget'), accent: true },
-          { label: t('filters.availability'), value: t(`availability.${job.availability}`) },
-          { label: t('filters.location'), value: job.location },
-        ]}
-      />
-      <div className="card">
-        {job.description && <p className="pre-line">{job.description}</p>}
-        <p className="muted">{t('jobs.by', { name: job.client.name })}</p>
-        <RatingLine rating={job.client.rating} />
-        <Link to={`/signaler/${job.client.profile_id}`} state={{ name: job.client.name }} className="link report-link">
-          ⚑ {t('report.link')}
-        </Link>
-      </div>
-
-      <div className="card">
-        <p className="muted">🔒 {t('worker.privacy')}</p>
-        {blocker && !result && <div className="notice">{t(blocker)}</div>}
-        {blocker === 'jobs.noProfile' && (
-          <Link to="/profil" className="button secondary">
-            {t('home.profile.create')}
-          </Link>
-        )}
-        {result && <p className={result.ok ? 'info-banner' : 'error'} role="status">{t(result.key)}</p>}
-        {!result?.ok && (
-          <button type="button" className="button primary" onClick={apply} disabled={busy || Boolean(blocker)}>
-            {busy ? t('common.loading') : t('jobs.apply')}
-          </button>
-        )}
+      <div className="detail-grid">
+        <div className="col">
+          <Stats
+            items={[
+              { label: t('jobs.budget'), value: job.budget ? money(job.budget, lang) : t('jobs.noBudget'), accent: true },
+              { label: t('filters.availability'), value: t(`availability.${job.availability}`) },
+              { label: t('filters.location'), value: job.location },
+            ]}
+          />
+          <div className="card">
+            {job.description && <p className="pre-line">{job.description}</p>}
+            <p className="muted">{t('jobs.by', { name: job.client.name })}</p>
+            <RatingLine rating={job.client.rating} />
+            <Link to={`/signaler/${job.client.profile_id}`} state={{ name: job.client.name }} className="link report-link">
+              ⚑ {t('report.link')}
+            </Link>
+          </div>
+        </div>
+        <aside className="col">
+          <div className="card">
+            <p className="muted">🔒 {t('worker.privacy')}</p>
+            {blocker && !result && <div className="notice">{t(blocker)}</div>}
+            {blocker === 'jobs.noProfile' && (
+              <Link to="/profil" className="button secondary">
+                {t('home.profile.create')}
+              </Link>
+            )}
+            {result && <p className={result.ok ? 'info-banner' : 'error'} role="status">{t(result.key)}</p>}
+            {!result?.ok && (
+              <button type="button" className="button primary" onClick={apply} disabled={busy || Boolean(blocker)}>
+                {busy ? t('common.loading') : t('jobs.apply')}
+              </button>
+            )}
+          </div>
+        </aside>
       </div>
     </section>
   )

@@ -37,9 +37,11 @@ export default function Jobs() {
       />
       {!list.loading && !list.failed && <p className="list-count">{t('list.count', { count: String(list.count) })}</p>}
       {!list.loading && !list.failed && list.count === 0 && <p className="card muted">{t('jobs.empty')}</p>}
-      {list.items.map((job) => (
-        <JobCard key={job.id} job={job} />
-      ))}
+      <div className="card-grid">
+        {list.items.map((job) => (
+          <JobCard key={job.id} job={job} />
+        ))}
+      </div>
       <ListFooter loading={list.loading} failed={list.failed} hasMore={list.hasMore} onMore={list.loadMore} />
     </section>
   )

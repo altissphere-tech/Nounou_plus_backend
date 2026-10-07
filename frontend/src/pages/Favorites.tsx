@@ -38,12 +38,14 @@ export default function Favorites() {
           </Link>
         </div>
       )}
-      {workers.map((worker) => (
-        <WorkerCard key={worker.id} worker={worker} />
-      ))}
-      {jobs.map((job) => (
-        <JobCard key={job.id} job={job} />
-      ))}
+      <div className="card-grid">
+        {workers.map((worker) => (
+          <WorkerCard key={worker.id} worker={worker} />
+        ))}
+        {jobs.map((job) => (
+          <JobCard key={job.id} job={job} />
+        ))}
+      </div>
     </section>
   )
 }
