@@ -175,13 +175,16 @@ class TestSuspension:
 
     def test_connexion_impossible(self, suspended_worker):
         api = APIClient()
+        # La demande de code ne révèle rien ; la suspension est annoncée après un code
+        # correct, donc seulement au titulaire du numéro
         response = api.post(reverse("accounts-otp-request"), {"phone": WORKER_PHONE}, format="json")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "suspendu" in str(response.data)
+        assert response.status_code == status.HTTP_200_OK
         response = api.post(
             reverse("accounts-otp-verify"), {"phone": WORKER_PHONE, "code": "123456"}, format="json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "suspendu" in str(response.data)
+        assert "tokens" not in response.data
 
     def test_ancien_token_refuse(self, suspended_worker):
         response = auth_client(suspended_worker.user).get(reverse("accounts-me"))

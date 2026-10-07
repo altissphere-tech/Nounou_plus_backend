@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, api, firstErrorMessage, loadTokens, saveTokens } from './client'
+import { ApiError, api, firstErrorMessage, loadTokens, revokeSession, saveTokens } from './client'
 
 function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -39,6 +39,28 @@ describe('client API', () => {
     await expect(api('GET', '/api/accounts/me/')).resolves.toEqual({ id: 1 })
     expect(fetchMock.mock.calls[1][0]).toBe('/api/token/refresh/')
     expect(loadTokens()).toEqual({ access: 'A2', refresh: 'R2' })
+  })
+
+  it('un seul renouvellement pour plusieurs requêtes expirées en même temps', async () => {
+    saveTokens({ access: 'expiré', refresh: 'R1' })
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+      if (url === '/api/token/refresh/') return jsonResponse(200, { access: 'A2', refresh: 'R2' })
+      const auth = (init!.headers as Record<string, string>).Authorization
+      return auth === 'Bearer A2' ? jsonResponse(200, { ok: true }) : jsonResponse(401, { detail: 'expiré' })
+    })
+    await Promise.all([api('GET', '/api/a/'), api('GET', '/api/b/'), api('GET', '/api/c/')])
+    const refreshCalls = fetchMock.mock.calls.filter(([url]) => url === '/api/token/refresh/')
+    expect(refreshCalls).toHaveLength(1) // un refresh ne sert qu'une fois côté serveur
+    expect(loadTokens()).toEqual({ access: 'A2', refresh: 'R2' })
+  })
+
+  it('la déconnexion demande au serveur de révoquer le refresh', () => {
+    saveTokens({ access: 'A1', refresh: 'R1' })
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse(200, {}))
+    revokeSession()
+    expect(loadTokens()).toBeNull()
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/accounts/logout/')
+    expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string)).toEqual({ refresh: 'R1' })
   })
 
   it('déconnecte si le renouvellement échoue', async () => {

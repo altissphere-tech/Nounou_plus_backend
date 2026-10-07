@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import OfflineScreen from './components/OfflineScreen'
 import { I18nProvider, useI18n } from './i18n/I18nContext'
 import Account from './pages/Account'
+import ConfirmEmail from './pages/ConfirmEmail'
 import Conversation from './pages/Conversation'
 import Documents from './pages/Documents'
 import Favorites from './pages/Favorites'
@@ -78,6 +79,7 @@ export default function App() {
               {/* Ouverts à tous, connecté ou non */}
               <Route path="/aide" element={<Help />} />
               <Route path="/conditions" element={<Terms />} />
+              <Route path="/email/confirmer" element={<ConfirmEmail />} />
               <Route path="/accueil" element={<Private><Home /></Private>} />
               <Route path="/profil" element={<Private><ProfileForm /></Private>} />
               <Route path="/relations" element={<Private><Matches /></Private>} />

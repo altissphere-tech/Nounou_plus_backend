@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { getMe, verifyCode } from '../api/accounts'
-import { ApiError, loadTokens, saveTokens, setSessionExpiredHandler } from '../api/client'
+import { ApiError, loadTokens, revokeSession, saveTokens, setSessionExpiredHandler } from '../api/client'
 import type { Tokens } from '../api/client'
+import { markActivity, rememberIdleLogout, sessionExpiredByIdle } from './idle'
 import type { Me } from '../api/types'
 
 interface AuthValue {
@@ -24,11 +25,20 @@ const AuthContext = createContext<AuthValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   // Sans token enregistré, on sait tout de suite que personne n'est connecté
-  const [user, setUser] = useState<Me | null | undefined>(() => (loadTokens() ? undefined : null))
+  const [user, setUser] = useState<Me | null | undefined>(() => {
+    if (!loadTokens()) return null
+    // Application rouverte après plus de 30 min d'inactivité : session fermée
+    if (sessionExpiredByIdle()) {
+      rememberIdleLogout()
+      revokeSession()
+      return null
+    }
+    return undefined
+  })
   const [unreachable, setUnreachable] = useState(false)
 
   const logout = useCallback(() => {
-    saveTokens(null)
+    revokeSession()
     setUnreachable(false)
     setUser(null)
   }, [])
@@ -52,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const startSession = useCallback(
     async (tokens: Tokens) => {
+      markActivity() // nouvelle session : le compte à rebours repart de zéro
       saveTokens(tokens)
       await reload()
     },

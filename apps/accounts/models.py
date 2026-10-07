@@ -118,6 +118,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name="E-mail",
         help_text="Facultatif : permet de se connecter avec un mot de passe.",
     )
+    email_verified = models.BooleanField(
+        default=False,
+        verbose_name="E-mail vérifié",
+        help_text="Lien de confirmation ouvert (ou adresse confirmée par Google / Apple).",
+    )
     is_active = models.BooleanField(
         default=True,
         verbose_name="Compte actif",
@@ -129,6 +134,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Peut se connecter à l'interface d'administration.",
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Inscrit le")
+    token_version = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Version des sessions",
+        help_text="Augmente à chaque « déconnexion de tous les appareils » (ou changement de "
+        "mot de passe) : les connexions ouvertes avant sont refusées.",
+    )
 
     objects = UserManager()
 
@@ -142,6 +153,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.phone} ({self.role})"
+
+    def end_all_sessions(self) -> None:
+        """Déconnecte tous les appareils (les jetons déjà émis sont refusés)."""
+        self.token_version += 1
+        self.save(update_fields=["token_version"])
 
     def save(self, *args, **kwargs):
         # Une adresse e-mail est enregistrée en minuscules (« Marie@Gmail.com » = « marie@gmail.com »)

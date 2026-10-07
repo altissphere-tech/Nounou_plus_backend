@@ -13,9 +13,9 @@ SUSPENDED_MESSAGE = "Ce compte a été suspendu. Contactez l'équipe NOUNOU+ pou
 
 
 def validate_new_email(value: str, user: User | None = None) -> str:
-    """Adresse e-mail en minuscules, refusée si un autre compte l'utilise déjà."""
+    """Adresse e-mail en minuscules, refusée si un autre compte l'a déjà vérifiée."""
     value = value.strip().lower()
-    others = User.objects.filter(email=value)
+    others = User.objects.filter(email=value, email_verified=True)
     if user is not None:
         others = others.exclude(pk=user.pk)
     if others.exists():
@@ -45,18 +45,17 @@ class RegisterSerializer(serializers.Serializer):
         help_text="Au moins 8 caractères. Obligatoire si un e-mail est donné.",
     )
 
-    def validate_phone(self, value):
-        """Vérifie qu'aucun compte n'existe déjà avec ce numéro."""
-        if User.objects.filter(phone=value).exists():
-            raise serializers.ValidationError(
-                "Un compte existe déjà avec ce numéro de téléphone."
-            )
-        return value
-
     def validate_email(self, value):
         return validate_new_email(value)
 
     def validate(self, attrs):
+        # Inscription par téléphone : un numéro déjà inscrit n'est pas signalé (la vue
+        # envoie simplement un code au titulaire). Avec e-mail, le compte est créé et
+        # connecté tout de suite : le doublon doit être refusé.
+        if attrs.get("email") and User.objects.filter(phone=attrs["phone"]).exists():
+            raise serializers.ValidationError(
+                {"phone": "Un compte existe déjà avec ce numéro : connectez-vous avec le code SMS."}
+            )
         if bool(attrs.get("email")) != bool(attrs.get("password")):
             raise serializers.ValidationError(
                 "L'e-mail et le mot de passe vont ensemble : donnez les deux, ou aucun."
@@ -66,12 +65,16 @@ class RegisterSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
-        return User.objects.create_user(
+        from .emails import set_email
+
+        user = User.objects.create_user(
             phone=validated_data["phone"],
             role=validated_data["role"],
-            email=validated_data.get("email"),
             password=validated_data.get("password"),
         )
+        if validated_data.get("email"):
+            set_email(user, validated_data["email"])  # envoie le lien de confirmation
+        return user
 
 
 class OTPRequestSerializer(serializers.Serializer):
@@ -81,17 +84,13 @@ class OTPRequestSerializer(serializers.Serializer):
 
     phone = PhoneNumberField()
 
-    def validate_phone(self, value):
-        try:
-            self._user = User.objects.get(phone=value)
-        except User.DoesNotExist:
-            raise serializers.ValidationError("Aucun compte trouvé avec ce numéro.")
-        if not self._user.is_active:
-            raise serializers.ValidationError(SUSPENDED_MESSAGE)
-        return value
-
-    def get_user(self) -> User:
-        return self._user
+    def get_user(self) -> User | None:
+        """
+        Le compte de ce numéro, ou None : la réponse reste la même (pas d'indice).
+        Un compte suspendu reçoit aussi un code ; la suspension n'est annoncée
+        qu'après un code correct, donc seulement au titulaire du numéro.
+        """
+        return User.objects.filter(phone=self.validated_data["phone"]).first()
 
 
 class OTPVerifySerializer(serializers.Serializer):
@@ -106,16 +105,12 @@ class OTPVerifySerializer(serializers.Serializer):
         phone = attrs["phone"]
         code = attrs["code"]
 
-        try:
-            user = User.objects.get(phone=phone)
-        except User.DoesNotExist:
-            raise serializers.ValidationError({"phone": "Aucun compte trouvé avec ce numéro."})
-
+        user = User.objects.filter(phone=phone).first()
+        # Même réponse pour un numéro inconnu et un mauvais code (pas d'indice)
+        if user is None or not user.verify_otp(code):
+            raise serializers.ValidationError({"code": "Code OTP invalide ou expiré."})
         if not user.is_active:
             raise serializers.ValidationError({"phone": SUSPENDED_MESSAGE})
-
-        if not user.verify_otp(code):
-            raise serializers.ValidationError({"code": "Code OTP invalide ou expiré."})
 
         attrs["user"] = user
         return attrs
@@ -220,6 +215,7 @@ class UserSerializer(serializers.ModelSerializer):
             "role",
             "phone_verified",
             "email",
+            "email_verified",
             "has_password",
             "social_providers",
             "photo_status",
@@ -248,3 +244,7 @@ class MeSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ["warnings"]
         read_only_fields = fields
+
+
+class EmailConfirmSerializer(serializers.Serializer):
+    token = serializers.CharField(help_text="Valeur `token` du lien reçu par e-mail.")

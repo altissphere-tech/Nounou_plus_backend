@@ -126,6 +126,13 @@ export default function Home() {
         </div>
       )}
 
+      {user!.email && !user!.email_verified && (
+        <Link to="/securite" className="notice email-notice">
+          <strong>{t('home.confirmEmail')}</strong>
+          <span>{t('home.confirmEmail.hint', { email: user!.email })}</span>
+        </Link>
+      )}
+
       {failed && <p className="error">{t('profile.loadError')}</p>}
       {!data && !failed && <p className="muted">{t('common.loading')}</p>}
       {data && <ProfileCard data={data} />}

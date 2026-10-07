@@ -58,8 +58,8 @@ class TestRegister:
             format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.data["user"]["role"] == "client"
-        assert User.objects.filter(phone="+243812345678").exists()
+        assert "user" not in response.data  # la réponse ne décrit aucun compte (voir doublon)
+        assert User.objects.get(phone="+243812345678").role == "client"
 
     def test_inscription_travailleur_reussie(self, api_client):
         """Un travailleur peut créer un compte avec un numéro valide."""
@@ -69,16 +69,26 @@ class TestRegister:
             format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.data["user"]["role"] == "travailleur"
+        assert User.objects.get(phone="+243897654321").role == "travailleur"
 
-    def test_inscription_doublon_interdit(self, api_client, registered_user):
-        """On ne peut pas créer deux comptes avec le même numéro."""
-        response = api_client.post(
+    def test_inscription_doublon_sans_indice(self, api_client, registered_user):
+        """
+        Un numéro déjà inscrit : pas de second compte, mais la même réponse qu'une
+        inscription (on ne révèle pas qui est inscrit). Le titulaire reçoit un code.
+        """
+        new = api_client.post(reverse("accounts-register"), {"phone": "+243899000111", "role": "client"}, format="json")
+        registered_user.otp_code = None
+        registered_user.save()
+        dup = api_client.post(
             reverse("accounts-register"),
-            {"phone": "+243812345678", "role": "client"},
+            {"phone": "+243812345678", "role": "travailleur"},
             format="json",
         )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert dup.status_code == new.status_code == status.HTTP_201_CREATED
+        assert dup.data == new.data
+        assert User.objects.filter(phone="+243812345678").count() == 1
+        registered_user.refresh_from_db()
+        assert registered_user.role == "client" and registered_user.otp_code
 
     def test_inscription_role_admin_interdit(self, api_client):
         """Le rôle 'admin' ne peut pas être choisi lors de l'inscription via l'API."""
@@ -114,14 +124,19 @@ class TestOTP:
         )
         assert response.status_code == status.HTTP_200_OK
 
-    def test_demande_otp_numero_inconnu(self, api_client):
-        """La demande d'OTP échoue si le numéro n'est pas enregistré."""
-        response = api_client.post(
-            reverse("accounts-otp-request"),
-            {"phone": "+243899999999"},
-            format="json",
+    def test_demande_otp_numero_inconnu_sans_indice(self, api_client, registered_user):
+        """Numéro inconnu : même réponse qu'un numéro inscrit (pas d'énumération des comptes)."""
+        unknown = api_client.post(reverse("accounts-otp-request"), {"phone": "+243899999999"}, format="json")
+        known = api_client.post(reverse("accounts-otp-request"), {"phone": "+243812345678"}, format="json")
+        assert unknown.status_code == known.status_code == status.HTTP_200_OK
+        assert unknown.data == known.data
+        unknown_verify = api_client.post(
+            reverse("accounts-otp-verify"), {"phone": "+243899999999", "code": "123456"}, format="json"
         )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        wrong_code = api_client.post(
+            reverse("accounts-otp-verify"), {"phone": "+243812345678", "code": "000000"}, format="json"
+        )
+        assert unknown_verify.data == wrong_code.data
 
     def test_verification_otp_correcte(self, api_client, registered_user):
         """Un code OTP correct retourne des tokens JWT."""
@@ -255,6 +270,18 @@ def register_with_email(api_client, email="marie@example.com", phone="+243812300
     )
 
 
+def confirm_last_email(api_client):
+    """Ouvre le lien de confirmation du dernier e-mail envoyé."""
+    token = re.search(r"token=(\S+)", mail.outbox[-1].body).group(1)
+    return api_client.post(reverse("accounts-email-confirm"), {"token": token}, format="json")
+
+
+def register_verified(api_client, **kwargs):
+    response = register_with_email(api_client, **kwargs)
+    assert confirm_last_email(api_client).status_code == 200
+    return response
+
+
 @pytest.mark.django_db
 class TestEmailPassword:
     def test_inscription_avec_email_connecte_directement(self, api_client):
@@ -282,11 +309,19 @@ class TestEmailPassword:
         )
         assert response.status_code == 400
 
-    def test_email_deja_utilise(self, api_client):
-        register_with_email(api_client)
+    def test_email_deja_verifie_par_un_autre(self, api_client):
+        register_verified(api_client)
         response = register_with_email(api_client, email="MARIE@example.com", phone="+243812300002")
         assert response.status_code == 400
         assert "email" in response.data
+
+    def test_email_non_verifie_ne_bloque_pas_son_vrai_titulaire(self, api_client):
+        """Quelqu'un a saisi l'adresse de Marie sans la confirmer : Marie peut quand même l'utiliser."""
+        register_with_email(api_client, email="marie@example.com", phone="+243812300009")
+        response = register_with_email(api_client, email="marie@example.com", phone="+243812300002")
+        assert response.status_code == 201
+        assert User.objects.get(phone="+243812300009").email is None
+        assert User.objects.get(phone="+243812300002").email == "marie@example.com"
 
     def test_connexion_email(self, api_client):
         register_with_email(api_client)
@@ -326,7 +361,8 @@ class TestEmailPassword:
 @pytest.mark.django_db
 class TestForgotPassword:
     def test_parcours_complet(self, api_client):
-        register_with_email(api_client)
+        register_verified(api_client)
+        mail.outbox.clear()
         response = api_client.post(
             reverse("accounts-password-forgot"), {"email": "marie@example.com"}, format="json"
         )
@@ -375,6 +411,8 @@ class TestSecuritySettings:
             reverse("accounts-password-change"), {"new_password": PASSWORD}, format="json"
         )
         assert response.status_code == 200
+        # Les anciens jetons sont révoqués : on continue avec les nouveaux
+        authenticated_client.credentials(HTTP_AUTHORIZATION=f"Bearer {response.data['tokens']['access']}")
         # Ensuite, le mot de passe actuel est demandé pour changer l'e-mail
         response = authenticated_client.post(
             reverse("accounts-email"), {"email": "nouveau@example.com"}, format="json"
@@ -453,8 +491,8 @@ class TestSocialLogin:
         assert third.status_code == 200
         assert third.data["user"]["social_providers"] == ["google"]
 
-    def test_meme_email_relie_au_compte_existant(self, api_client, google):
-        register_with_email(api_client, email="marie@gmail.com")
+    def test_meme_email_verifie_relie_au_compte_existant(self, api_client, google):
+        register_verified(api_client, email="marie@gmail.com")
         response = social_login(api_client)
         assert response.status_code == 200
         assert SocialAccount.objects.filter(uid="g-123", user__email="marie@gmail.com").exists()
@@ -632,3 +670,178 @@ class TestPhoto:
         assert client.delete(reverse("accounts-photo")).status_code == 200
         user.refresh_from_db()
         assert user.photo_status == "aucune" and not user.photo
+
+
+# ------------------------------------------------------------------ #
+# Sessions révocables (déconnexion, changement de mot de passe)       #
+# ------------------------------------------------------------------ #
+
+
+def tokens_for(user):
+    from common.authentication import tokens_for as make_tokens
+
+    refresh = make_tokens(user)
+    return str(refresh.access_token), str(refresh)
+
+
+def as_bearer(access):
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+    return client
+
+
+def refresh_status(refresh):
+    return APIClient().post(reverse("token-refresh"), {"refresh": refresh}, format="json")
+
+
+@pytest.mark.django_db
+class TestSessions:
+    @pytest.fixture
+    def user(self, db):
+        return User.objects.create_user(
+            phone="+243812300020", role="client", email="s@example.com", password=PASSWORD, email_verified=True
+        )
+
+    def test_refresh_ne_sert_qu_une_fois(self, user):
+        _, refresh = tokens_for(user)
+        first = refresh_status(refresh)
+        assert first.status_code == 200 and first.data["refresh"] != refresh
+        assert refresh_status(refresh).status_code == 401  # réutilisation refusée
+
+    def test_deconnexion_revoque_le_refresh(self, user):
+        _, refresh = tokens_for(user)
+        assert APIClient().post(reverse("accounts-logout"), {"refresh": refresh}, format="json").status_code == 200
+        assert refresh_status(refresh).status_code == 401
+        # Jeton inconnu ou déjà révoqué : réponse identique
+        assert APIClient().post(reverse("accounts-logout"), {"refresh": "nimporte"}, format="json").status_code == 200
+
+    def test_changement_de_mot_de_passe_deconnecte_les_autres_appareils(self, user):
+        other_access, other_refresh = tokens_for(user)
+        mine = as_bearer(tokens_for(user)[0])
+        response = mine.post(
+            reverse("accounts-password-change"),
+            {"current_password": PASSWORD, "new_password": "AutreSecret99"},
+            format="json",
+        )
+        assert response.status_code == 200
+        assert as_bearer(other_access).get(reverse("accounts-me")).status_code == 401
+        assert refresh_status(other_refresh).status_code == 401
+        # L'appareil qui a changé le mot de passe continue avec ses nouveaux jetons
+        assert as_bearer(response.data["tokens"]["access"]).get(reverse("accounts-me")).status_code == 200
+
+    def test_reinitialisation_deconnecte_partout(self, user):
+        access, refresh = tokens_for(user)
+        api = APIClient()
+        api.post(reverse("accounts-password-forgot"), {"email": "s@example.com"}, format="json")
+        uid, token = re.search(r"uid=([^&\s]+)&token=(\S+)", mail.outbox[0].body).groups()
+        api.post(reverse("accounts-password-reset"), {"uid": uid, "token": token, "password": "NouveauSecret42"}, format="json")
+        assert as_bearer(access).get(reverse("accounts-me")).status_code == 401
+        assert refresh_status(refresh).status_code == 401
+
+    def test_deconnexion_de_tous_les_appareils(self, user):
+        access, refresh = tokens_for(user)
+        assert as_bearer(access).post(reverse("accounts-logout-all")).status_code == 200
+        assert as_bearer(access).get(reverse("accounts-me")).status_code == 401
+        assert refresh_status(refresh).status_code == 401
+
+    def test_compte_suspendu_ne_peut_plus_renouveler(self, user):
+        _, refresh = tokens_for(user)
+        user.is_active = False
+        user.save()
+        assert refresh_status(refresh).status_code == 401
+
+
+
+# ------------------------------------------------------------------ #
+# Vérification de l'adresse e-mail                                     #
+# ------------------------------------------------------------------ #
+
+
+@pytest.mark.django_db
+class TestEmailVerification:
+    def test_lien_envoye_puis_confirme(self, api_client):
+        response = register_with_email(api_client)
+        assert response.data["user"]["email_verified"] is False
+        assert "confirmer" in mail.outbox[-1].body
+        assert confirm_last_email(api_client).status_code == 200
+        assert User.objects.get(email="marie@example.com").email_verified is True
+
+    def test_lien_falsifie_ou_ancien(self, api_client):
+        register_with_email(api_client)
+        assert api_client.post(reverse("accounts-email-confirm"), {"token": "faux"}, format="json").status_code == 400
+        # L'adresse a changé depuis l'envoi : l'ancien lien ne confirme pas la nouvelle
+        old_body = mail.outbox[-1].body
+        user = User.objects.get(email="marie@example.com")
+        user.email = "autre@example.com"
+        user.save()
+        token = re.search(r"token=(\S+)", old_body).group(1)
+        assert api_client.post(reverse("accounts-email-confirm"), {"token": token}, format="json").status_code == 400
+        user.refresh_from_db()
+        assert user.email_verified is False
+
+    def test_mot_de_passe_oublie_ignore_une_adresse_non_verifiee(self, api_client):
+        register_with_email(api_client)
+        mail.outbox.clear()
+        response = api_client.post(reverse("accounts-password-forgot"), {"email": "marie@example.com"}, format="json")
+        assert response.status_code == 200  # même réponse…
+        assert mail.outbox == []  # …mais aucun lien envoyé
+
+    def test_changer_d_adresse_demande_une_nouvelle_confirmation(self, api_client):
+        token = register_verified(api_client).data["tokens"]["access"]
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        response = api_client.post(
+            reverse("accounts-email"), {"email": "nouvelle@example.com", "current_password": PASSWORD}, format="json"
+        )
+        assert response.data["user"]["email_verified"] is False
+        assert mail.outbox[-1].to == ["nouvelle@example.com"]
+
+    def test_renvoyer_le_lien(self, api_client):
+        token = register_with_email(api_client).data["tokens"]["access"]
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        mail.outbox.clear()
+        assert api_client.post(reverse("accounts-email-resend")).status_code == 200
+        assert len(mail.outbox) == 1
+        confirm_last_email(api_client)
+        assert api_client.post(reverse("accounts-email-resend")).status_code == 400  # déjà confirmée
+
+    def test_google_recupere_une_adresse_seulement_saisie_par_un_autre(self, api_client, google):
+        """Prise de contrôle empêchée : l'adresse non vérifiée d'un autre compte ne le relie pas."""
+        register_with_email(api_client, email="marie@gmail.com", phone="+243812300009")
+        first = social_login(api_client)
+        assert first.status_code == 400 and first.data["registration_required"] is True
+        created = social_login(api_client, role="client", phone="+243812300002")
+        assert created.status_code == 201
+        assert created.data["user"]["email"] == "marie@gmail.com"
+        assert created.data["user"]["email_verified"] is True
+        assert User.objects.get(phone="+243812300009").email is None
+
+
+@pytest.mark.django_db
+def test_image_geante_refusee(photo_user):
+    """Une image piégée (énorme une fois décompressée) est refusée sans être décompressée."""
+    _, client = photo_user
+    buffer = BytesIO()
+    Image.new("1", (8000, 8000)).save(buffer, format="PNG")  # 64 millions de pixels, fichier minuscule
+    huge = SimpleUploadedFile("piege.png", buffer.getvalue(), content_type="image/png")
+    assert client.post(reverse("accounts-photo"), {"photo": huge}, format="multipart").status_code == 400
+
+
+
+@pytest.mark.django_db
+def test_session_expire_apres_30_minutes_d_inactivite(settings):
+    """Le refresh expire 30 min après sa dernière utilisation (fenêtre glissante)."""
+    from datetime import timedelta
+
+    from rest_framework_simplejwt.settings import api_settings
+
+    assert api_settings.REFRESH_TOKEN_LIFETIME == timedelta(minutes=30)
+    assert api_settings.ACCESS_TOKEN_LIFETIME < api_settings.REFRESH_TOKEN_LIFETIME
+    user = User.objects.create_user(phone="+243812300030", role="client")
+    _, refresh = tokens_for(user)
+    renewed = refresh_status(refresh)
+    assert renewed.status_code == 200  # utilisé à temps : nouveau refresh, nouvelle fenêtre
+    from common.authentication import tokens_for as make_tokens
+
+    stale = make_tokens(user)
+    stale.set_exp(lifetime=-timedelta(seconds=1))  # 30 min écoulées sans activité
+    assert refresh_status(str(stale)).status_code == 401

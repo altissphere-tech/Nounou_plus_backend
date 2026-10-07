@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MessageCircleHeart, Search, ShieldCheck } from 'lucide-react'
+import { consumeIdleLogout } from '../auth/idle'
 import Logo from '../components/Logo'
 import TermsNote from '../components/TermsNote'
 import { useI18n } from '../i18n/I18nContext'
@@ -13,8 +15,14 @@ const FEATURES = [
 
 export default function Welcome() {
   const { t } = useI18n()
+  const [idleLogout] = useState(consumeIdleLogout)
   return (
     <section className="welcome">
+      {idleLogout && (
+        <p className="info-banner idle-banner" role="status">
+          🔒 {t('idle.loggedOut')}
+        </p>
+      )}
       <div className="welcome-hero">
         <Logo size={88} />
         <p className="motto">{t('brand.motto')}</p>

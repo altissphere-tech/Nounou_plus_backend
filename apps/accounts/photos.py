@@ -11,6 +11,7 @@ les informations cachées du fichier (position GPS, appareil…) sont ainsi supp
 Le nom du fichier est aléatoire : l'adresse d'une photo ne peut pas être devinée.
 """
 import uuid
+import warnings
 from io import BytesIO
 
 from django.core.files.base import ContentFile
@@ -18,6 +19,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 MAX_UPLOAD_MB = 5
 MAX_SIDE_PX = 800
+MAX_PIXELS = 40_000_000  # au-delà (ex : image piégée de 50 000 × 50 000), refus sans décompresser
 
 
 class InvalidPhoto(ValueError):
@@ -29,9 +31,13 @@ def prepare_photo(uploaded) -> ContentFile:
     if uploaded.size > MAX_UPLOAD_MB * 1024 * 1024:
         raise InvalidPhoto(f"La photo dépasse {MAX_UPLOAD_MB} Mo.")
     try:
-        image = Image.open(uploaded)
-        image.load()
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            image = Image.open(uploaded)
+            if image.width * image.height > MAX_PIXELS:
+                raise InvalidPhoto("Cette image est trop grande.")
+            image.load()
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError, Image.DecompressionBombWarning):
         raise InvalidPhoto("Ce fichier n'est pas une image valide (JPG ou PNG).")
     if image.format not in ("JPEG", "PNG", "WEBP"):
         raise InvalidPhoto("Formats acceptés : JPG, PNG ou WEBP.")

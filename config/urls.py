@@ -1,6 +1,7 @@
 """
 URLs centrales du projet — chaque app ajoute ses propres routes ici.
 """
+from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.utils import extend_schema, extend_schema_view
@@ -16,20 +17,22 @@ admin.site.site_title = "NOUNOU+ admin"
 admin.site.index_title = "Tableau de bord"
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path(settings.ADMIN_URL, admin.site.urls),
     # Documentation interactive de l'API
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="api-schema"), name="api-docs"),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="api-schema"), name="api-redoc"),
-    # Renouvellement du token JWT (access expire en 12h, refresh en 7j)
+    # Renouvellement du token JWT (access : 10 min ; refresh : 30 min d'inactivité)
     path(
         "api/token/refresh/",
         extend_schema_view(
             post=extend_schema(
                 tags=["Comptes"],
                 summary="Renouveler le token d'accès (avec le token refresh)",
-                description="Le token `access` expire après 12 h. Envoyez le `refresh` "
-                "(valable 7 jours) pour en obtenir un nouveau, sans redemander de code SMS.",
+                description="Le token `access` expire après 10 min. Envoyez le `refresh` "
+                "pour en obtenir un nouveau, sans redemander de code SMS. Un refresh ne sert "
+                "qu'une fois (la réponse en contient un nouveau) et expire après 30 min "
+                "d'inactivité.",
                 auth=[],
             )
         )(TokenRefreshView).as_view(),

@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     # Bibliothèques tierces
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",  # jetons « refresh » révoqués (déconnexion)
     "phonenumber_field",
     "drf_spectacular",
     "drf_spectacular_sidecar",  # fichiers de la page de documentation, servis localement
@@ -50,6 +51,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "common.middleware.SecurityHeadersMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -93,10 +95,26 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# --- Limites d'essais (par appareil = adresse IP, ou par numéro / e-mail / utilisateur) ---
+THROTTLE_RATES = {
+    "auth": "10/min",  # connexion e-mail, mot de passe oublié, Google / Apple (par appareil)
+    "login_email": "20/hour",  # par adresse e-mail visée
+    "sms_ip": "20/hour",  # envois de codes SMS par appareil
+    "sms_phone": "5/hour",  # envois de codes SMS par numéro
+    "otp_verify_ip": "30/hour",  # essais de code par appareil
+    "otp_verify_phone": "10/hour",  # essais de code par numéro
+    "register": "10/hour",  # inscriptions par appareil
+    "messages": "30/min",  # messages envoyés par utilisateur
+    "interest": "100/day",  # « je suis intéressé(e) » par utilisateur
+    "reports": "10/day",  # signalements par utilisateur
+    "uploads": "20/hour",  # photos, documents et références par utilisateur
+    "email_send": "5/hour",  # liens de confirmation d'e-mail renvoyés par utilisateur
+}
+
 # --- Django REST Framework ---
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "common.authentication.JWTAuthentication",  # JWT + révocation (voir le fichier)
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
@@ -104,10 +122,16 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",
     ),
+    # Les limites atteintes (réponses 429) sont notées dans le journal de sécurité
+    "EXCEPTION_HANDLER": "common.security_log.exception_handler",
     # Génère la description de l'API (OpenAPI) utilisée par la documentation interactive
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    # Limite les essais de mot de passe et les e-mails « mot de passe oublié » (par adresse IP)
-    "DEFAULT_THROTTLE_RATES": {"auth": "10/min"},
+    # Limites d'essais anti-abus (voir common/throttles.py)
+    "DEFAULT_THROTTLE_RATES": THROTTLE_RATES,
+    # Nombre de proxys de confiance devant Django (0 en local). Sans ce réglage,
+    # l'en-tête X-Forwarded-For, que n'importe qui peut inventer, servirait à
+    # contourner les limites. En production derrière un proxy : NUM_PROXIES=1.
+    "NUM_PROXIES": config("NUM_PROXIES", default=0, cast=int),
 }
 
 # --- Documentation interactive de l'API (/api/docs/) ---
@@ -171,11 +195,23 @@ SPECTACULAR_SETTINGS = {
 }
 
 # --- JWT (tokens d'authentification) ---
+# Déconnexion après inactivité (choix du fondateur : 30 minutes, avertissement 1 min avant).
+# - Dans l'application : seuls les gestes de la personne comptent comme activité.
+# - Sur le serveur : le jeton « refresh » expire 30 min après sa dernière utilisation
+#   (il est remplacé à chaque renouvellement : fenêtre glissante). Application fermée
+#   plus de 30 min = nouvelle connexion obligatoire.
+# Le jeton « access » (10 min) est renouvelé automatiquement tant que la session est active.
+# Un refresh ne sert qu'une fois (liste noire après rotation) : un refresh volé et déjà
+# utilisé ne sert plus.
+SESSION_IDLE_MINUTES = config("SESSION_IDLE_MINUTES", default=30, cast=int)
+
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=12),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
+    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=SESSION_IDLE_MINUTES),
     "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "TOKEN_REFRESH_SERIALIZER": "common.authentication.TokenRefreshSerializer",
 }
 
 # --- OTP simulé (code fixe 123456, sans envoi de SMS) ---
@@ -207,6 +243,29 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="NOUNOU+ <no-reply@nou
 # --- Connexion Google / Apple (vide = bouton désactivé) ---
 GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")
 APPLE_CLIENT_ID = config("APPLE_CLIENT_ID", default="")
+
+# --- Adresse de l'administration ---
+# Une adresse moins évidente que « admin/ » limite les robots qui testent des mots de passe.
+ADMIN_URL = config("ADMIN_URL", default="admin/")
+
+# --- Journal de sécurité ---
+# Le journal « nounou.security » note les événements utiles pour repérer un abus
+# (échecs de connexion, limites atteintes, mots de passe changés, suspensions…).
+# Jamais de mot de passe, de code, de jeton ni de numéro complet : un identifiant
+# de compte ou une empreinte suffit.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "security": {"format": "{asctime} SECURITE {message}", "style": "{"},
+    },
+    "handlers": {
+        "security_console": {"class": "logging.StreamHandler", "formatter": "security"},
+    },
+    "loggers": {
+        "nounou.security": {"handlers": ["security_console"], "level": "INFO", "propagate": False},
+    },
+}
 
 # --- Format des numéros de téléphone (RDC = CD) ---
 PHONENUMBER_DEFAULT_REGION = "CD"

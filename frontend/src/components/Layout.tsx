@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/I18nContext'
 import BottomNav from './BottomNav'
+import IdleGuard from './IdleGuard'
 import Logo from './Logo'
 import NotificationBell from './NotificationBell'
 import OfflineBanner from './OfflineBanner'
@@ -31,6 +32,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <OfflineBanner />
       <main className="content">{children}</main>
       <BottomNav />
+      <IdleGuard />
     </div>
   )
 }

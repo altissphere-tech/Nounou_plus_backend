@@ -22,3 +22,14 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # OTP simulé autorisé (code fixe 123456) — jamais en production
 OTP_MOCK_ENABLED = True
+
+# Limites plus larges en développement : on se reconnecte souvent pendant les essais
+THROTTLE_RATES = {  # noqa: F405
+    **THROTTLE_RATES,  # noqa: F405
+    "sms_phone": "30/hour",
+    "otp_verify_phone": "60/hour",
+    "sms_ip": "100/hour",
+    "otp_verify_ip": "100/hour",
+    "register": "60/hour",
+}
+REST_FRAMEWORK = {**REST_FRAMEWORK, "DEFAULT_THROTTLE_RATES": THROTTLE_RATES}  # noqa: F405

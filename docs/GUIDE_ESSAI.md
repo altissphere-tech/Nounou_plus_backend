@@ -157,10 +157,13 @@ Lancez Django (`python manage.py runserver`) **et** l'application (`cd frontend`
 la première fois, puis `npm run dev`), et ouvrez **http://localhost:5173**.
 
 1. **Inscription par e-mail** : « Créer un compte » → choisissez « E-mail » → e-mail,
-   mot de passe (8 caractères minimum) et numéro fictif (ex : `0811111111`). Vous êtes connecté tout de suite.
-2. **Mot de passe oublié** : déconnectez-vous (onglet **Profil** → « Se déconnecter »), puis
-   « Se connecter » → « E-mail » → « Mot de passe oublié ? ». En développement, l'e-mail
-   **s'affiche dans la fenêtre où tourne Django** : copiez le lien dans le navigateur.
+   mot de passe (8 caractères minimum) et numéro fictif (ex : `0811111111`). Vous êtes connecté
+   tout de suite. Un lien de confirmation est envoyé : en développement, l'e-mail **s'affiche dans
+   la fenêtre où tourne Django** ; copiez le lien (`http://localhost:5173/email/confirmer?token=…`)
+   dans le navigateur.
+2. **Mot de passe oublié** (adresse confirmée uniquement) : déconnectez-vous (onglet **Profil** →
+   « Se déconnecter »), puis « Se connecter » → « E-mail » → « Mot de passe oublié ? ». Le lien
+   s'affiche lui aussi dans la fenêtre de Django.
 3. **Photo de profil** : **Profil** → « Modifier mon profil » → « Ajouter une photo ».
    Elle reste « en attente » jusqu'à votre validation dans l'admin (**Photos de profil**).
 4. **Références** (compte travailleur) : **Profil** → « Vérification et références ».
@@ -168,6 +171,11 @@ la première fois, puis `npm run dev`), et ouvrez **http://localhost:5173**.
 6. **Notifications** : la cloche en haut à droite compte les nouveautés (intérêt reçu, match,
    messages, photo validée…).
 7. **Aide**, **Conditions d'utilisation** et **Sécurité** : depuis l'onglet **Profil**.
+   Dans **Sécurité** : confirmer son numéro, son e-mail, changer de mot de passe et
+   « Se déconnecter de tous les appareils ».
+
+**Limites d'essais** : en développement, elles sont plus larges qu'en production. Si vous voyez
+« Requête ralentie », attendez quelques minutes (ou redémarrez Django).
 
 **Google et Apple** : les boutons restent grisés (« bientôt disponible ») tant que les comptes
 développeur ne sont pas créés. Il faudra ensuite renseigner `GOOGLE_CLIENT_ID` et
