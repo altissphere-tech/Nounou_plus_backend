@@ -22,18 +22,18 @@ jobs:
     timeout-minutes: 15
     env:
       # Clé factice, réservée aux tests (jamais une vraie clé ici)
-      SECRET_KEY: cle-de-test-ci-pas-un-secret
+      SECRET_KEY: cle-de-test-ci-pas-un-secret-assez-longue-0123456789
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: requirements/*.txt
       - name: Installer les dépendances
-        run: pip install -r requirements/dev.txt pip-audit
+        run: pip install -r requirements/dev.txt -r requirements/prod.txt pip-audit
       - name: Tests
         run: python -m pytest -q
       - name: Migrations à jour
@@ -60,10 +60,10 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
