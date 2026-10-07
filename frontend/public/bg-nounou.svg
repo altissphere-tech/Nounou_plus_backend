@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- Fond NOUNOU+ : dégradé clair, halos violet / orange et motif discret (maison, cœur, +). -->
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f1ecfd"/>
+      <stop offset="0.55" stop-color="#f7f4fd"/>
+      <stop offset="1" stop-color="#fdf3e7"/>
+    </linearGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="90"/>
+    </filter>
+    <pattern id="motif" width="180" height="180" patternUnits="userSpaceOnUse" patternTransform="rotate(-12)">
+      <g fill="none" stroke="#3b12b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.07">
+        <!-- maison -->
+        <path d="M22 52 L46 32 L70 52 M28 47 V74 H64 V47"/>
+        <path d="M41 74 V60 H51 V74"/>
+        <!-- cœur -->
+        <path d="M128 132 C120 124 108 128 108 138 C108 148 128 158 128 158 C128 158 148 148 148 138 C148 128 136 124 128 132 Z"/>
+      </g>
+      <g stroke="#f5931e" stroke-width="3" stroke-linecap="round" opacity="0.14">
+        <!-- « + » -->
+        <path d="M126 44 V62 M117 53 H135"/>
+        <path d="M44 132 V144 M38 138 H50"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#base)"/>
+  <g filter="url(#blur)">
+    <circle cx="180" cy="120" r="320" fill="#3b12b8" opacity="0.16"/>
+    <circle cx="1480" cy="900" r="340" fill="#f5931e" opacity="0.16"/>
+    <circle cx="1350" cy="160" r="230" fill="#7c3aed" opacity="0.10"/>
+    <circle cx="420" cy="940" r="240" fill="#f5931e" opacity="0.08"/>
+  </g>
+  <rect width="1600" height="1000" fill="url(#motif)"/>
+</svg>

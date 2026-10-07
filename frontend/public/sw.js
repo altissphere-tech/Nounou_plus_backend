@@ -9,8 +9,8 @@
  *
  * Après une modification de ce fichier, augmentez VERSION pour remplacer l'ancien cache.
  */
-const VERSION = 'nounou-v1'
-const SHELL = ['/', '/manifest.webmanifest', '/logo.webp', '/favicon.png', '/icons/icon-192.png']
+const VERSION = 'nounou-v2'
+const SHELL = ['/', '/manifest.webmanifest', '/logo.webp', '/bg-nounou.svg', '/favicon.png', '/icons/icon-192.png']
 const NEVER_CACHED = ['/api/', '/admin/', '/media/', '/static/']
 
 self.addEventListener('install', (event) => {

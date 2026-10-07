@@ -38,7 +38,23 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--background);
+  /* Transparent : laisse voir l'image de fond posée juste dessous (body::before) */
+  background: transparent;
+}
+
+/*
+ * Image de fond (public/bg-nounou.svg) : dégradé clair aux couleurs de la marque,
+ * halos doux et motif discret. Posée sur un calque fixe derrière toute l'application :
+ * elle couvre tout l'écran sans se déformer (« cover »), et reste immobile au défilement
+ * (aussi sur iPhone, où « background-attachment: fixed » ne fonctionne pas).
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--background) url('/bg-nounou.svg') center / cover no-repeat;
+  pointer-events: none;
 }
 
 h1 {
@@ -1010,7 +1026,10 @@ select {
   display: flex;
   gap: 8px;
   align-items: flex-end;
-  background: var(--background);
+  /* Laisse deviner le fond tout en gardant le champ lisible */
+  background: rgba(247, 246, 251, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   padding: 8px 0;
 }
 
