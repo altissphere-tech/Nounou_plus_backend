@@ -35,9 +35,24 @@ function contentSecurityPolicy(): Plugin {
   }
 }
 
+/**
+ * Le style de l'application ne bloque plus l'affichage : l'écran de démarrage
+ * (dans index.html) apparaît dès la réception de la page, même en 3G. Le style est
+ * activé par main.tsx, qui attend qu'il soit arrivé avant d'afficher l'application.
+ */
+function nonBlockingStylesheet(): Plugin {
+  return {
+    name: 'nounou-non-blocking-css',
+    apply: 'build',
+    enforce: 'post',
+    transformIndexHtml: (html) =>
+      html.replace(/<link rel="stylesheet"([^>]*)>/g, '<link rel="stylesheet" media="print" data-app-css$1>'),
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), contentSecurityPolicy()],
+  plugins: [react(), contentSecurityPolicy(), nonBlockingStylesheet()],
   server: {
     // En développement, les appels /api/... sont transmis au serveur Django
     // (python manage.py runserver), ce qui évite toute configuration CORS.

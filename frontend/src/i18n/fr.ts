@@ -3,6 +3,9 @@
 const fr = {
   'app.tagline': 'Familles et travailleurs domestiques de confiance à Lubumbashi',
   'lang.switch': 'English',
+  'a11y.skip': 'Aller au contenu',
+  'screen.loadFailed': "Cet écran n'a pas pu être chargé. Vérifiez votre connexion internet.",
+  'screen.retry': 'Réessayer',
 
   'welcome.title': 'Bienvenue sur NOUNOU+',
   'welcome.intro':

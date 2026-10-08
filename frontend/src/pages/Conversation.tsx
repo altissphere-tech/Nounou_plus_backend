@@ -8,6 +8,7 @@ import type { Match, Message } from '../api/types'
 import Avatar from '../components/Avatar'
 import { useI18n } from '../i18n/I18nContext'
 import { refreshNews } from '../matches/groups'
+import { Skeleton } from '../components/Skeleton'
 
 const REFRESH_EVERY_MS = 8000 // nouveaux messages récupérés toutes les 8 secondes
 
@@ -108,7 +109,12 @@ export default function Conversation() {
       {closed ? (
         <p className="card muted">{t('chat.closed')}</p>
       ) : messages === undefined ? (
-        <p className="muted">{t('common.loading')}</p>
+        <div className="messages skeleton-messages" role="status">
+          <span className="visually-hidden">{t('common.loading')}</span>
+          <Skeleton width="62%" height={44} />
+          <Skeleton width="48%" height={44} />
+          <Skeleton width="56%" height={44} />
+        </div>
       ) : (
         <>
           <div className="messages" aria-live="polite">

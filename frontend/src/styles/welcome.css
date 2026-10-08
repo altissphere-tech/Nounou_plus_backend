@@ -1,0 +1,87 @@
+/* --- Accueil --------------------------------------------------------- */
+
+.welcome {
+  text-align: center;
+}
+
+.welcome-hero {
+  margin: -20px -16px var(--space-6);
+  padding: var(--space-9) var(--space-4) var(--space-8);
+  background: var(--brand-gradient);
+  color: var(--white);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Grands cercles décoratifs, comme sur la maquette */
+.welcome-hero::before,
+.welcome-hero::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: var(--on-brand-faint);
+}
+
+.welcome-hero::before {
+  width: 220px;
+  height: 220px;
+  top: -90px;
+  right: -70px;
+}
+
+.welcome-hero::after {
+  width: 160px;
+  height: 160px;
+  bottom: -70px;
+  left: -50px;
+}
+
+.welcome-hero > * {
+  position: relative;
+}
+
+.welcome-hero .logo {
+  color: var(--white);
+  flex-direction: column;
+  gap: var(--space-3-5);
+}
+
+.welcome-hero .logo-icon {
+  box-shadow: var(--shadow-lg);
+}
+
+.welcome-hero .logo-name {
+  font-size: var(--font-4xl);
+  font-weight: 900;
+}
+
+.welcome-hero .motto {
+  margin: var(--space-2-5) 0 0;
+  font-size: var(--font-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.welcome-hero .tagline {
+  color: var(--white);
+  opacity: 0.92;
+  margin: var(--space-4) 0 0;
+  font-weight: 600;
+}
+
+.welcome .stack {
+  margin-top: var(--space-7);
+}
+
+.tagline {
+  color: var(--brand-dark);
+  font-weight: 600;
+  margin: var(--space-2) 0 var(--space-7);
+}
+
+.muted {
+  color: var(--muted);
+}

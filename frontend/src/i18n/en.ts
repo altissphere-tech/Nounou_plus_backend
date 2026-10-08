@@ -4,6 +4,9 @@ import type { TranslationKey } from './fr'
 const en: Record<TranslationKey, string> = {
   'app.tagline': 'Trusted families and domestic workers in Lubumbashi',
   'lang.switch': 'Français',
+  'a11y.skip': 'Skip to content',
+  'screen.loadFailed': "This screen could not be loaded. Check your internet connection.",
+  'screen.retry': 'Try again',
 
   'welcome.title': 'Welcome to NOUNOU+',
   'welcome.intro':

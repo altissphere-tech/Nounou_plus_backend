@@ -1,0 +1,79 @@
+/* --- Boutons et liens ------------------------------------------------ */
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1-5);
+  width: 100%;
+  font: inherit;
+  font-weight: 800;
+  font-size: var(--font-base);
+  text-align: center;
+  text-decoration: none;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.button.primary {
+  background: var(--brand-gradient);
+  color: var(--white);
+  box-shadow: var(--shadow-brand);
+}
+
+.button.primary:hover {
+  background: var(--brand-dark);
+}
+
+.button.secondary {
+  background: var(--surface);
+  color: var(--brand);
+  border: 1.5px solid var(--brand);
+}
+
+/* « + Publier une nouvelle demande » : cadre en pointillés */
+.button.dashed {
+  background: transparent;
+  color: var(--brand);
+  border: 2px dashed var(--brand);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.link {
+  background: none;
+  border: 0;
+  font: inherit;
+  color: var(--brand-dark);
+  text-decoration: underline;
+  cursor: pointer;
+  text-align: center;
+  padding: var(--space-1-5);
+  min-height: var(--touch-target);
+}
+
+.lang-switch {
+  font: inherit;
+  font-size: var(--font-sm);
+  font-weight: 700;
+  background: var(--on-brand-subtle);
+  color: var(--white);
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: var(--space-1-5) var(--space-3-5);
+  min-height: 36px;
+  cursor: pointer;
+  /* Zone tactile agrandie sans changer l'apparence */
+  position: relative;
+}
+
+.lang-switch::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}

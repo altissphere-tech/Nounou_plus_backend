@@ -10,6 +10,7 @@ import PageHead from '../components/PageHead'
 import { RatingLine } from '../lists/cards'
 import type { TranslationKey } from '../i18n/fr'
 import { groupMatches, refreshNews } from '../matches/groups'
+import { ListSkeleton } from '../components/Skeleton'
 
 function PartyName({ match }: { match: Match }) {
   const { first_name, last_name } = match.other_party
@@ -91,7 +92,7 @@ export default function Matches() {
     refreshNews()
   }, [version])
 
-  if (matches === undefined) return <p className="muted">{t('common.loading')}</p>
+  if (matches === undefined) return <ListSkeleton />
   if (matches === null) return <p className="error">{t('list.error')}</p>
 
   const groups = groupMatches(matches)

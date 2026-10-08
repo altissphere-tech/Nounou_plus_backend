@@ -11,6 +11,7 @@ import { useI18n } from '../i18n/I18nContext'
 import { AVAILABILITIES, SERVICES } from '../profile/options'
 import type { MyProfile } from '../profile/useMyProfile'
 import { useMyProfile } from '../profile/useMyProfile'
+import PageSkeleton from '../components/PageSkeleton'
 
 interface FormState {
   firstName: string
@@ -69,7 +70,7 @@ export default function ProfilePage() {
   const { user } = useAuth()
   const { data, failed } = useMyProfile(user!.role)
   if (failed) return <p className="error">{t('profile.loadError')}</p>
-  if (!data) return <p className="muted">{t('common.loading')}</p>
+  if (!data) return <PageSkeleton />
   return <ProfileForm data={data} />
 }
 

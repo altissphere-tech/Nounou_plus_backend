@@ -12,9 +12,33 @@
     <meta name="theme-color" content="#3B12B8" />
     <meta name="description" content="NOUNOU+ — familles et travailleurs domestiques à Lubumbashi" />
     <title>NOUNOU+</title>
+    <!--
+      Écran de démarrage : affiché dès la réception de la page, pendant que l'application
+      se télécharge (quelques secondes en 3G). Remplacé automatiquement par l'application.
+    -->
+    <style>
+      .boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; gap: 16px; background: linear-gradient(150deg, #4a1fd1 0%, #3b12b8 55%, #2a0c86 100%);
+        color: #fff; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; text-align: center; }
+      .boot-name { margin: 0; font-size: 2.4rem; font-weight: 800; letter-spacing: 0.02em; }
+      .boot-name span { color: #f5931e; }
+      .boot-tagline { margin: 0; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.85; }
+      .boot-bar { width: 120px; height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.2); overflow: hidden; }
+      .boot-bar::after { content: ''; display: block; width: 40%; height: 100%; border-radius: inherit; background: #f5931e;
+        animation: boot 1.2s ease-in-out infinite; }
+      @keyframes boot { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+      @media (prefers-reduced-motion: reduce) { .boot-bar::after { animation: none; width: 100%; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" role="status">
+        <p class="boot-name">NOUNOU<span>+</span></p>
+        <p class="boot-tagline">La confiance au cœur du foyer</p>
+        <div class="boot-bar" aria-hidden="true"></div>
+      </div>
+    </div>
+    <noscript>NOUNOU+ a besoin de JavaScript pour fonctionner.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

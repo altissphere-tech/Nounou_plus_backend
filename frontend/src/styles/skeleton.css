@@ -1,0 +1,63 @@
+/* --- Silhouettes de chargement ----------------------------------------- */
+
+.skeleton {
+  display: block;
+  max-width: 100%;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(90deg, var(--neutral-bg) 0%, var(--surface-tint) 50%, var(--neutral-bg) 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shine 1.4s ease-in-out infinite;
+}
+
+.skeleton.round {
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.skeleton-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton-head {
+  min-height: 96px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.skeleton-head .skeleton {
+  background: var(--on-brand-subtle);
+  animation: none;
+}
+
+@keyframes skeleton-shine {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* Conversation : bulles en silhouette, alternées à gauche et à droite */
+.skeleton-messages .skeleton {
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-messages .skeleton:nth-of-type(even) {
+  align-self: flex-end;
+}

@@ -1,11 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { useI18n } from '../i18n/I18nContext'
-
-/** Événement proposé par Chrome (Android) quand l'application peut être installée. */
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
+import { clearInstallEvent, currentInstallEvent, onInstallEvent } from './installEvent'
 
 const DISMISSED_KEY = 'nounou.install.dismissed'
 
@@ -36,22 +31,9 @@ function wasDismissed(): boolean {
  */
 export default function InstallPrompt() {
   const { t } = useI18n()
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
+  // Événement capté au démarrage (pwa/installEvent.ts), même avant l'affichage de cet écran
+  const deferred = useSyncExternalStore(onInstallEvent, currentInstallEvent)
   const [hidden, setHidden] = useState(() => isStandalone() || wasDismissed())
-
-  useEffect(() => {
-    const onPrompt = (event: Event) => {
-      event.preventDefault() // on affiche notre propre bouton
-      setDeferred(event as BeforeInstallPromptEvent)
-    }
-    const onInstalled = () => setHidden(true)
-    window.addEventListener('beforeinstallprompt', onPrompt)
-    window.addEventListener('appinstalled', onInstalled)
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onPrompt)
-      window.removeEventListener('appinstalled', onInstalled)
-    }
-  }, [])
 
   function dismiss() {
     setHidden(true)
@@ -67,7 +49,7 @@ export default function InstallPrompt() {
     await deferred.prompt()
     const choice = await deferred.userChoice
     if (choice.outcome === 'accepted') setHidden(true)
-    setDeferred(null)
+    clearInstallEvent()
   }
 
   if (hidden || (!deferred && !isIos())) return null

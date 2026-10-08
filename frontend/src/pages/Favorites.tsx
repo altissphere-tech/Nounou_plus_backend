@@ -7,6 +7,7 @@ import PageHead from '../components/PageHead'
 import { useI18n } from '../i18n/I18nContext'
 import { JobCard, WorkerCard } from '../lists/cards'
 import { useFavoriteIds } from '../lists/favorites'
+import { ListSkeleton } from '../components/Skeleton'
 
 /** Profils (familles) ou annonces (travailleurs) mis de côté avec le cœur. */
 export default function Favorites() {
@@ -28,7 +29,7 @@ export default function Favorites() {
   return (
     <section className="stack">
       <PageHead back={t('common.back')} title={t('favorites.title')} />
-      {data === undefined && <p className="muted">{t('common.loading')}</p>}
+      {data === undefined && <ListSkeleton count={2} />}
       {data === null && <p className="error">{t('list.error')}</p>}
       {empty && (
         <div className="card">

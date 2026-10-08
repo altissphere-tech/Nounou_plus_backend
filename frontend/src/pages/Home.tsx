@@ -9,6 +9,7 @@ import InstallPrompt from '../pwa/InstallPrompt'
 import type { MyProfile } from '../profile/useMyProfile'
 import { useMyPhoto } from '../profile/useMyPhoto'
 import { useMyProfile } from '../profile/useMyProfile'
+import { ListSkeleton } from '../components/Skeleton'
 
 
 function ProfileCard({ data }: { data: MyProfile }) {
@@ -137,7 +138,7 @@ export default function Home() {
       )}
 
       {failed && <p className="error">{t('profile.loadError')}</p>}
-      {!data && !failed && <p className="muted">{t('common.loading')}</p>}
+      {!data && !failed && <ListSkeleton count={1} />}
       {data && <ProfileCard data={data} />}
       <InstallPrompt />
 

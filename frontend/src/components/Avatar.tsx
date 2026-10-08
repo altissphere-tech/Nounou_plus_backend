@@ -2,9 +2,10 @@ import { useState } from 'react'
 
 /**
  * Photo de profil ronde, ou pastille avec les initiales s'il n'y a pas de photo
- * validée. La couleur dépend du nom, pour distinguer les personnes d'un coup d'œil.
+ * validée. La couleur dépend du nom, pour distinguer les personnes d'un coup d'œil
+ * (6 couleurs du design system : --avatar-1 à --avatar-6).
  */
-const COLORS = ['#3B12B8', '#7C3AED', '#F5931E', '#0E9F6E', '#D9468F', '#2563EB']
+const COLOR_COUNT = 6
 
 export default function Avatar({ name, size = 48, src }: { name: string; size?: number; src?: string | null }) {
   const [broken, setBroken] = useState<string | null>(null)
@@ -32,7 +33,7 @@ export default function Avatar({ name, size = 48, src }: { name: string; size?: 
     <span
       className="avatar"
       aria-hidden="true"
-      style={{ width: size, height: size, fontSize: size * 0.38, background: COLORS[hash % COLORS.length] }}
+      style={{ width: size, height: size, fontSize: size * 0.38, background: `var(--avatar-${(hash % COLOR_COUNT) + 1})` }}
     >
       {initials}
     </span>
