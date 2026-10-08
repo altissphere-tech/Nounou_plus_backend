@@ -14,7 +14,13 @@ from common import choices
 from common.filters import get_choice, get_decimal, get_text
 from common.pagination import paginated_response
 from common.schema import AUTH_ERRORS, PAGINATION_PARAMETERS, error, paginated, with_message
-from common.permissions import IsClient, IsWorker, IsWorkerOrClient
+from common.permissions import (
+    VERIFIED_WORKER_ONLY_MESSAGE,
+    IsClient,
+    IsVerifiedWorker,
+    IsWorker,
+    IsWorkerOrClient,
+)
 from common.throttles import throttle
 
 from .models import JobRequest
@@ -34,7 +40,8 @@ class JobListCreateView(APIView):
     """
 
     def get_permissions(self):
-        return [IsWorker()] if self.request.method == "GET" else [IsClient()]
+        # Les annonces (et donc les familles) ne sont visibles que des travailleurs vérifiés
+        return [IsVerifiedWorker()] if self.request.method == "GET" else [IsClient()]
 
     @extend_schema(
         tags=["Annonces"],
@@ -150,6 +157,8 @@ class JobDetailView(APIView):
         if request.user.role == User.ROLE_CLIENT:
             job = get_object_or_404(JobRequest, pk=pk, client__user=request.user)
             return Response(JobRequestSerializer(job).data)
+        if not IsVerifiedWorker().has_permission(request, self):
+            return Response({"detail": VERIFIED_WORKER_ONLY_MESSAGE}, status=status.HTTP_403_FORBIDDEN)
         job = get_object_or_404(JobRequest.objects.open_to_workers(), pk=pk)
         return Response(JobRequestPublicSerializer(job).data)
 
@@ -213,5 +222,7 @@ class JobInterestView(APIView):
 
         job = get_object_or_404(JobRequest.objects.open_to_workers(), pk=pk)
         match, created = Match.objects.get_or_create(client=job.client, worker=worker)
-        match.job = job
+        if match.job_id != job.pk:
+            match.job = job
+            match.save(update_fields=["job"])
         return interest_response(request, match, created)

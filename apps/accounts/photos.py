@@ -19,7 +19,10 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 MAX_UPLOAD_MB = 5
 MAX_SIDE_PX = 800
-MAX_PIXELS = 40_000_000  # au-delà (ex : image piégée de 50 000 × 50 000), refus sans décompresser
+# Au-delà (ex : image piégée, toute petite sur le disque mais énorme une fois ouverte),
+# refus sans décompresser. 16 millions de pixels couvrent toutes les photos de téléphone.
+MAX_PIXELS = 16_000_000
+ACCEPTED_FORMATS = ("JPEG", "PNG", "WEBP")
 
 
 class InvalidPhoto(ValueError):
@@ -33,13 +36,16 @@ def prepare_photo(uploaded) -> ContentFile:
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
-            image = Image.open(uploaded)
+            # Seuls ces formats sont lus : aucun autre décodeur d'images n'est sollicité
+            image = Image.open(uploaded, formats=ACCEPTED_FORMATS)
             if image.width * image.height > MAX_PIXELS:
                 raise InvalidPhoto("Cette image est trop grande.")
+            if image.format == "JPEG":
+                image.draft("RGB", (MAX_SIDE_PX * 2, MAX_SIDE_PX * 2))  # décode directement en plus petit
             image.load()
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError, Image.DecompressionBombWarning):
         raise InvalidPhoto("Ce fichier n'est pas une image valide (JPG ou PNG).")
-    if image.format not in ("JPEG", "PNG", "WEBP"):
+    if image.format not in ACCEPTED_FORMATS:
         raise InvalidPhoto("Formats acceptés : JPG, PNG ou WEBP.")
     image = ImageOps.exif_transpose(image)  # remet la photo à l'endroit
     image.thumbnail((MAX_SIDE_PX, MAX_SIDE_PX))

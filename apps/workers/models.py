@@ -15,8 +15,8 @@ from common import choices
 
 class WorkerProfileQuerySet(models.QuerySet):
     def active(self):
-        """Profils dont le compte n'est pas suspendu."""
-        return self.filter(user__is_active=True)
+        """Profils dont le compte n'est pas suspendu et dont le numéro est confirmé par SMS."""
+        return self.filter(user__is_active=True, user__phone_verified=True)
 
     def visible_to_clients(self):
         """Profils que les clients peuvent voir : comptes actifs et vérifiés."""

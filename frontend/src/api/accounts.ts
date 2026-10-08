@@ -10,17 +10,29 @@ export function register(phone: string, role: Role) {
   return api<{ message: string }>('POST', '/api/accounts/register/', { phone, role })
 }
 
-/** Inscription avec e-mail + mot de passe : la personne est connectée tout de suite. */
-export function registerWithEmail(data: { phone: string; role: Role; email: string; password: string }) {
-  return api<LoginResponse>('POST', '/api/accounts/register/', data)
-}
-
 export function requestCode(phone: string) {
   return api<{ message: string }>('POST', '/api/accounts/otp/request/', { phone })
 }
 
-export function verifyCode(phone: string, code: string) {
-  return api<LoginResponse>('POST', '/api/accounts/otp/verify/', { phone, code })
+/** Code SMS. `socialTicket` : relie le compte Google / Apple une fois le numéro confirmé. */
+export function verifyCode(phone: string, code: string, socialTicket?: string) {
+  return api<LoginResponse>('POST', '/api/accounts/otp/verify/', {
+    phone,
+    code,
+    ...(socialTicket ? { social_ticket: socialTicket } : {}),
+  })
+}
+
+/** Réponse 400 quand le numéro doit d'abord être confirmé par code SMS (un code vient d'être envoyé). */
+export interface PhoneVerificationRequired {
+  phone_verification_required: true
+  phone: string
+  social_ticket?: string
+}
+
+export function phoneVerificationRequired(data: unknown): PhoneVerificationRequired | null {
+  const value = data as Partial<PhoneVerificationRequired> | null
+  return value?.phone_verification_required && value.phone ? (value as PhoneVerificationRequired) : null
 }
 
 export function loginWithEmail(email: string, password: string) {
@@ -31,7 +43,8 @@ export const getAuthOptions = () => api<AuthOptions>('GET', '/api/accounts/auth-
 
 /**
  * Connexion Google / Apple. Pour un nouveau compte, la première réponse est une
- * erreur 400 avec `registration_required` : on redemande alors avec le rôle et le numéro.
+ * erreur 400 avec `registration_required` : on redemande alors avec le rôle et le numéro,
+ * puis le numéro est confirmé par code SMS (`phone_verification_required`).
  */
 export function socialLogin(provider: SocialProvider, idToken: string, extra: { role?: Role; phone?: string } = {}) {
   return api<LoginResponse>('POST', '/api/accounts/social/', { provider, id_token: idToken, ...extra })

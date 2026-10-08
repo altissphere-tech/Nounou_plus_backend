@@ -52,7 +52,7 @@ def publish(user, data):
 
 
 def make_worker(phone, verified=True):
-    user = User.objects.create_user(phone=phone, role=User.ROLE_WORKER)
+    user = User.objects.create_user(phone=phone, role=User.ROLE_WORKER, phone_verified=True)
     return WorkerProfile.objects.create(
         user=user, first_name="Grace", last_name="Mutombo",
         availability=choices.AVAILABILITY_FULL, expected_salary=Decimal("200.00"),
@@ -62,7 +62,7 @@ def make_worker(phone, verified=True):
 
 @pytest.fixture
 def client_profile(db):
-    user = User.objects.create_user(phone=CLIENT_PHONE, role=User.ROLE_CLIENT)
+    user = User.objects.create_user(phone=CLIENT_PHONE, role=User.ROLE_CLIENT, phone_verified=True)
     return ClientProfile.objects.create(
         user=user, first_name="Sarah", last_name="Kasongo",
         location="Golf", availability_needed=choices.AVAILABILITY_FULL,
@@ -111,7 +111,7 @@ class TestPublish:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_profil_client_obligatoire(self, db):
-        user = User.objects.create_user(phone="+243814400009", role=User.ROLE_CLIENT)
+        user = User.objects.create_user(phone="+243814400009", role=User.ROLE_CLIENT, phone_verified=True)
         assert publish(user, NOUNOU_JOB).status_code == status.HTTP_400_BAD_REQUEST
 
     def test_travailleur_ne_peut_pas_publier(self, worker):
@@ -130,7 +130,7 @@ class TestPublish:
         assert jobs["nounou"].status == "pourvue"
 
     def test_impossible_de_modifier_l_annonce_d_une_autre_famille(self, jobs):
-        other = User.objects.create_user(phone="+243814400008", role=User.ROLE_CLIENT)
+        other = User.objects.create_user(phone="+243814400008", role=User.ROLE_CLIENT, phone_verified=True)
         url = reverse("jobs-detail", args=[jobs["nounou"].id])
         response = auth_client(other).patch(url, {"budget": "1"}, format="json")
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -166,6 +166,16 @@ class TestBrowse:
         assert api.get(url, {"availability": "temps_plein"}).data["count"] == 1
         # L'annonce cuisine n'a pas de budget : exclue du filtre budget
         assert api.get(url, {"min_budget": "100"}).data["count"] == 1
+
+    def test_travailleur_non_verifie_ne_voit_ni_familles_ni_annonces(self, jobs):
+        """Faille M3 : un compte travailleur non vérifié ne peut pas parcourir les familles."""
+        unverified = make_worker("+243814400077", verified=False)
+        api = auth_client(unverified.user)
+        assert api.get(reverse("jobs-list")).status_code == status.HTTP_403_FORBIDDEN
+        detail = api.get(reverse("jobs-detail", args=[jobs["nounou"].id]))
+        assert detail.status_code == status.HTTP_403_FORBIDDEN and "Sarah" not in str(detail.data)
+        assert api.get(reverse("clients-list")).status_code == status.HTTP_403_FORBIDDEN
+        assert api.put(reverse("favorites-job", args=[jobs["nounou"].id])).status_code == status.HTTP_403_FORBIDDEN
 
     def test_annonce_pourvue_retiree_de_la_liste(self, worker, jobs):
         JobRequest.objects.filter(pk=jobs["nounou"].pk).update(status=JobRequest.STATUS_FILLED)

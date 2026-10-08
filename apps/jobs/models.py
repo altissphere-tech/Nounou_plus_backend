@@ -18,7 +18,9 @@ from common import choices
 class JobRequestQuerySet(models.QuerySet):
     def open_to_workers(self):
         """Annonces ouvertes, publiées par des familles dont le compte est actif."""
-        return self.filter(status=JobRequest.STATUS_OPEN, client__user__is_active=True)
+        return self.filter(
+            status=JobRequest.STATUS_OPEN, client__user__is_active=True, client__user__phone_verified=True
+        )
 
 
 class JobRequest(models.Model):

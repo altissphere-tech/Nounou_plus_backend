@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { socialLogin } from '../api/accounts'
+import { phoneVerificationRequired, socialLogin } from '../api/accounts'
 import { ApiError } from '../api/client'
 import type { SocialProvider } from '../api/types'
 import { errorText } from '../components/errors'
@@ -25,7 +25,10 @@ export function useSocialLogin() {
       navigate('/accueil', { replace: true })
     } catch (err) {
       const data = err instanceof ApiError ? (err.data as { registration_required?: boolean; email?: string }) : null
-      if (data?.registration_required) {
+      const verification = phoneVerificationRequired(data)
+      if (verification) {
+        navigate('/code', { state: { phone: verification.phone } })
+      } else if (data?.registration_required) {
         navigate('/inscription/finaliser', { state: { provider, idToken, email: data.email ?? null } })
       } else {
         setError(errorText(err, lang, t, 'social.error'))

@@ -4,6 +4,7 @@ Paramètres de production — squelette prêt pour PostgreSQL.
 """
 from .base import *  # noqa: F401, F403
 from decouple import config
+from django.core.exceptions import ImproperlyConfigured
 
 DEBUG = False
 
@@ -21,8 +22,15 @@ DATABASES = {
     }
 }
 
-# Connexion chiffrée vers PostgreSQL si la base est sur une autre machine
-DATABASES["default"]["OPTIONS"] = {"sslmode": config("DB_SSLMODE", default="prefer")}
+# Connexion chiffrée obligatoire vers PostgreSQL quand la base est sur une autre machine
+_db_is_local = DATABASES["default"]["HOST"] in ("localhost", "127.0.0.1", "::1", "")
+DATABASES["default"]["OPTIONS"] = {
+    "sslmode": config("DB_SSLMODE", default="prefer" if _db_is_local else "require")
+}
+
+# L'adresse de l'administration doit être changée (moins exposée aux robots)
+if ADMIN_URL.strip("/") == "admin":  # noqa: F405
+    raise ImproperlyConfigured("Choisissez une ADMIN_URL non évidente pour la production (ex : gestion-xxxx/).")
 
 # Cache partagé (base de données) : les limites d'essais sont communes à tous les
 # processus du serveur. Créer la table une fois : python manage.py createcachetable

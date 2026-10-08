@@ -14,7 +14,7 @@ from apps.jobs.models import JobRequest
 from apps.jobs.serializers import JobRequestPublicSerializer
 from apps.workers.models import WorkerProfile
 from apps.workers.serializers import WorkerProfilePublicSerializer
-from common.permissions import IsClient, IsWorker, IsWorkerOrClient
+from common.permissions import IsClient, IsVerifiedWorker, IsWorkerOrClient
 from common.schema import AUTH_ERRORS, MESSAGE_ONLY, error
 
 from .models import FavoriteJob, FavoriteWorker
@@ -49,7 +49,7 @@ class FavoriteListView(APIView):
             workers = WorkerProfile.objects.visible_to_clients().filter(
                 favorited_by__user=request.user
             ).order_by("-favorited_by__created_at").select_related("user").prefetch_related("services")
-        else:
+        elif IsVerifiedWorker().has_permission(request, self):
             jobs = JobRequest.objects.open_to_workers().filter(
                 favorited_by__user=request.user
             ).order_by("-favorited_by__created_at").select_related("client__user", "service")
@@ -86,9 +86,9 @@ class FavoriteWorkerView(APIView):
 
 
 class FavoriteJobView(APIView):
-    """PUT / DELETE /api/favorites/jobs/<id>/ — ajouter ou retirer une annonce (travailleurs)."""
+    """PUT / DELETE /api/favorites/jobs/<id>/ — ajouter ou retirer une annonce (travailleurs vérifiés)."""
 
-    permission_classes = [IsWorker]
+    permission_classes = [IsVerifiedWorker]
 
     @extend_schema(
         tags=["Favoris"],

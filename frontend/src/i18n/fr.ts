@@ -174,6 +174,8 @@ const fr = {
   'jobs.apply': 'Répondre à l\'annonce',
   'jobs.applied': 'Votre réponse a été envoyée à la famille.',
   'jobs.notVerified': 'Votre profil doit être vérifié par l\'équipe NOUNOU+ avant de pouvoir répondre aux annonces.',
+  'jobs.locked':
+    'Les annonces des familles sont visibles une fois votre profil vérifié par l’équipe NOUNOU+. Complétez votre profil et envoyez vos documents depuis l’accueil.',
   'jobs.noProfile': 'Créez d\'abord votre profil pour répondre aux annonces.',
   'jobs.notFound': 'Cette annonce n\'est plus disponible.',
   'jobs.back': 'Retour aux annonces',
@@ -447,7 +449,7 @@ const fr = {
   'security.phone.done': 'Numéro confirmé.',
   'security.email.label': 'E-mail de connexion',
   'security.email.hint': 'Permet de vous connecter avec un mot de passe et de le récupérer en cas d’oubli.',
-  'security.email.saved': 'Adresse e-mail enregistrée.',
+  'security.email.saved': 'C’est noté. Confirmez l’adresse avec le lien reçu par e-mail (sauf si elle est déjà la vôtre).',
   'security.password.none': 'Votre compte n’a pas encore de mot de passe : vous vous connectez par code SMS (ou Google / Apple).',
   'security.password.create': 'Créer mon mot de passe',
   'security.password.change': 'Changer mon mot de passe',
@@ -460,7 +462,8 @@ const fr = {
   'security.sessions.confirm': 'Déconnecter tous les appareils, y compris celui-ci ?',
   'security.email.verified': 'Confirmée',
   'security.email.notVerified': 'À confirmer',
-  'security.email.why': 'Ouvrez le lien reçu par e-mail. Tant que l’adresse n’est pas confirmée, « mot de passe oublié » ne fonctionne pas avec elle.',
+  'security.email.why':
+    'Ouvrez le lien reçu par e-mail. Tant que l’adresse n’est pas confirmée, elle ne sert ni à se connecter ni à « mot de passe oublié ».',
   'security.email.resend': 'Renvoyer le lien',
   'security.email.resent': 'Lien envoyé. Regardez votre boîte e-mail (et les courriers indésirables).',
   'confirmEmail.title': 'Confirmation de l’adresse e-mail',

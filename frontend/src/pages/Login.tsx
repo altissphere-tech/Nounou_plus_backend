@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { loginWithEmail, requestCode } from '../api/accounts'
+import { loginWithEmail, phoneVerificationRequired, requestCode } from '../api/accounts'
+import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { useSocialLogin } from '../auth/useSocialLogin'
 import AuthTabs from '../components/AuthTabs'
@@ -40,6 +41,12 @@ export default function Login() {
         navigate('/accueil', { replace: true })
       }
     } catch (err) {
+      // Numéro jamais confirmé : un code vient d'être envoyé, on le demande
+      const verification = err instanceof ApiError ? phoneVerificationRequired(err.data) : null
+      if (verification) {
+        navigate('/code', { state: { phone: verification.phone } })
+        return
+      }
       setError(errorText(err, lang, t, method === 'phone' ? 'login.error' : 'login.emailError'))
     } finally {
       setBusy(false)

@@ -49,8 +49,8 @@ def read(user, match):
 @pytest.fixture
 def match(db):
     """Match mutuel entre un client et un travailleur vérifié."""
-    client_user = User.objects.create_user(phone="+243844000001", role=User.ROLE_CLIENT)
-    worker_user = User.objects.create_user(phone="+243844000002", role=User.ROLE_WORKER)
+    client_user = User.objects.create_user(phone="+243844000001", role=User.ROLE_CLIENT, phone_verified=True)
+    worker_user = User.objects.create_user(phone="+243844000002", role=User.ROLE_WORKER, phone_verified=True)
     client = ClientProfile.objects.create(
         user=client_user,
         first_name="Jean",
@@ -158,7 +158,7 @@ class TestClosedConversation:
         assert send(worker_user, match).status_code == status.HTTP_403_FORBIDDEN
 
     def test_un_tiers_ne_peut_pas_lire(self, match):
-        stranger = User.objects.create_user(phone="+243844000009", role=User.ROLE_CLIENT)
+        stranger = User.objects.create_user(phone="+243844000009", role=User.ROLE_CLIENT, phone_verified=True)
         assert read(stranger, match).status_code == status.HTTP_404_NOT_FOUND
         assert send(stranger, match).status_code == status.HTTP_404_NOT_FOUND
 

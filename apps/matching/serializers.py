@@ -5,6 +5,8 @@ Point clé : les informations sur l'autre partie dépendent du statut du match.
 - Avant un match mutuel : prénom + initiale du nom, téléphone absent.
 - Après un match mutuel : nom complet et téléphone.
 """
+from datetime import datetime
+
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -55,6 +57,9 @@ class MatchSerializer(serializers.ModelSerializer):
         read_only=True,
         help_text="Date à partir de laquelle l'évaluation est possible (null si jamais mutuel).",
     )
+    updated_at = serializers.SerializerMethodField(
+        help_text="Dernière activité visible par vous (un refus de l'autre n'y apparaît jamais)."
+    )
 
     class Meta:
         model = Match
@@ -79,6 +84,9 @@ class MatchSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj) -> str:
         return obj.status_seen_by(self._user())
+
+    def get_updated_at(self, obj) -> datetime:
+        return obj.visible_activity_for(self._user())
 
     def get_my_decision(self, obj) -> str:
         return obj.decision_of(self._user())

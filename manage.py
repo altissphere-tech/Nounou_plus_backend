@@ -7,7 +7,13 @@ import sys
 
 
 def main():
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
+    # Réglages : variable d'environnement, sinon ligne DJANGO_SETTINGS_MODULE du .env,
+    # sinon développement (votre ordinateur).
+    from decouple import config
+
+    os.environ.setdefault(
+        "DJANGO_SETTINGS_MODULE", config("DJANGO_SETTINGS_MODULE", default="config.settings.dev")
+    )
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

@@ -41,7 +41,7 @@ def report(user, profile_id, category="arnaque", description="Demande de l'argen
 
 
 def make_worker(phone, verified=True):
-    user = User.objects.create_user(phone=phone, role=User.ROLE_WORKER)
+    user = User.objects.create_user(phone=phone, role=User.ROLE_WORKER, phone_verified=True)
     return WorkerProfile.objects.create(
         user=user, first_name="Grace", last_name="Mutombo",
         availability=choices.AVAILABILITY_FULL, expected_salary=Decimal("200.00"),
@@ -51,7 +51,7 @@ def make_worker(phone, verified=True):
 
 @pytest.fixture
 def client_profile(db):
-    user = User.objects.create_user(phone=CLIENT_PHONE, role=User.ROLE_CLIENT)
+    user = User.objects.create_user(phone=CLIENT_PHONE, role=User.ROLE_CLIENT, phone_verified=True)
     return ClientProfile.objects.create(
         user=user, first_name="Jean", last_name="Ilunga",
         location="Golf", availability_needed=choices.AVAILABILITY_FULL,
@@ -223,7 +223,7 @@ class TestSuspension:
         assert suspended_worker.user.is_active is True
 
     def test_reste_suspendu_si_un_autre_signalement_le_maintient(self, suspended_worker, admin_user):
-        other_client = User.objects.create_user(phone="+243877000005", role=User.ROLE_CLIENT)
+        other_client = User.objects.create_user(phone="+243877000005", role=User.ROLE_CLIENT, phone_verified=True)
         Report.objects.create(
             reporter=other_client, target=suspended_worker.user,
             category=Report.CATEGORY_SCAM, status=Report.STATUS_SUSPENDED,

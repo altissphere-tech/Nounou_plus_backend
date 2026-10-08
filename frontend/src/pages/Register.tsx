@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { register, registerWithEmail } from '../api/accounts'
-import { useAuth } from '../auth/AuthContext'
+import { register } from '../api/accounts'
+import { rememberCredentials } from '../auth/pendingSignup'
 import { useSocialLogin } from '../auth/useSocialLogin'
 import AuthTabs from '../components/AuthTabs'
 import { errorText } from '../components/errors'
@@ -20,7 +20,6 @@ import { useI18n } from '../i18n/I18nContext'
 export default function Register() {
   const { t, lang } = useI18n()
   const navigate = useNavigate()
-  const { startSession } = useAuth()
   const social = useSocialLogin()
   const [role, setRole] = useState<Role>('client')
   const [method, setMethod] = useState<Method>('phone')
@@ -35,14 +34,11 @@ export default function Register() {
     setError('')
     setBusy(true)
     try {
-      if (method === 'phone') {
-        await register(phone, role)
-        navigate('/code', { state: { phone } })
-      } else {
-        const response = await registerWithEmail({ phone, role, email, password })
-        await startSession(response.tokens)
-        navigate('/accueil', { replace: true })
-      }
+      // Dans tous les cas, le numéro est d'abord confirmé par code SMS ; l'e-mail et le
+      // mot de passe sont enregistrés juste après (voir VerifyCode)
+      await register(phone, role)
+      if (method === 'email') rememberCredentials({ phone, email, password })
+      navigate('/code', { state: { phone } })
     } catch (err) {
       setError(errorText(err, lang, t, 'register.error'))
     } finally {

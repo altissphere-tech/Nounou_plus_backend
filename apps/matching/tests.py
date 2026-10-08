@@ -52,7 +52,7 @@ def my_matches(user):
 
 @pytest.fixture
 def client_profile(db):
-    user = User.objects.create_user(phone=CLIENT_PHONE, role=User.ROLE_CLIENT)
+    user = User.objects.create_user(phone=CLIENT_PHONE, role=User.ROLE_CLIENT, phone_verified=True)
     profile = ClientProfile.objects.create(
         user=user,
         first_name="Jean",
@@ -66,7 +66,7 @@ def client_profile(db):
 
 
 def _make_worker(phone, verified):
-    user = User.objects.create_user(phone=phone, role=User.ROLE_WORKER)
+    user = User.objects.create_user(phone=phone, role=User.ROLE_WORKER, phone_verified=True)
     profile = WorkerProfile.objects.create(
         user=user,
         first_name="Grace",
@@ -142,7 +142,7 @@ class TestInterest:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_profil_obligatoire(self, worker_profile):
-        user = User.objects.create_user(phone="+243833000009", role=User.ROLE_CLIENT)
+        user = User.objects.create_user(phone="+243833000009", role=User.ROLE_CLIENT, phone_verified=True)
         response = interest(user, worker_profile.id)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -239,3 +239,50 @@ class TestMatchList:
     def test_sans_token_retourne_401(self):
         response = APIClient().get(reverse("matches-list"))
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# ------------------------------------------------------------------ #
+# Tests : un refus ne se devine pas, décisions simultanées             #
+# ------------------------------------------------------------------ #
+
+@pytest.mark.django_db
+class TestDeclineStaysHidden:
+    def test_refus_ne_change_ni_la_date_ni_l_ordre(self, client_profile, worker_profile, unverified_worker):
+        """Faille M1 : après un refus de l'autre, rien ne bouge pour celui qui a demandé."""
+        unverified_worker.is_verified = True
+        unverified_worker.save()
+        interest(client_profile.user, worker_profile.id)
+        interest(client_profile.user, unverified_worker.id)  # plus récent : en tête de liste
+        before = my_matches(client_profile.user)
+        match = Match.objects.get(worker=worker_profile)
+        decline(worker_profile.user, match.id)
+        after = my_matches(client_profile.user)
+        assert [m["id"] for m in after] == [m["id"] for m in before]
+        assert after == before
+
+    def test_interet_de_l_autre_fait_remonter(self, client_profile, worker_profile, unverified_worker):
+        unverified_worker.is_verified = True
+        unverified_worker.save()
+        interest(client_profile.user, worker_profile.id)
+        interest(client_profile.user, unverified_worker.id)
+        interest(worker_profile.user, client_profile.id)  # match mutuel : visible, donc remonte
+        assert my_matches(client_profile.user)[0]["other_party"]["id"] == worker_profile.id
+
+    def test_decision_simultanee_n_ecrase_pas_un_refus(self, client_profile, worker_profile):
+        """Faille M2 : une copie périmée du match ne peut pas effacer le refus de l'autre."""
+        interest(worker_profile.user, client_profile.id)
+        stale = Match.objects.get()  # lue par la famille avant le refus
+        decline(worker_profile.user, stale.id)  # la nounou refuse au même moment
+        stale.set_decision(client_profile.user, Match.DECISION_INTERESTED)
+        match = Match.objects.get()
+        assert match.worker_decision == Match.DECISION_DECLINED
+        assert not match.is_mutual and match.mutual_at is None
+        assert my_matches(client_profile.user)[0]["other_party"]["phone"] is None
+
+
+@pytest.mark.django_db
+def test_numero_non_confirme_invisible(client_profile, worker_profile):
+    """Faille E3 : un compte dont le numéro n'est pas confirmé n'apparaît nulle part."""
+    User.objects.filter(pk=worker_profile.user_id).update(phone_verified=False)
+    assert interest(client_profile.user, worker_profile.id).status_code == status.HTTP_404_NOT_FOUND
+    assert auth_client(client_profile.user).get(reverse("workers-list")).data["count"] == 0

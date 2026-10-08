@@ -10,7 +10,7 @@ from common import choices
 from common.filters import get_choice, get_decimal, get_text
 from common.pagination import paginated_response
 from common.schema import AUTH_ERRORS, PAGINATION_PARAMETERS, error, paginated, with_message
-from common.permissions import IsClient, IsWorker
+from common.permissions import IsClient, IsVerifiedWorker
 
 from .models import ClientProfile
 from .serializers import (
@@ -146,7 +146,7 @@ class ClientProfileListView(APIView):
     - min_budget=150            → budget supérieur ou égal (exclut les budgets non renseignés)
     """
 
-    permission_classes = [IsWorker]
+    permission_classes = [IsVerifiedWorker]  # familles visibles des travailleurs vérifiés seulement
 
     @extend_schema(
         tags=["Clients"],

@@ -129,10 +129,10 @@ export default function Home() {
         </div>
       )}
 
-      {user!.email && !user!.email_verified && (
+      {user!.pending_email && (
         <Link to="/securite" className="notice email-notice">
           <strong>{t('home.confirmEmail')}</strong>
-          <span>{t('home.confirmEmail.hint', { email: user!.email })}</span>
+          <span>{t('home.confirmEmail.hint', { email: user!.pending_email })}</span>
         </Link>
       )}
 

@@ -21,18 +21,22 @@ export default function JobDetail() {
   const id = Number(useParams().id)
   const { data: me } = useMyProfile(user!.role)
   const [job, setJob] = useState<PublicJob | null | undefined>(undefined)
+  const [locked, setLocked] = useState(false)
   const [result, setResult] = useState<{ ok: boolean; key: TranslationKey } | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    getJob<PublicJob>(id).then(setJob, () => setJob(null))
+    getJob<PublicJob>(id).then(setJob, (error) => {
+      setLocked(error instanceof ApiError && error.status === 403) // travailleur pas encore vérifié
+      setJob(null)
+    })
   }, [id])
 
   if (job === undefined) return <p className="muted">{t('common.loading')}</p>
   if (job === null) {
     return (
       <div className="card">
-        <p>{t('jobs.notFound')}</p>
+        <p>{t(locked ? 'jobs.locked' : 'jobs.notFound')}</p>
         <Link to="/annonces" className="button secondary">
           {t('jobs.back')}
         </Link>

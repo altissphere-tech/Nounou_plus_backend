@@ -57,14 +57,17 @@ class VerificationRecordAdmin(admin.ModelAdmin):
         record = get_object_or_404(VerificationRecord, pk=pk)
         if not record.file:
             raise Http404
-        return FileResponse(record.file.open("rb"))
+        # Téléchargé, jamais ouvert dans la page : un PDF piégé ne s'exécute pas dans l'administration
+        response = FileResponse(record.file.open("rb"), as_attachment=True)
+        response["Content-Security-Policy"] = "sandbox; default-src 'none'"
+        return response
 
     @admin.display(description="Document")
     def document_link(self, obj):
         if not obj.pk or not obj.file:
             return "—"
         url = reverse("admin:verification_verificationrecord_file", args=[obj.pk])
-        return format_html('<a href="{}" target="_blank">Ouvrir le document</a>', url)
+        return format_html('<a href="{}">Télécharger le document</a>', url)
 
     # --- Décision de l'administrateur -----------------------------------
 

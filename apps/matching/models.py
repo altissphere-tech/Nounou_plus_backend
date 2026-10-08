@@ -11,7 +11,9 @@ Fonctionnement (règles validées par le fondateur) :
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
+from django.db.models import Case, F, When
+from django.db.models.functions import Coalesce, Greatest
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -28,6 +30,28 @@ class MatchQuerySet(models.QuerySet):
             client__user__is_active=True,
             worker__user__is_active=True,
         ).select_related("client__user", "worker__user", "job")
+
+    def ordered_for(self, user):
+        """
+        Du plus récent au plus ancien, selon ce que l'utilisateur a le droit de voir :
+        un refus de l'autre ne fait jamais remonter la mise en relation (il resterait
+        sinon devinable).
+        """
+        client_side = user.role == User.ROLE_CLIENT
+        own, other = ("client", "worker") if client_side else ("worker", "client")
+        created = F("created_at")
+        return self.annotate(
+            visible_activity=Greatest(
+                created,
+                Coalesce(F(f"{own}_activity_at"), created),
+                Case(
+                    When(**{f"{other}_decision": Match.DECISION_INTERESTED},
+                         then=Coalesce(F(f"{other}_activity_at"), created)),
+                    default=created,
+                ),
+                Coalesce(F("mutual_at"), created),
+            )
+        ).order_by("-visible_activity", "-id")
 
 
 class Match(models.Model):
@@ -95,8 +119,18 @@ class Match(models.Model):
             "Sert à calculer quand les deux parties peuvent s'évaluer."
         ),
     )
+    client_activity_at = models.DateTimeField(
+        null=True, blank=True, verbose_name="Dernière décision du client le"
+    )
+    worker_activity_at = models.DateTimeField(
+        null=True, blank=True, verbose_name="Dernière décision du travailleur le"
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Créé le")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Modifié le")
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Modifié le",
+        help_text="Réservé à l'équipe : jamais montré aux utilisateurs (un refus s'y lirait).",
+    )
 
     objects = MatchQuerySet.as_manager()
 
@@ -158,21 +192,47 @@ class Match(models.Model):
             return self.STATUS_MUTUAL
         return self.STATUS_PENDING
 
-    def set_decision(self, user, decision: str) -> None:
-        """Enregistre la décision de l'utilisateur et met à jour la date du match mutuel."""
-        if self.is_client_side(user):
-            self.client_decision = decision
-        else:
-            self.worker_decision = decision
-        if not self.is_mutual:
-            # Si l'une des parties revient sur sa décision, les coordonnées
-            # ne sont plus partagées et la date du match est effacée
-            self.mutual_at = None
-        elif self.mutual_at is None:
-            self.mutual_at = timezone.now()
-            if self.first_mutual_at is None:
-                self.first_mutual_at = self.mutual_at
-        self.save()
+    def visible_activity_for(self, user):
+        """Date de dernière activité telle que l'utilisateur a le droit de la voir."""
+        client_side = self.is_client_side(user)
+        own = self.client_activity_at if client_side else self.worker_activity_at
+        other = self.worker_activity_at if client_side else self.client_activity_at
+        other_decision = self.worker_decision if client_side else self.client_decision
+        dates = [self.created_at, own, self.mutual_at]
+        if other_decision == self.DECISION_INTERESTED:
+            dates.append(other)
+        return max(d for d in dates if d is not None)
+
+    def set_decision(self, user, decision: str) -> tuple[str, bool]:
+        """
+        Enregistre la décision de l'utilisateur et met à jour la date du match mutuel.
+        La ligne est relue et verrouillée : si l'autre personne décide au même instant,
+        sa décision n'est jamais écrasée. Renvoie (ancienne décision, était mutuel).
+        """
+        own = "client" if self.is_client_side(user) else "worker"
+        with transaction.atomic():
+            current = Match.objects.select_for_update().get(pk=self.pk)
+            previous, was_mutual = getattr(current, f"{own}_decision"), current.is_mutual
+            now = timezone.now()
+            setattr(current, f"{own}_decision", decision)
+            setattr(current, f"{own}_activity_at", now)
+            if not current.is_mutual:
+                # Si l'une des parties revient sur sa décision, les coordonnées
+                # ne sont plus partagées et la date du match est effacée
+                current.mutual_at = None
+            elif current.mutual_at is None:
+                current.mutual_at = now
+                if current.first_mutual_at is None:
+                    current.first_mutual_at = now
+            current.save(
+                update_fields=[
+                    f"{own}_decision", f"{own}_activity_at", "mutual_at", "first_mutual_at", "updated_at",
+                ]
+            )
+        for field in ("client_decision", "worker_decision", "client_activity_at", "worker_activity_at",
+                      "mutual_at", "first_mutual_at", "updated_at"):
+            setattr(self, field, getattr(current, field))
+        return previous, was_mutual
 
     # ------------------------------------------------------------------
     # Évaluation après la période d'essai

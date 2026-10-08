@@ -14,7 +14,7 @@ interface AuthValue {
    * on ne déconnecte pas l'utilisateur, on lui propose de réessayer.
    */
   unreachable: boolean
-  login: (phone: string, code: string) => Promise<void>
+  login: (phone: string, code: string, socialTicket?: string) => Promise<void>
   /** Ouvre la session avec des tokens déjà obtenus (e-mail, Google, Apple, inscription). */
   startSession: (tokens: Tokens) => Promise<void>
   logout: () => void
@@ -70,8 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const login = useCallback(
-    async (phone: string, code: string) => {
-      const response = await verifyCode(phone, code)
+    async (phone: string, code: string, socialTicket?: string) => {
+      const response = await verifyCode(phone, code, socialTicket)
       await startSession(response.tokens)
     },
     [startSession],

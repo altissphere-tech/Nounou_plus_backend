@@ -49,7 +49,7 @@ def upload(user, doc_type="identite", file=None):
 
 @pytest.fixture
 def worker(db):
-    user = User.objects.create_user(phone="+243855000001", role=User.ROLE_WORKER)
+    user = User.objects.create_user(phone="+243855000001", role=User.ROLE_WORKER, phone_verified=True)
     return WorkerProfile.objects.create(
         user=user,
         first_name="Grace",
@@ -111,11 +111,11 @@ class TestUpload:
         assert upload(worker.user).status_code == status.HTTP_201_CREATED
 
     def test_profil_obligatoire(self, db):
-        user = User.objects.create_user(phone="+243855000002", role=User.ROLE_WORKER)
+        user = User.objects.create_user(phone="+243855000002", role=User.ROLE_WORKER, phone_verified=True)
         assert upload(user).status_code == status.HTTP_404_NOT_FOUND
 
     def test_client_refuse(self, db):
-        user = User.objects.create_user(phone="+243855000003", role=User.ROLE_CLIENT)
+        user = User.objects.create_user(phone="+243855000003", role=User.ROLE_CLIENT, phone_verified=True)
         assert upload(user).status_code == status.HTTP_403_FORBIDDEN
 
     def test_sans_token_retourne_401(self):
@@ -261,15 +261,15 @@ class TestReferences:
         worker.is_verified = True
         worker.save()
         WorkerReference.objects.get().review(admin_user, WorkerReference.STATUS_VERIFIED)
-        family = User.objects.create_user(phone="+243855000050", role=User.ROLE_CLIENT)
+        family = User.objects.create_user(phone="+243855000050", role=User.ROLE_CLIENT, phone_verified=True)
         data = auth_client(family).get(reverse("workers-detail", args=[worker.id])).data
-        assert data["trust"] == {"phone": False, "identity": True, "references": True}
+        assert data["trust"] == {"phone": True, "identity": True, "references": True}
         assert "Kabila" not in str(data) and "899000001" not in str(data)
         assert Notification.objects.get(user=worker.user).kind == "reference_reviewed"
 
     def test_retirer_une_reference(self, worker):
         ref_id = add_reference(worker.user).data["reference"]["id"]
-        other = User.objects.create_user(phone="+243855000051", role=User.ROLE_WORKER)
+        other = User.objects.create_user(phone="+243855000051", role=User.ROLE_WORKER, phone_verified=True)
         assert auth_client(other).delete(reverse("verification-reference-detail", args=[ref_id])).status_code == 404
         assert auth_client(worker.user).delete(reverse("verification-reference-detail", args=[ref_id])).status_code == 200
         assert WorkerReference.objects.count() == 0

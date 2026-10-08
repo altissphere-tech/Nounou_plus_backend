@@ -88,7 +88,18 @@ class TestRegister:
         assert dup.data == new.data
         assert User.objects.filter(phone="+243812345678").count() == 1
         registered_user.refresh_from_db()
-        assert registered_user.role == "client" and registered_user.otp_code
+        assert registered_user.otp_code
+        # Compte jamais confirmé par SMS (il ne contient rien) : il prend le rôle demandé
+        assert registered_user.role == "travailleur"
+
+    def test_compte_confirme_garde_son_role(self, api_client, registered_user):
+        registered_user.phone_verified = True
+        registered_user.save()
+        api_client.post(
+            reverse("accounts-register"), {"phone": "+243812345678", "role": "travailleur"}, format="json"
+        )
+        registered_user.refresh_from_db()
+        assert registered_user.role == "client"
 
     def test_inscription_role_admin_interdit(self, api_client):
         """Le rôle 'admin' ne peut pas être choisi lors de l'inscription via l'API."""
@@ -253,21 +264,48 @@ def test_commande_demo_parcours(settings, tmp_path):
 # ------------------------------------------------------------------ #
 
 import re  # noqa: E402
+import time  # noqa: E402
+from datetime import timedelta  # noqa: E402
+
+from django.utils import timezone  # noqa: E402
 
 from django.core import mail  # noqa: E402
 
 from apps.accounts import social  # noqa: E402
 from apps.accounts.models import SocialAccount  # noqa: E402
+from common.authentication import tokens_for as tokens_for_user  # noqa: E402
 
 PASSWORD = "Lubumbashi2026"
 
 
+def signup(api_client, phone="+243812300001", role="client"):
+    """Inscription puis code SMS : renvoie la réponse de connexion (avec les jetons)."""
+    assert api_client.post(
+        reverse("accounts-register"), {"phone": phone, "role": role}, format="json"
+    ).status_code == 201
+    response = api_client.post(reverse("accounts-otp-verify"), {"phone": phone, "code": "123456"}, format="json")
+    assert response.status_code == 200
+    return response
+
+
 def register_with_email(api_client, email="marie@example.com", phone="+243812300001", role="client"):
-    return api_client.post(
-        reverse("accounts-register"),
-        {"phone": phone, "role": role, "email": email, "password": PASSWORD},
-        format="json",
+    """
+    Parcours de l'application : inscription, code SMS, puis mot de passe et e-mail
+    ajoutés aussitôt (connexion récente). Le client reste connecté avec les jetons à jour.
+    Renvoie la réponse de l'ajout de l'e-mail (l'adresse est en attente de confirmation).
+    """
+    api_client.credentials()
+    tokens = signup(api_client, phone=phone, role=role).data["tokens"]
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
+    password = api_client.post(reverse("accounts-password-change"), {"new_password": PASSWORD}, format="json")
+    assert password.status_code == 200
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {password.data['tokens']['access']}")
+    response = api_client.post(
+        reverse("accounts-email"), {"email": email, "current_password": PASSWORD}, format="json"
     )
+    assert response.status_code == 200
+    response.data["tokens"] = password.data["tokens"]
+    return response
 
 
 def confirm_last_email(api_client):
@@ -282,57 +320,84 @@ def register_verified(api_client, **kwargs):
     return response
 
 
+def login_email(email, password=PASSWORD):
+    return APIClient().post(reverse("accounts-login"), {"email": email, "password": password}, format="json")
+
+
 @pytest.mark.django_db
 class TestEmailPassword:
-    def test_inscription_avec_email_connecte_directement(self, api_client):
+    def test_inscription_puis_email_et_mot_de_passe(self, api_client):
+        """L'inscription ne donne aucun accès avant le code SMS ; e-mail et mot de passe viennent ensuite."""
+        response = api_client.post(
+            reverse("accounts-register"),
+            {"phone": "+243812300001", "role": "client", "email": "marie@example.com", "password": PASSWORD},
+            format="json",
+        )
+        assert response.status_code == 201 and "tokens" not in response.data
+        user = User.objects.get(phone="+243812300001")
+        assert not user.has_usable_password() and user.email is None and user.pending_email == ""
         response = register_with_email(api_client, email="Marie@Example.com")
-        assert response.status_code == 201
-        assert response.data["tokens"]["access"]
-        assert response.data["user"]["email"] == "marie@example.com"
+        assert response.data["user"]["pending_email"] == "marie@example.com"
+        assert response.data["user"]["email"] is None
         assert response.data["user"]["has_password"] is True
-        # Le numéro n'est pas confirmé par SMS dans ce cas
-        assert response.data["user"]["phone_verified"] is False
+        assert response.data["user"]["phone_verified"] is True
 
-    def test_email_sans_mot_de_passe_refuse(self, api_client):
+    def test_email_sans_mot_de_passe_ignore_a_l_inscription(self, api_client):
         response = api_client.post(
             reverse("accounts-register"),
             {"phone": "+243812300001", "role": "client", "email": "a@example.com"},
             format="json",
         )
-        assert response.status_code == 400
+        assert response.status_code == 201
+        assert User.objects.get(phone="+243812300001").pending_email == ""
 
     def test_mot_de_passe_trop_faible(self, api_client):
-        response = api_client.post(
-            reverse("accounts-register"),
-            {"phone": "+243812300001", "role": "client", "email": "a@example.com", "password": "1234"},
-            format="json",
-        )
+        tokens = signup(api_client).data["tokens"]
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
+        response = api_client.post(reverse("accounts-password-change"), {"new_password": "1234"}, format="json")
         assert response.status_code == 400
 
     def test_email_deja_verifie_par_un_autre(self, api_client):
+        """Même réponse qu'une adresse libre (aucun indice) ; le titulaire est seulement prévenu."""
         register_verified(api_client)
+        mail.outbox.clear()
         response = register_with_email(api_client, email="MARIE@example.com", phone="+243812300002")
-        assert response.status_code == 400
-        assert "email" in response.data
+        assert response.status_code == 200
+        assert response.data["user"]["pending_email"] == "" and response.data["user"]["email"] is None
+        assert mail.outbox[-1].to == ["marie@example.com"]
+        assert "autre compte" in mail.outbox[-1].body
+        assert User.objects.get(phone="+243812300001").email == "marie@example.com"
 
     def test_email_non_verifie_ne_bloque_pas_son_vrai_titulaire(self, api_client):
         """Quelqu'un a saisi l'adresse de Marie sans la confirmer : Marie peut quand même l'utiliser."""
         register_with_email(api_client, email="marie@example.com", phone="+243812300009")
-        response = register_with_email(api_client, email="marie@example.com", phone="+243812300002")
-        assert response.status_code == 201
-        assert User.objects.get(phone="+243812300009").email is None
+        register_with_email(api_client, email="marie@example.com", phone="+243812300002")
+        assert confirm_last_email(api_client).status_code == 200
+        assert User.objects.get(phone="+243812300009").pending_email == ""
         assert User.objects.get(phone="+243812300002").email == "marie@example.com"
+
+    def test_personne_ne_peut_retirer_l_adresse_d_un_autre(self, api_client):
+        """Faille E2 : saisir l'adresse (même non confirmée) d'une autre personne ne la lui retire pas."""
+        register_with_email(api_client, email="marie@example.com", phone="+243812300001")
+        marie_link = mail.outbox[-1].body
+        register_with_email(api_client, email="marie@example.com", phone="+243812300002")  # le pirate
+        assert User.objects.get(phone="+243812300001").pending_email == "marie@example.com"
+        # Marie confirme toujours son adresse avec son propre lien
+        token = re.search(r"token=(\S+)", marie_link).group(1)
+        assert api_client.post(reverse("accounts-email-confirm"), {"token": token}, format="json").status_code == 200
+        assert User.objects.get(phone="+243812300001").email == "marie@example.com"
+        assert User.objects.get(phone="+243812300002").pending_email == ""
 
     def test_connexion_email(self, api_client):
         register_with_email(api_client)
-        response = api_client.post(
-            reverse("accounts-login"), {"email": "marie@example.com", "password": PASSWORD}, format="json"
-        )
+        assert login_email("marie@example.com").status_code == 400  # adresse pas encore confirmée
+        confirm_last_email(api_client)
+        response = login_email("marie@example.com")
         assert response.status_code == 200
         assert response.data["tokens"]["access"]
 
     def test_mauvais_mot_de_passe_meme_message_que_email_inconnu(self, api_client):
-        register_with_email(api_client)
+        register_verified(api_client)
         wrong = api_client.post(
             reverse("accounts-login"), {"email": "marie@example.com", "password": "faux-mot"}, format="json"
         )
@@ -343,12 +408,20 @@ class TestEmailPassword:
         assert wrong.data == unknown.data
 
     def test_compte_suspendu_ne_peut_pas_se_connecter(self, api_client):
-        register_with_email(api_client)
+        register_verified(api_client)
         User.objects.filter(email="marie@example.com").update(is_active=False)
-        response = api_client.post(
-            reverse("accounts-login"), {"email": "marie@example.com", "password": PASSWORD}, format="json"
-        )
+        response = login_email("marie@example.com")
         assert response.status_code == 400
+
+    def test_numero_non_confirme_recoit_un_code(self, api_client):
+        """Ancien compte au numéro jamais confirmé : pas de connexion par e-mail sans le code SMS."""
+        User.objects.create_user(
+            phone="+243812300003", role="client", email="tel@example.com", password=PASSWORD, email_verified=True
+        )
+        response = login_email("tel@example.com")
+        assert response.status_code == 400
+        assert response.data["phone_verification_required"] is True and "tokens" not in response.data
+        assert User.objects.get(phone="+243812300003").otp_code
 
     def test_compte_telephone_sans_mot_de_passe_ne_se_connecte_pas_par_email(self, api_client):
         User.objects.create_user(phone="+243812300003", role="client", email="tel@example.com")
@@ -362,6 +435,7 @@ class TestEmailPassword:
 class TestForgotPassword:
     def test_parcours_complet(self, api_client):
         register_verified(api_client)
+        api_client.credentials()  # mot de passe oublié : on n'est pas connecté
         mail.outbox.clear()
         response = api_client.post(
             reverse("accounts-password-forgot"), {"email": "marie@example.com"}, format="json"
@@ -376,9 +450,7 @@ class TestForgotPassword:
             format="json",
         )
         assert response.status_code == 200
-        login = api_client.post(
-            reverse("accounts-login"), {"email": "marie@example.com", "password": "NouveauSecret42"}, format="json"
-        )
+        login = login_email("marie@example.com", "NouveauSecret42")
         assert login.status_code == 200
         # Le lien ne sert qu'une fois
         again = api_client.post(
@@ -424,17 +496,46 @@ class TestSecuritySettings:
             format="json",
         )
         assert response.status_code == 200
-        assert response.data["user"]["email"] == "nouveau@example.com"
+        assert response.data["user"]["pending_email"] == "nouveau@example.com"
 
     def test_changer_mot_de_passe_demande_l_actuel(self, api_client):
-        token = register_with_email(api_client).data["tokens"]["access"]
-        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        register_with_email(api_client)
         response = api_client.post(
             reverse("accounts-password-change"),
             {"current_password": "mauvais", "new_password": "NouveauSecret42"},
             format="json",
         )
         assert response.status_code == 400
+
+    def test_jeton_ancien_ne_suffit_pas_sans_mot_de_passe(self, api_client):
+        """Faille M6 : sur un compte sans mot de passe, il faut s'être connecté il y a peu."""
+        user = User.objects.create_user(phone="+243812300030", role="client", phone_verified=True)
+        refresh = tokens_for_user(user)
+        refresh["auth_time"] = int(time.time()) - 3600  # connexion il y a une heure
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
+        for url, data in (
+            ("accounts-password-change", {"new_password": PASSWORD}),
+            ("accounts-email", {"email": "pirate@example.com"}),
+        ):
+            response = api_client.post(reverse(url), data, format="json")
+            assert response.status_code == 400 and "reauth_required" in response.data
+        user.refresh_from_db()
+        assert not user.has_usable_password() and user.pending_email == ""
+
+    def test_changement_d_email_limite(self, api_client, monkeypatch):
+        """Faille M5 : pas d'envois d'e-mails à volonté."""
+        from rest_framework.throttling import SimpleRateThrottle
+
+        monkeypatch.setattr(
+            SimpleRateThrottle, "THROTTLE_RATES", {**SimpleRateThrottle.THROTTLE_RATES, "email_send": "2/hour"}
+        )
+        tokens = signup(api_client).data["tokens"]
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
+        codes = [
+            api_client.post(reverse("accounts-email"), {"email": f"a{i}@example.com"}, format="json").status_code
+            for i in range(3)
+        ]
+        assert codes == [200, 200, 429]
 
     def test_options_de_connexion(self, api_client, settings):
         settings.GOOGLE_CLIENT_ID = "google-id"
@@ -481,9 +582,18 @@ class TestSocialLogin:
         assert first.data["registration_required"] is True
         assert first.data["email"] == "marie@gmail.com"
         second = social_login(api_client, role="travailleur", phone="+243812300004")
-        assert second.status_code == 201
+        # Le numéro doit être confirmé par code SMS avant toute connexion
+        assert second.status_code == 400 and second.data["phone_verification_required"] is True
+        assert "tokens" not in second.data
+        assert not SocialAccount.objects.exists()
+        verify = api_client.post(
+            reverse("accounts-otp-verify"),
+            {"phone": "+243812300004", "code": "123456", "social_ticket": second.data["social_ticket"]},
+            format="json",
+        )
+        assert verify.status_code == 200
         user = User.objects.get(phone="+243812300004")
-        assert user.email == "marie@gmail.com"
+        assert user.email == "marie@gmail.com" and user.email_verified
         assert user.role == "travailleur"
         assert not user.has_usable_password()
         # Les fois suivantes : connexion directe
@@ -504,13 +614,32 @@ class TestSocialLogin:
         assert response.status_code == 400
         assert response.data["registration_required"] is True
 
-    def test_numero_deja_utilise(self, api_client, google, registered_user):
-        response = social_login(api_client, role="client", phone="+243812345678")
-        assert response.status_code == 400
-        assert "phone" in response.data
+    def test_numero_deja_utilise_sans_indice(self, api_client, google, registered_user):
+        """Même réponse qu'un numéro libre ; seul le titulaire du numéro reçoit le code."""
+        taken = social_login(api_client, role="client", phone="+243812345678")
+        free = social_login(api_client, role="client", phone="+243812300007")
+        assert taken.status_code == free.status_code == 400
+        assert set(taken.data) == set(free.data)
+        assert taken.data["detail"] == free.data["detail"]
+        assert not SocialAccount.objects.exists()
+
+    def test_ticket_d_un_autre_numero_ignore(self, api_client, google, registered_user):
+        ticket = social_login(api_client, role="client", phone="+243812300007").data["social_ticket"]
+        registered_user.generate_otp()
+        api_client.post(
+            reverse("accounts-otp-verify"),
+            {"phone": "+243812345678", "code": "123456", "social_ticket": ticket},
+            format="json",
+        )
+        assert not SocialAccount.objects.exists()
 
     def test_compte_suspendu(self, api_client, google):
-        social_login(api_client, role="client", phone="+243812300005")
+        second = social_login(api_client, role="client", phone="+243812300005")
+        api_client.post(
+            reverse("accounts-otp-verify"),
+            {"phone": "+243812300005", "code": "123456", "social_ticket": second.data["social_ticket"]},
+            format="json",
+        )
         User.objects.filter(phone="+243812300005").update(is_active=False)
         response = social_login(api_client)
         assert response.status_code == 400
@@ -771,13 +900,13 @@ class TestEmailVerification:
         assert api_client.post(reverse("accounts-email-confirm"), {"token": "faux"}, format="json").status_code == 400
         # L'adresse a changé depuis l'envoi : l'ancien lien ne confirme pas la nouvelle
         old_body = mail.outbox[-1].body
-        user = User.objects.get(email="marie@example.com")
-        user.email = "autre@example.com"
+        user = User.objects.get(pending_email="marie@example.com")
+        user.pending_email = "autre@example.com"
         user.save()
         token = re.search(r"token=(\S+)", old_body).group(1)
         assert api_client.post(reverse("accounts-email-confirm"), {"token": token}, format="json").status_code == 400
         user.refresh_from_db()
-        assert user.email_verified is False
+        assert user.email is None and user.email_verified is False
 
     def test_mot_de_passe_oublie_ignore_une_adresse_non_verifiee(self, api_client):
         register_with_email(api_client)
@@ -787,17 +916,19 @@ class TestEmailVerification:
         assert mail.outbox == []  # …mais aucun lien envoyé
 
     def test_changer_d_adresse_demande_une_nouvelle_confirmation(self, api_client):
-        token = register_verified(api_client).data["tokens"]["access"]
-        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        register_verified(api_client)
         response = api_client.post(
             reverse("accounts-email"), {"email": "nouvelle@example.com", "current_password": PASSWORD}, format="json"
         )
-        assert response.data["user"]["email_verified"] is False
+        # L'ancienne adresse reste celle du compte tant que la nouvelle n'est pas confirmée
+        assert response.data["user"]["email"] == "marie@example.com"
+        assert response.data["user"]["pending_email"] == "nouvelle@example.com"
         assert mail.outbox[-1].to == ["nouvelle@example.com"]
+        confirm_last_email(api_client)
+        assert User.objects.get(phone="+243812300001").email == "nouvelle@example.com"
 
     def test_renvoyer_le_lien(self, api_client):
-        token = register_with_email(api_client).data["tokens"]["access"]
-        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        register_with_email(api_client)
         mail.outbox.clear()
         assert api_client.post(reverse("accounts-email-resend")).status_code == 200
         assert len(mail.outbox) == 1
@@ -807,13 +938,18 @@ class TestEmailVerification:
     def test_google_recupere_une_adresse_seulement_saisie_par_un_autre(self, api_client, google):
         """Prise de contrôle empêchée : l'adresse non vérifiée d'un autre compte ne le relie pas."""
         register_with_email(api_client, email="marie@gmail.com", phone="+243812300009")
+        api_client.credentials()
         first = social_login(api_client)
         assert first.status_code == 400 and first.data["registration_required"] is True
         created = social_login(api_client, role="client", phone="+243812300002")
-        assert created.status_code == 201
-        assert created.data["user"]["email"] == "marie@gmail.com"
-        assert created.data["user"]["email_verified"] is True
-        assert User.objects.get(phone="+243812300009").email is None
+        verify = api_client.post(
+            reverse("accounts-otp-verify"),
+            {"phone": "+243812300002", "code": "123456", "social_ticket": created.data["social_ticket"]},
+            format="json",
+        )
+        assert verify.data["user"]["email"] == "marie@gmail.com"
+        assert verify.data["user"]["email_verified"] is True
+        assert User.objects.get(phone="+243812300009").pending_email == ""
 
 
 @pytest.mark.django_db
@@ -845,3 +981,132 @@ def test_session_expire_apres_30_minutes_d_inactivite(settings):
     stale = make_tokens(user)
     stale.set_exp(lifetime=-timedelta(seconds=1))  # 30 min écoulées sans activité
     assert refresh_status(str(stale)).status_code == 401
+
+
+# ------------------------------------------------------------------ #
+# Codes SMS, numéro de téléphone et autres protections                #
+# ------------------------------------------------------------------ #
+
+
+def verify_code(phone, code="123456", **extra):
+    return APIClient().post(reverse("accounts-otp-verify"), {"phone": phone, "code": code, **extra}, format="json")
+
+
+@pytest.mark.django_db
+class TestOTPSecurity:
+    def test_code_jamais_stocke_en_clair(self, registered_user):
+        registered_user.refresh_from_db()
+        assert registered_user.otp_code and "123456" not in registered_user.otp_code
+
+    def test_code_expire_apres_10_minutes(self, registered_user):
+        User.objects.filter(pk=registered_user.pk).update(otp_expires_at=timezone.now() - timedelta(seconds=1))
+        assert verify_code("+243812345678").status_code == 400
+
+    def test_code_bloque_apres_5_erreurs(self, registered_user):
+        for _ in range(User.OTP_MAX_ATTEMPTS):
+            assert verify_code("+243812345678", "000000").status_code == 400
+        assert verify_code("+243812345678").status_code == 400  # même le bon code est refusé
+        registered_user.generate_otp()  # un nouveau code repart de zéro
+        assert verify_code("+243812345678").status_code == 200
+
+    def test_code_a_usage_unique(self, registered_user):
+        assert verify_code("+243812345678").status_code == 200
+        assert verify_code("+243812345678").status_code == 400
+
+    def test_sans_service_sms_meme_reponse_numero_connu_ou_non(self, api_client, registered_user, settings):
+        """Faille M4 : en production sans SMS, la réponse ne révèle pas si le numéro est inscrit."""
+        settings.OTP_MOCK_ENABLED = False
+        known = api_client.post(reverse("accounts-otp-request"), {"phone": "+243812345678"}, format="json")
+        unknown = api_client.post(reverse("accounts-otp-request"), {"phone": "+243899999999"}, format="json")
+        assert known.status_code == unknown.status_code == 503
+        assert known.data == unknown.data
+
+
+@pytest.mark.django_db
+class TestPhoneReclaim:
+    def test_titulaire_du_numero_recupere_son_compte(self):
+        """Faille E3 : un ancien compte avait pris un numéro sans le confirmer (mot de passe, e-mail, Google)."""
+        squatter = User.objects.create_user(
+            phone="+243812300040", role="client", password=PASSWORD, email="pirate@example.com", email_verified=True
+        )
+        SocialAccount.objects.create(user=squatter, provider="google", uid="pirate")
+        squatter_access, squatter_refresh = tokens_for(squatter)
+        # Le pirate ne peut pas se connecter sans le code reçu par le titulaire du numéro
+        blocked = login_email("pirate@example.com")
+        assert blocked.status_code == 400 and blocked.data["phone_verification_required"] is True
+        # Le vrai titulaire reçoit le code et se connecte : les accès du pirate disparaissent
+        assert verify_code("+243812300040").status_code == 200
+        squatter.refresh_from_db()
+        assert squatter.phone_verified
+        assert not squatter.has_usable_password() and squatter.email is None
+        assert not squatter.social_accounts.exists()
+        assert as_bearer(squatter_access).get(reverse("accounts-me")).status_code == 401
+        assert refresh_status(squatter_refresh).status_code == 401
+
+    def test_inscription_normale_garde_les_acces(self, api_client):
+        register_verified(api_client)
+        user = User.objects.get(phone="+243812300001")
+        assert user.has_usable_password() and user.email == "marie@example.com"
+        api_client.credentials()
+        api_client.post(reverse("accounts-otp-request"), {"phone": "+243812300001"}, format="json")
+        assert verify_code("+243812300001").status_code == 200
+        user.refresh_from_db()
+        assert user.has_usable_password() and user.email == "marie@example.com"
+
+
+@pytest.mark.django_db
+class TestPhotoHardening:
+    def test_format_non_accepte_refuse(self, photo_user):
+        _, client = photo_user
+        gif = image_file(fmt="GIF", name="moi.gif")
+        assert client.post(reverse("accounts-photo"), {"photo": gif}, format="multipart").status_code == 400
+
+    def test_image_trop_grande_refusee(self, photo_user):
+        """Faille M7 : image piégée de 6300 × 6300 (petite sur le disque, énorme en mémoire)."""
+        _, client = photo_user
+        buffer = BytesIO()
+        Image.new("RGBA", (6300, 6300), (0, 0, 0, 0)).save(buffer, format="PNG")
+        trap = SimpleUploadedFile("piege.png", buffer.getvalue(), content_type="image/png")
+        assert client.post(reverse("accounts-photo"), {"photo": trap}, format="multipart").status_code == 400
+
+    def test_photo_d_un_compte_suspendu_plus_servie(self, photo_user):
+        user, client = photo_user
+        client.post(reverse("accounts-photo"), {"photo": image_file()}, format="multipart")
+        user.refresh_from_db()
+        photos.review_photo(user, approved=True)
+        url = photos.public_photo_url(user)
+        User.objects.filter(pk=user.pk).update(is_active=False)
+        assert APIClient().get(url).status_code == 404
+
+
+@pytest.mark.django_db
+def test_connexion_email_inconnue_aussi_longue(monkeypatch):
+    """La durée de réponse ne révèle pas si une adresse est inscrite (calcul du mot de passe fait quand même)."""
+    calls = []
+    original = User.set_password
+
+    def spy(self, raw):
+        calls.append(raw)
+        return original(self, raw)
+
+    monkeypatch.setattr(User, "set_password", spy)
+    login_email("personne@example.com", "un-essai")
+    assert calls == ["un-essai"]
+
+
+@pytest.mark.django_db
+class TestAdminLogin:
+    def test_essais_limites(self, client):
+        User.objects.create_superuser(phone="+243812300050", password="MotDePasseAdmin42")
+        url = reverse("admin:login")
+        for _ in range(10):
+            response = client.post(url, {"username": "+243812300050", "password": "faux"})
+            assert response.status_code == 200  # formulaire réaffiché
+        # 11e essai, même avec le bon mot de passe : refusé pendant 15 minutes
+        blocked = client.post(url, {"username": "+243812300050", "password": "MotDePasseAdmin42"})
+        assert blocked.status_code == 429
+
+    def test_connexion_normale(self, client):
+        User.objects.create_superuser(phone="+243812300051", password="MotDePasseAdmin42")
+        response = client.post(reverse("admin:login"), {"username": "+243812300051", "password": "MotDePasseAdmin42"})
+        assert response.status_code == 302
