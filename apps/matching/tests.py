@@ -2,10 +2,12 @@
 Tests de l'app matching.
 Couvre : intérêt, match mutuel, refus discret, visibilité des coordonnées, permissions.
 """
+from datetime import timedelta
 from decimal import Decimal
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -265,6 +267,10 @@ class TestDeclineStaysHidden:
         unverified_worker.save()
         interest(client_profile.user, worker_profile.id)
         interest(client_profile.user, unverified_worker.id)
+        # Les deux demandes datent d'avant : sous Windows, l'horloge est trop peu précise
+        # pour départager des actions faites dans la même milliseconde.
+        earlier = timezone.now() - timedelta(minutes=1)
+        Match.objects.update(created_at=earlier, client_activity_at=earlier)
         interest(worker_profile.user, client_profile.id)  # match mutuel : visible, donc remonte
         assert my_matches(client_profile.user)[0]["other_party"]["id"] == worker_profile.id
 
