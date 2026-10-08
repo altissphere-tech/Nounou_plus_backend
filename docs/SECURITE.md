@@ -56,5 +56,4 @@ les risques identifiés, les contrôles mis en place et les risques restants.
 
 ## Signaler une faille
 
-Écrire à l'adresse du support (voir `frontend/src/content/contact.ts`) sans publier
-les détails.
+Écrire à **support@nounou-plus.com** sans publier les détails.

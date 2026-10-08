@@ -28,7 +28,7 @@ export default function Help() {
       <div className="card">
         {CONTACT_IS_PLACEHOLDER && <p className="dev-hint">{t('help.placeholder')}</p>}
         <p className="contact-line">
-          <Mail size={18} aria-hidden="true" /> {CONTACT.email}
+          <Mail size={18} aria-hidden="true" /> <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
         </p>
         <p className="contact-line">
           <Phone size={18} aria-hidden="true" /> {CONTACT.phone}
