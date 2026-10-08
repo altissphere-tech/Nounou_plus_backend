@@ -12,6 +12,8 @@ de session, deux mécanismes s'ajoutent :
    chaque jeton porte la version en cours à sa création (« ver ») et tout jeton
    d'une ancienne version est refusé, access comme refresh.
 """
+import time
+
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication as BaseJWTAuthentication
@@ -23,13 +25,31 @@ REVOKED_MESSAGE = "Votre session a expiré. Reconnectez-vous."
 
 
 VERSION_CLAIM = "ver"
+# Moment de la connexion (code SMS, mot de passe, Google / Apple). Il reste le même
+# quand les jetons sont renouvelés : il dit depuis combien de temps la personne a
+# prouvé son identité.
+AUTH_TIME_CLAIM = "auth_time"
+RECENT_LOGIN_SECONDS = 10 * 60
 
 
 def tokens_for(user) -> RefreshToken:
     """Crée les jetons d'un utilisateur, marqués avec sa version de session actuelle."""
     refresh = RefreshToken.for_user(user)
     refresh[VERSION_CLAIM] = user.token_version  # recopié dans le jeton access
+    refresh[AUTH_TIME_CLAIM] = int(time.time())
     return refresh
+
+
+def recent_login(request) -> bool:
+    """True si la personne s'est connectée il y a moins de 10 minutes (pas un simple renouvellement)."""
+    token = getattr(request, "auth", None)
+    if token is None:
+        return False
+    try:
+        auth_time = int(token.get(AUTH_TIME_CLAIM, 0))
+    except (TypeError, ValueError):
+        return False
+    return 0 <= time.time() - auth_time <= RECENT_LOGIN_SECONDS
 
 
 def token_revoked(user, token) -> bool:

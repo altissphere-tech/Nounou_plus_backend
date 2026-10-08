@@ -25,8 +25,13 @@ def client_ip(request) -> str:
     return BaseThrottle().get_ident(request)
 
 
+def _one_line(value) -> str:
+    return str(value).replace("\\", "\\\\").replace("\r", "\\r").replace("\n", "\\n")
+
+
 def event(name: str, request=None, **fields) -> None:
-    details = " ".join(f"{key}={value}" for key, value in fields.items())
+    # Valeurs sur une seule ligne : personne ne peut fabriquer une fausse ligne de journal
+    details = " ".join(f"{key}={_one_line(value)}" for key, value in fields.items())
     ip = client_ip(request) if request is not None else "-"
     logger.info("%s ip=%s %s", name, ip, details)
 

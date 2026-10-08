@@ -11,10 +11,16 @@ Moyens de connexion (choix du fondateur) :
 Le numéro de téléphone reste obligatoire pour tous : c'est la coordonnée
 montrée à l'autre personne après un match mutuel.
 """
+import hashlib
+import hmac
 import logging
+import secrets
+from datetime import timedelta
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 
 logger = logging.getLogger(__name__)
@@ -58,7 +64,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     - phone       : identifiant unique (numéro de téléphone au format E.164, ex: +243812345678)
     - role        : client | travailleur | admin
-    - otp_code    : code OTP actuel (simulé en V1 : toujours '123456')
+    - otp_code    : empreinte du code SMS en cours (jamais le code en clair)
     - phone_verified : True une fois que l'utilisateur a validé son OTP
     """
 
@@ -75,12 +81,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone = PhoneNumberField(unique=True, verbose_name="Numéro de téléphone")
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, verbose_name="Rôle")
     otp_code = models.CharField(
-        max_length=6,
+        max_length=64,
         blank=True,
         null=True,
-        verbose_name="Code OTP",
-        help_text="Code à usage unique pour vérifier le numéro de téléphone.",
+        verbose_name="Code OTP (empreinte)",
+        help_text="Empreinte du code à usage unique (le code lui-même n'est jamais stocké).",
     )
+    otp_expires_at = models.DateTimeField(null=True, blank=True, verbose_name="Code valable jusqu'à")
+    otp_attempts = models.PositiveSmallIntegerField(default=0, verbose_name="Essais sur le code en cours")
     phone_verified = models.BooleanField(
         default=False,
         verbose_name="Téléphone vérifié",
@@ -117,6 +125,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         verbose_name="E-mail",
         help_text="Facultatif : permet de se connecter avec un mot de passe.",
+    )
+    pending_email = models.EmailField(
+        blank=True,
+        default="",
+        verbose_name="E-mail en attente de confirmation",
+        help_text="Adresse saisie mais pas encore confirmée par le lien : elle ne sert à rien "
+        "(ni connexion ni mot de passe oublié) et ne bloque personne.",
     )
     email_verified = models.BooleanField(
         default=False,
@@ -168,39 +183,50 @@ class User(AbstractBaseUser, PermissionsMixin):
         super().save(*args, **kwargs)
 
     # ------------------------------------------------------------------
-    # Logique OTP (simulée en V1)
+    # Codes SMS
     # ------------------------------------------------------------------
+    # Code aléatoire à 6 chiffres, stocké sous forme d'empreinte, valable 10 minutes,
+    # 5 essais au plus. En développement (OTP_MOCK_ENABLED), le code est toujours 123456
+    # et s'affiche dans la console ; en production il faut un fournisseur SMS (sms.py).
 
     OTP_MOCK_CODE = "123456"
+    OTP_VALIDITY = timedelta(minutes=10)
+    OTP_MAX_ATTEMPTS = 5
+
+    @staticmethod
+    def _otp_digest(code: str) -> str:
+        return hmac.new(settings.SECRET_KEY.encode(), code.encode(), hashlib.sha256).hexdigest()
 
     def generate_otp(self) -> str:
-        """
-        Génère et stocke un OTP.
-        En V1 : toujours '123456'. En V2, remplacer par un vrai générateur + SMS.
-        Refuse de fonctionner si OTP_MOCK_ENABLED est désactivé (production).
-        """
-        if not settings.OTP_MOCK_ENABLED:
-            raise OTPUnavailableError("Aucun service d'envoi d'OTP n'est configuré.")
-        self.otp_code = self.OTP_MOCK_CODE
-        self.save(update_fields=["otp_code"])
-        # Affiche le code en console (visible dans les logs du serveur en dev)
-        logger.warning(
-            "[OTP SIMULÉ] Numéro %s → code OTP : %s (V1 uniquement, ne pas utiliser en production)",
-            self.phone,
-            self.otp_code,
-        )
-        return self.otp_code
+        """Crée un nouveau code, l'envoie par SMS et le mémorise (empreinte seulement)."""
+        from . import sms
+
+        if not sms.available():
+            raise OTPUnavailableError("Aucun service d'envoi de SMS n'est configuré.")
+        code = self.OTP_MOCK_CODE if settings.OTP_MOCK_ENABLED else f"{secrets.randbelow(10**6):06d}"
+        self.otp_code = self._otp_digest(code)
+        self.otp_expires_at = timezone.now() + self.OTP_VALIDITY
+        self.otp_attempts = 0
+        self.save(update_fields=["otp_code", "otp_expires_at", "otp_attempts"])
+        sms.send_code(str(self.phone), code)
+        return code
 
     def verify_otp(self, code: str) -> bool:
-        """Vérifie le code OTP soumis par l'utilisateur. Efface le code après succès."""
-        if not settings.OTP_MOCK_ENABLED:
+        """Vérifie le code. Usage unique ; refusé après expiration ou 5 essais."""
+        if not self.otp_code or not self.otp_expires_at or self.otp_expires_at < timezone.now():
             return False
-        if self.otp_code and self.otp_code == code:
-            self.otp_code = None
-            self.phone_verified = True
-            self.save(update_fields=["otp_code", "phone_verified"])
-            return True
-        return False
+        if self.otp_attempts >= self.OTP_MAX_ATTEMPTS:
+            return False
+        if not hmac.compare_digest(self.otp_code, self._otp_digest(code)):
+            # Compté directement en base (deux essais simultanés comptent pour deux)
+            User.objects.filter(pk=self.pk).update(otp_attempts=models.F("otp_attempts") + 1)
+            return False
+        self.otp_code = None
+        self.otp_expires_at = None
+        self.otp_attempts = 0
+        self.phone_verified = True
+        self.save(update_fields=["otp_code", "otp_expires_at", "otp_attempts", "phone_verified"])
+        return True
 
 
 class PhotoToReview(User):

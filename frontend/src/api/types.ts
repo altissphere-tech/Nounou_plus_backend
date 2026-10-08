@@ -12,6 +12,8 @@ export interface User {
   phone_verified: boolean
   email: string | null
   email_verified: boolean
+  /** Adresse saisie, en attente du clic sur le lien de confirmation. */
+  pending_email: string
   has_password: boolean
   social_providers: SocialProvider[]
   photo_status: PhotoStatus

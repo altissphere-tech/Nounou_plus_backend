@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { requestCode } from '../api/accounts'
+import { changeEmail, changePassword, requestCode } from '../api/accounts'
 import { useAuth } from '../auth/AuthContext'
+import { takeCredentials } from '../auth/pendingSignup'
 import { errorText } from '../components/errors'
 import Field from '../components/Field'
 import { useI18n } from '../i18n/I18nContext'
 
 export default function VerifyCode() {
   const { t, lang } = useI18n()
-  const { login } = useAuth()
+  const { login, startSession, reload } = useAuth()
   const navigate = useNavigate()
-  const phone = (useLocation().state as { phone?: string } | null)?.phone
+  const state = useLocation().state as { phone?: string; socialTicket?: string } | null
+  const phone = state?.phone
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
@@ -26,7 +28,21 @@ export default function VerifyCode() {
     setInfo('')
     setBusy(true)
     try {
-      await login(phone!, code)
+      await login(phone!, code, state?.socialTicket)
+      // Inscription avec e-mail : mot de passe et adresse enregistrés maintenant que le
+      // numéro est confirmé (un lien de confirmation part à l'adresse)
+      const credentials = takeCredentials(phone!)
+      if (credentials) {
+        try {
+          const response = await changePassword(credentials.password)
+          await startSession(response.tokens)
+          await changeEmail(credentials.email, credentials.password)
+          await reload() // affiche « confirmez votre adresse e-mail »
+        } catch {
+          navigate('/securite', { replace: true }) // à compléter depuis « Sécurité »
+          return
+        }
+      }
       navigate('/accueil', { replace: true })
     } catch (err) {
       setError(errorText(err, lang, t, 'verify.error'))

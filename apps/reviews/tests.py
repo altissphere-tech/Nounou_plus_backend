@@ -41,8 +41,8 @@ def review(user, match, data):
 
 def make_match(n, days_ago=8):
     """Crée un match mutuel dont le premier match date de `days_ago` jours."""
-    client_user = User.objects.create_user(phone=f"+24386600{n}1", role=User.ROLE_CLIENT)
-    worker_user = User.objects.create_user(phone=f"+24386600{n}2", role=User.ROLE_WORKER)
+    client_user = User.objects.create_user(phone=f"+24386600{n}1", role=User.ROLE_CLIENT, phone_verified=True)
+    worker_user = User.objects.create_user(phone=f"+24386600{n}2", role=User.ROLE_WORKER, phone_verified=True)
     client = ClientProfile.objects.create(
         user=client_user, first_name="Jean", last_name="Ilunga",
         location="Golf", availability_needed=choices.AVAILABILITY_FULL,
@@ -132,7 +132,7 @@ class TestCreateReview:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_un_tiers_ne_peut_pas_evaluer(self, match):
-        stranger = User.objects.create_user(phone="+243866009999", role=User.ROLE_CLIENT)
+        stranger = User.objects.create_user(phone="+243866009999", role=User.ROLE_CLIENT, phone_verified=True)
         assert review(stranger, match, WORKER_SCORES).status_code == status.HTTP_404_NOT_FOUND
 
     def test_sans_token_retourne_401(self, match):
@@ -212,4 +212,12 @@ class TestPublicReviews:
 
     def test_profil_inexistant_retourne_404(self, match):
         url = reverse("reviews-worker", args=[99999])
+        assert auth_client(match.client.user).get(url).status_code == status.HTTP_404_NOT_FOUND
+
+    def test_avis_d_un_travailleur_non_verifie_invisibles(self, match):
+        """Comme sa fiche : un travailleur dont la vérification est retirée n'est plus consultable."""
+        review(match.client.user, match, WORKER_SCORES)
+        match.worker.is_verified = False
+        match.worker.save()
+        url = reverse("reviews-worker", args=[match.worker.id])
         assert auth_client(match.client.user).get(url).status_code == status.HTTP_404_NOT_FOUND

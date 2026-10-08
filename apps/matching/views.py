@@ -45,10 +45,8 @@ def _notify_interest(match, user, was_mutual: bool) -> None:
 
 def interest_response(request, match, created):
     """Enregistre l'intérêt de l'utilisateur sur ce match et construit la réponse de l'API."""
-    already_interested = match.decision_of(request.user) == Match.DECISION_INTERESTED
-    was_mutual = match.is_mutual
-    match.set_decision(request.user, Match.DECISION_INTERESTED)
-    if not already_interested:
+    previous, was_mutual = match.set_decision(request.user, Match.DECISION_INTERESTED)
+    if previous != Match.DECISION_INTERESTED:
         _notify_interest(match, request.user, was_mutual)
     if match.is_mutual:
         message = "C'est un match ! Vous pouvez maintenant voir les coordonnées de l'autre personne."
@@ -87,7 +85,7 @@ class MatchListView(APIView):
         responses={200: paginated("PaginatedMatches", MatchSerializer), **AUTH_ERRORS},
     )
     def get(self, request):
-        matches = Match.objects.for_user(request.user).prefetch_related(
+        matches = Match.objects.for_user(request.user).ordered_for(request.user).prefetch_related(
             "client__services_needed", "worker__services"
         )
         return paginated_response(

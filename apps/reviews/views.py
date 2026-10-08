@@ -132,7 +132,8 @@ class WorkerReviewsView(APIView):
         },
     )
     def get(self, request, profile_id):
-        worker = get_object_or_404(WorkerProfile.objects.active().select_related("user"), pk=profile_id)
+        # Comme la fiche du travailleur : seulement les profils vérifiés et actifs
+        worker = get_object_or_404(WorkerProfile.objects.visible_to_clients().select_related("user"), pk=profile_id)
         return _reviews_response(request, self, worker.user, WORKER_CRITERIA)
 
 

@@ -13,6 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.accounts.models import User
 from apps.clients.models import ClientProfile
 from apps.services.models import Service
+from apps.workers.models import WorkerProfile
 from common import choices
 
 
@@ -34,12 +35,19 @@ def auth_client(user) -> APIClient:
 
 @pytest.fixture
 def client_user(db):
-    return User.objects.create_user(phone="+243822000001", role=User.ROLE_CLIENT)
+    return User.objects.create_user(phone="+243822000001", role=User.ROLE_CLIENT, phone_verified=True)
 
 
 @pytest.fixture
 def worker_user(db):
-    return User.objects.create_user(phone="+243822000002", role=User.ROLE_WORKER)
+    """Travailleur vérifié par l'équipe : seul autorisé à voir les familles."""
+    user = User.objects.create_user(phone="+243822000002", role=User.ROLE_WORKER, phone_verified=True)
+    WorkerProfile.objects.create(
+        user=user, first_name="Grace", last_name="Mutombo",
+        availability=choices.AVAILABILITY_FULL, expected_salary=Decimal("200.00"),
+        location="Annexe", is_verified=True,
+    )
+    return user
 
 
 @pytest.fixture
@@ -195,7 +203,7 @@ class TestClientProfileList:
 # ------------------------------------------------------------------ #
 
 def _client(n, services, budget, location, availability):
-    user = User.objects.create_user(phone=f"+24381300{n:04d}", role=User.ROLE_CLIENT)
+    user = User.objects.create_user(phone=f"+24381300{n:04d}", role=User.ROLE_CLIENT, phone_verified=True)
     profile = ClientProfile.objects.create(
         user=user,
         first_name=f"Client{n}",

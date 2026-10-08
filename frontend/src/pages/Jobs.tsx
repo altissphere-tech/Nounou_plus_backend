@@ -35,6 +35,7 @@ export default function Jobs() {
         values={filters}
         onApply={(values: FilterValues) => setParams(values)}
       />
+      {list.forbidden && <p className="card notice">{t('jobs.locked')}</p>}
       {!list.loading && !list.failed && <p className="list-count">{t('list.count', { count: String(list.count) })}</p>}
       {!list.loading && !list.failed && list.count === 0 && <p className="card muted">{t('jobs.empty')}</p>}
       <div className="card-grid">
@@ -42,7 +43,7 @@ export default function Jobs() {
           <JobCard key={job.id} job={job} />
         ))}
       </div>
-      <ListFooter loading={list.loading} failed={list.failed} hasMore={list.hasMore} onMore={list.loadMore} />
+      <ListFooter loading={list.loading} failed={list.failed && !list.forbidden} hasMore={list.hasMore} onMore={list.loadMore} />
     </section>
   )
 }

@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core import signing
 from django.core.mail import send_mail
 from django.db import transaction
 from django.http import FileResponse, Http404
@@ -24,7 +25,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.reports.models import warnings_for
 from common import security_log
-from common.authentication import tokens_for
+from common.authentication import recent_login, tokens_for
 from common.schema import AUTH_ERRORS, MESSAGE_ONLY, error, with_message
 from common.throttles import (
     LoginEmailThrottle,
@@ -33,9 +34,10 @@ from common.throttles import (
     throttle,
 )
 
-from . import emails, photos, social
+from . import emails, photos, sms, social
 from .models import OTPUnavailableError, SocialAccount, User
 from .serializers import (
+    PHONE_UNVERIFIED_MESSAGE,
     SUSPENDED_MESSAGE,
     EmailChangeSerializer,
     EmailConfirmSerializer,
@@ -69,6 +71,50 @@ def _send_otp(user) -> None:
         raise OTPServiceUnavailable()
 
 
+def _require_sms() -> None:
+    """Vérifié avant toute recherche de compte : la réponse ne dépend pas du numéro."""
+    if not sms.available():
+        raise OTPServiceUnavailable()
+
+
+def _phone_verification_response(user, extra: dict | None = None) -> Response:
+    """Le numéro du compte n'est pas encore confirmé : un code lui est envoyé."""
+    _send_otp(user)
+    return Response(
+        {
+            "detail": PHONE_UNVERIFIED_MESSAGE,
+            "phone_verification_required": True,
+            "phone": str(user.phone),
+            **(extra or {}),
+        },
+        status=status.HTTP_400_BAD_REQUEST,
+    )
+
+
+def _reclaim_phone(user, request) -> None:
+    """
+    Première confirmation du numéro par code SMS : la personne qui reçoit les SMS de ce
+    numéro en est la titulaire. Si quelqu'un avait attaché au compte un mot de passe,
+    un e-mail ou un compte Google / Apple sans jamais confirmer le numéro, ces accès
+    sont retirés et ses sessions fermées : il ne peut pas « squatter » le numéro.
+    """
+    had_access = user.has_usable_password() or user.email or user.pending_email or user.social_accounts.exists()
+    if not had_access:
+        return
+    user.set_unusable_password()
+    user.email = None
+    user.email_verified = False
+    user.pending_email = ""
+    user.save(update_fields=["password", "email", "email_verified", "pending_email"])
+    user.social_accounts.all().delete()
+    user.end_all_sessions()
+    security_log.event("numero_recupere", request, compte=user.pk)
+
+
+SOCIAL_TICKET_SALT = "nounou.social-ticket"
+SOCIAL_TICKET_MAX_AGE = 15 * 60
+
+
 def _get_tokens(user) -> dict:
     """Génère une paire de tokens JWT (access + refresh) pour un utilisateur."""
     refresh = tokens_for(user)
@@ -81,12 +127,6 @@ def _get_tokens(user) -> dict:
 TOKENS = inline_serializer(
     name="Tokens",
     fields={"refresh": drf_serializers.CharField(), "access": drf_serializers.CharField()},
-)
-TOKENS_OPTIONAL = inline_serializer(
-    name="RegisterTokens",
-    fields={"refresh": drf_serializers.CharField(), "access": drf_serializers.CharField()},
-    required=False,
-    help_text="Seulement pour une inscription avec e-mail.",
 )
 
 
@@ -122,46 +162,35 @@ class RegisterView(APIView):
     @extend_schema(
         tags=["Comptes"],
         summary="Créer un compte (client ou travailleur)",
-        description="Sans e-mail : un code SMS est envoyé (puis `otp/verify/`) ; si le numéro "
-        "est déjà inscrit, la réponse est identique et le titulaire reçoit un code de connexion. "
-        "Avec e-mail + mot de passe : la réponse contient directement les `tokens`, et un lien "
-        "de confirmation est envoyé à l'adresse.",
+        description="Un code SMS est envoyé (puis `otp/verify/`). Si le numéro est déjà inscrit, "
+        "la réponse est identique et le titulaire reçoit un code de connexion. L'e-mail et le "
+        "mot de passe s'ajoutent ensuite, une fois connecté (`email/`, `password/change/`).",
         auth=[],
         request=RegisterSerializer,
         responses={
-            201: inline_serializer(
-                name="RegisterResponse",
-                fields={
-                    "message": drf_serializers.CharField(),
-                    "tokens": TOKENS_OPTIONAL,
-                    "user": UserSerializer(required=False),
-                },
-            ),
-            400: error("Numéro invalide, rôle invalide, ou (avec e-mail) numéro / e-mail déjà utilisés."),
+            201: MESSAGE_ONLY,
+            400: error("Numéro ou rôle invalide."),
             503: error("Envoi des codes SMS indisponible (le compte n'est pas créé)."),
         },
     )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if serializer.validated_data.get("email"):
-            # Inscription avec e-mail + mot de passe : connecté tout de suite, sans code SMS.
-            # Le numéro pourra être confirmé plus tard (écran « Sécurité »).
-            with transaction.atomic():
+        _require_sms()
+        phone = serializer.validated_data["phone"]
+        with transaction.atomic():
+            existing = User.objects.select_for_update().filter(phone=phone).first()
+            if existing is None:
                 user = serializer.save()
-            return _login_response(
-                user, "Compte créé. Confirmez votre adresse avec le lien reçu par e-mail.", status.HTTP_201_CREATED
-            )
-        existing = User.objects.filter(phone=serializer.validated_data["phone"]).first()
-        if existing is not None:
-            # Numéro déjà inscrit : même réponse qu'une inscription (on ne révèle pas qui est
-            # inscrit) ; le titulaire reçoit un code et se connecte à son compte existant.
-            _send_otp(existing)
-        else:
-            # Si l'OTP ne peut pas être envoyé, le compte n'est pas créé (annulation complète)
-            with transaction.atomic():
-                user = serializer.save()
-                _send_otp(user)
+            else:
+                # Numéro déjà inscrit : même réponse (on ne révèle pas qui est inscrit) ; le
+                # titulaire reçoit un code. Un compte jamais confirmé ne contient rien : il
+                # prend le rôle demandé, au cas où quelqu'un aurait inscrit ce numéro avant.
+                user = existing
+                if not existing.phone_verified and existing.role != serializer.validated_data["role"]:
+                    existing.role = serializer.validated_data["role"]
+                    existing.save(update_fields=["role"])
+            _send_otp(user)
         return Response({"message": REGISTER_SMS_MESSAGE}, status=status.HTTP_201_CREATED)
 
 
@@ -190,6 +219,7 @@ class OTPRequestView(APIView):
     def post(self, request):
         serializer = OTPRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        _require_sms()
         user = serializer.get_user()
         if user is not None:
             _send_otp(user)
@@ -232,6 +262,11 @@ class OTPVerifyView(APIView):
             security_log.event("code_sms_refuse", request, numero=security_log.fingerprint(request.data.get("phone")))
             raise ValidationError(serializer.errors)
         user = serializer.validated_data["user"]
+        if serializer.validated_data.get("first_verification"):
+            _reclaim_phone(user, request)
+        ticket = serializer.validated_data.get("social_ticket")
+        if ticket:
+            _link_social_ticket(user, ticket, request)
         security_log.event("connexion", request, compte=user.pk, methode="sms")
         return _login_response(user, "Connexion réussie.")
 
@@ -313,6 +348,8 @@ class EmailLoginView(APIView):
             security_log.event("connexion_refusee", request, email=security_log.fingerprint(request.data.get("email")))
             raise ValidationError(serializer.errors)
         user = serializer.validated_data["user"]
+        if not user.phone_verified:
+            return _phone_verification_response(user)
         security_log.event("connexion", request, compte=user.pk, methode="email")
         return _login_response(user, "Connexion réussie.")
 
@@ -342,7 +379,7 @@ class PasswordForgotView(APIView):
         serializer.is_valid(raise_exception=True)
         # Seule une adresse vérifiée reçoit le lien (sinon : prise de contrôle possible)
         user = User.objects.filter(
-            email=serializer.validated_data["email"].strip().lower(), email_verified=True, is_active=True
+            email=serializer.validated_data["email"].strip().lower(), is_active=True
         ).first()
         security_log.event(
             "mot_de_passe_oublie", request, email=security_log.fingerprint(serializer.validated_data["email"]),
@@ -418,7 +455,9 @@ class PasswordChangeView(APIView):
         },
     )
     def post(self, request):
-        serializer = PasswordChangeSerializer(data=request.data, context={"user": request.user})
+        serializer = PasswordChangeSerializer(
+            data=request.data, context={"user": request.user, "recent_login": recent_login(request)}
+        )
         serializer.is_valid(raise_exception=True)
         request.user.set_password(serializer.validated_data["new_password"])
         request.user.save(update_fields=["password"])
@@ -432,6 +471,7 @@ class EmailChangeView(APIView):
     """POST /api/accounts/email/ — ajouter ou changer son adresse e-mail (connecté)."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [throttle("email_send")]
 
     @extend_schema(
         tags=["Comptes"],
@@ -439,15 +479,18 @@ class EmailChangeView(APIView):
         request=EmailChangeSerializer,
         responses={
             200: with_message("EmailChangeResponse", "user", UserSerializer),
-            400: error("Adresse déjà utilisée ou mot de passe actuel incorrect."),
+            400: error("Mot de passe actuel incorrect, ou connexion trop ancienne (`reauth_required`)."),
         },
     )
     def post(self, request):
-        serializer = EmailChangeSerializer(data=request.data, context={"user": request.user})
+        serializer = EmailChangeSerializer(
+            data=request.data, context={"user": request.user, "recent_login": recent_login(request)}
+        )
         serializer.is_valid(raise_exception=True)
-        if serializer.validated_data["email"] != request.user.email:
-            emails.set_email(request.user, serializer.validated_data["email"])  # lien envoyé
-            security_log.event("email_change", request, compte=request.user.pk)
+        # L'adresse reste « en attente » jusqu'au clic sur le lien (même réponse si elle
+        # appartient déjà à un autre compte : son titulaire est seulement prévenu)
+        emails.request_email(request.user, serializer.validated_data["email"])
+        security_log.event("email_change", request, compte=request.user.pk)
         return Response(
             {
                 "message": "Adresse e-mail enregistrée. Confirmez-la avec le lien reçu par e-mail.",
@@ -482,8 +525,10 @@ class SocialLoginView(APIView):
         request=SocialLoginSerializer,
         responses={
             200: _login_schema("SocialLoginResponse"),
-            201: _login_schema("SocialRegisterResponse"),
-            400: error("Jeton refusé, ou rôle + téléphone nécessaires (`registration_required`)."),
+            400: error(
+                "Jeton refusé, rôle + téléphone nécessaires (`registration_required`), ou numéro "
+                "à confirmer par code SMS (`phone_verification_required`, avec `social_ticket`)."
+            ),
             503: error("Connexion Google / Apple pas encore configurée."),
         },
     )
@@ -505,14 +550,16 @@ class SocialLoginView(APIView):
         link = SocialAccount.objects.filter(provider=provider, uid=identity.uid).select_related("user").first()
         user = link.user if link else None
         if user is None and identity.email:
-            # Même adresse confirmée par Google/Apple ET vérifiée chez nous : on relie au
-            # compte existant. Une adresse non vérifiée ne suffit pas (prise de contrôle).
-            user = User.objects.filter(email=identity.email, email_verified=True).first()
-            if user is not None:
-                SocialAccount.objects.create(user=user, provider=provider, uid=identity.uid)
+            # Même adresse confirmée par Google/Apple ET chez nous : on relie au compte
+            # existant. Une adresse seulement en attente ne suffit pas (prise de contrôle).
+            user = User.objects.filter(email=identity.email).first()
         if user is not None:
             if not user.is_active:
                 return Response({"detail": SUSPENDED_MESSAGE}, status=status.HTTP_400_BAD_REQUEST)
+            if link is None:
+                SocialAccount.objects.get_or_create(user=user, provider=provider, uid=identity.uid)
+            if not user.phone_verified:
+                return _phone_verification_response(user)
             security_log.event("connexion", request, compte=user.pk, methode=provider)
             return _login_response(user, "Connexion réussie.")
 
@@ -525,12 +572,38 @@ class SocialLoginView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        # Nouveau compte : le numéro doit être confirmé par code SMS avant toute connexion.
+        # Le lien avec Google / Apple n'est créé qu'à ce moment-là (ticket signé, 15 min) :
+        # personne ne peut s'attribuer le numéro d'un autre. Même réponse si le numéro est
+        # déjà inscrit (son titulaire reçoit le code et retrouve son compte).
+        _require_sms()
         with transaction.atomic():
-            user = User.objects.create_user(phone=data["phone"], role=data["role"])
-            if identity.email:
-                emails.set_email(user, identity.email, verified=True)  # confirmée par Google / Apple
-            SocialAccount.objects.create(user=user, provider=provider, uid=identity.uid)
-        return _login_response(user, "Compte créé.", status.HTTP_201_CREATED)
+            target = User.objects.select_for_update().filter(phone=data["phone"]).first()
+            if target is None:
+                target = User.objects.create_user(phone=data["phone"], role=data["role"])
+            elif not target.phone_verified and target.role != data["role"]:
+                target.role = data["role"]
+                target.save(update_fields=["role"])
+        ticket = signing.dumps(
+            {"p": provider, "u": identity.uid, "e": identity.email or "", "n": str(target.phone)},
+            salt=SOCIAL_TICKET_SALT,
+        )
+        return _phone_verification_response(target, {"social_ticket": ticket})
+
+
+def _link_social_ticket(user, ticket: str, request) -> None:
+    """Après le code SMS : relie le compte Google / Apple mémorisé dans le ticket."""
+    try:
+        data = signing.loads(ticket, salt=SOCIAL_TICKET_SALT, max_age=SOCIAL_TICKET_MAX_AGE)
+    except signing.BadSignature:
+        return
+    if data.get("n") != str(user.phone):
+        return
+    if not SocialAccount.objects.filter(provider=data["p"], uid=data["u"]).exists():
+        SocialAccount.objects.create(user=user, provider=data["p"], uid=data["u"])
+        security_log.event("compte_social_lie", request, compte=user.pk, service=data["p"])
+    if data.get("e") and not user.email:
+        emails.set_verified_email(user, data["e"])  # confirmée par Google / Apple
 
 
 class MyPhotoView(APIView):
@@ -604,11 +677,14 @@ class PublicPhotoView(APIView):
         responses={(200, "image/jpeg"): bytes, 404: error("Photo introuvable ou pas encore validée.")},
     )
     def get(self, request, name):
-        user = User.objects.filter(photo=f"photos/{name}", photo_status=User.PHOTO_APPROVED).first()
+        user = User.objects.filter(
+            photo=f"photos/{name}", photo_status=User.PHOTO_APPROVED, is_active=True
+        ).first()
         if user is None:
             raise Http404
         response = FileResponse(user.photo.open("rb"), content_type="image/jpeg")
-        response["Cache-Control"] = "public, max-age=86400"
+        # Une heure : une photo retirée ou un compte suspendu disparaît vite des caches
+        response["Cache-Control"] = "public, max-age=3600"
         return response
 
 
@@ -694,7 +770,7 @@ class EmailResendView(APIView):
     )
     def post(self, request):
         user = request.user
-        if not user.email or user.email_verified:
+        if not user.pending_email:
             return Response({"detail": "Aucune adresse à confirmer."}, status=status.HTTP_400_BAD_REQUEST)
         emails.send_verification(user)
         return Response({"message": "Lien envoyé. Regardez votre boîte e-mail."})

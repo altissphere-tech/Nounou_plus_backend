@@ -37,17 +37,17 @@ def auth_client(user) -> APIClient:
 
 @pytest.fixture
 def worker_user(db):
-    return User.objects.create_user(phone="+243811000001", role=User.ROLE_WORKER)
+    return User.objects.create_user(phone="+243811000001", role=User.ROLE_WORKER, phone_verified=True)
 
 
 @pytest.fixture
 def worker_user_2(db):
-    return User.objects.create_user(phone="+243811000002", role=User.ROLE_WORKER)
+    return User.objects.create_user(phone="+243811000002", role=User.ROLE_WORKER, phone_verified=True)
 
 
 @pytest.fixture
 def client_user(db):
-    return User.objects.create_user(phone="+243811000003", role=User.ROLE_CLIENT)
+    return User.objects.create_user(phone="+243811000003", role=User.ROLE_CLIENT, phone_verified=True)
 
 
 @pytest.fixture
@@ -244,7 +244,7 @@ class TestWorkerProfileList:
 # ------------------------------------------------------------------ #
 
 def _verified_worker(n, services, salary, experience, location, availability):
-    user = User.objects.create_user(phone=f"+24381200{n:04d}", role=User.ROLE_WORKER)
+    user = User.objects.create_user(phone=f"+24381200{n:04d}", role=User.ROLE_WORKER, phone_verified=True)
     profile = WorkerProfile.objects.create(
         user=user,
         first_name=f"Travailleur{n}",

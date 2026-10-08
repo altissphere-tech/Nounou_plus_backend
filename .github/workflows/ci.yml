@@ -46,11 +46,12 @@ jobs:
           DJANGO_SETTINGS_MODULE: config.settings.prod
           SECRET_KEY: cle-factice-de-verification-ci-assez-longue-pour-le-controle-0123456789
           ALLOWED_HOSTS: nounou.example
+          ADMIN_URL: gestion-ci/
           DB_NAME: x
           DB_USER: x
           DB_PASSWORD: x
       - name: Vulnérabilités connues (pip-audit)
-        run: pip-audit -r requirements/prod.txt
+        run: pip-audit -r requirements/prod.txt -r requirements/dev.txt
 
   application:
     name: Application (React)

@@ -21,6 +21,26 @@ class IsWorker(BasePermission):
         )
 
 
+VERIFIED_WORKER_ONLY_MESSAGE = (
+    "Les familles et leurs annonces sont visibles une fois votre profil vérifié par l'équipe NOUNOU+."
+)
+
+
+class IsVerifiedWorker(IsWorker):
+    """
+    Travailleur dont le profil a été vérifié par l'équipe : seul autorisé à voir les
+    familles et leurs annonces (prénom, quartier, budget, besoins).
+    """
+
+    message = VERIFIED_WORKER_ONLY_MESSAGE
+
+    def has_permission(self, request, view):
+        if not super().has_permission(request, view):
+            return False
+        profile = getattr(request.user, "worker_profile", None)
+        return profile is not None and profile.is_verified
+
+
 class IsClient(BasePermission):
     """Autorise uniquement les utilisateurs ayant le rôle 'client'."""
 

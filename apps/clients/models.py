@@ -15,8 +15,8 @@ from common import choices
 
 class ClientProfileQuerySet(models.QuerySet):
     def active(self):
-        """Profils dont le compte n'est pas suspendu."""
-        return self.filter(user__is_active=True)
+        """Profils dont le compte n'est pas suspendu et dont le numéro est confirmé par SMS."""
+        return self.filter(user__is_active=True, user__phone_verified=True)
 
 
 class ClientProfile(models.Model):

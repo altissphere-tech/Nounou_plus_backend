@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { socialLogin } from '../api/accounts'
+import { phoneVerificationRequired, socialLogin } from '../api/accounts'
+import { ApiError } from '../api/client'
 import type { SocialProvider } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { errorText } from '../components/errors'
@@ -39,6 +40,12 @@ export default function SocialComplete() {
       await startSession(response.tokens)
       navigate('/accueil', { replace: true })
     } catch (err) {
+      // Nouveau compte : le numéro est confirmé par code SMS, puis Google / Apple est relié
+      const verification = err instanceof ApiError ? phoneVerificationRequired(err.data) : null
+      if (verification) {
+        navigate('/code', { state: { phone: verification.phone, socialTicket: verification.social_ticket } })
+        return
+      }
       setError(errorText(err, lang, t, 'social.error'))
     } finally {
       setBusy(false)

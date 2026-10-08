@@ -105,7 +105,7 @@ function PhoneCard() {
 function EmailCard() {
   const { t, lang } = useI18n()
   const { user, reload } = useAuth()
-  const [email, setEmail] = useState(user!.email ?? '')
+  const [email, setEmail] = useState(user!.pending_email || user!.email || '')
   const [current, setCurrent] = useState('')
   const [feedback, setFeedback] = useState<Feedback>(null)
 
@@ -145,8 +145,11 @@ function EmailCard() {
           )}
         </p>
       )}
-      {user!.email && !user!.email_verified && (
+      {user!.pending_email && (
         <>
+          <p>
+            <strong>{user!.pending_email}</strong> <span className="badge">{t('security.email.notVerified')}</span>
+          </p>
           <p className="muted small-text">{t('security.email.why')}</p>
           <button type="button" className="button small secondary" onClick={resend}>
             {t('security.email.resend')}

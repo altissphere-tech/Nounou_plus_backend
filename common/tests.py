@@ -165,3 +165,29 @@ class TestSecurityLog:
         for _ in range(2):
             client.post(reverse("accounts-login"), {"email": "a@b.cd", "password": "x"}, format="json")
         assert "limite_atteinte" in caplog.text and "EmailLoginView" in caplog.text
+
+    def test_une_valeur_ne_peut_pas_creer_une_fausse_ligne(self, security_log):
+        from common.security_log import event
+
+        event("essai", chemin="/api/x\nconnexion ip=1.2.3.4 compte=1")
+        assert "\nconnexion" not in security_log.text
+        assert "\\nconnexion" in security_log.text
+
+
+def test_serveur_refuse_de_demarrer_sans_reglages(tmp_path):
+    """Faille E1 : sans DJANGO_SETTINGS_MODULE, le serveur ne démarre pas en mode développement."""
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parent.parent
+    # Copie de wsgi.py hors du projet : aucun fichier .env ne peut fournir le réglage
+    (tmp_path / "wsgi_copy.py").write_text((repo / "config" / "wsgi.py").read_text())
+    env = {key: value for key, value in os.environ.items() if key != "DJANGO_SETTINGS_MODULE"}
+    env["PYTHONPATH"] = str(repo)
+    result = subprocess.run(
+        [sys.executable, "-c", "import wsgi_copy"], cwd=tmp_path, env=env, capture_output=True, text=True
+    )
+    assert result.returncode != 0
+    assert "DJANGO_SETTINGS_MODULE manquant" in result.stderr

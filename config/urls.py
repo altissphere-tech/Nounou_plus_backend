@@ -10,11 +10,14 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from apps.accounts.views import PublicPhotoView
 from apps.reviews.views import MatchReviewView
+from common.admin_guard import limit_login_attempts
 
 # Titres de l'interface d'administration
 admin.site.site_header = "Administration NOUNOU+"
 admin.site.site_title = "NOUNOU+ admin"
 admin.site.index_title = "Tableau de bord"
+# Pas d'essais de mots de passe à volonté sur l'administration
+admin.site.login = limit_login_attempts(admin.site.login)
 
 urlpatterns = [
     path(settings.ADMIN_URL, admin.site.urls),

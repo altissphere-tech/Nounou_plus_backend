@@ -9,7 +9,7 @@
  *
  * Après une modification de ce fichier, augmentez VERSION pour remplacer l'ancien cache.
  */
-const VERSION = 'nounou-v2'
+const VERSION = 'nounou-v3'
 const SHELL = ['/', '/manifest.webmanifest', '/logo.webp', '/bg-nounou.svg', '/favicon.png', '/icons/icon-192.png']
 const NEVER_CACHED = ['/api/', '/admin/', '/media/', '/static/']
 
@@ -38,8 +38,15 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone()
-          caches.open(VERSION).then((cache) => cache.put('/', copy))
+          // Seule une vraie page de l'application remplace la copie gardée : jamais une
+          // page d'erreur, un document (PDF, image) ni une page « à ne pas garder »
+          // (administration, quelle que soit son adresse).
+          const type = response.headers.get('content-type') || ''
+          const cacheControl = response.headers.get('cache-control') || ''
+          if (response.ok && type.startsWith('text/html') && !/no-store|private/.test(cacheControl)) {
+            const copy = response.clone()
+            caches.open(VERSION).then((cache) => cache.put('/', copy))
+          }
           return response
         })
         .catch(() => caches.match('/')),

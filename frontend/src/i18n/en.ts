@@ -175,6 +175,8 @@ const en: Record<TranslationKey, string> = {
   'jobs.apply': 'Respond to this job',
   'jobs.applied': 'Your response has been sent to the family.',
   'jobs.notVerified': 'Your profile must be verified by the NOUNOU+ team before you can respond to job posts.',
+  'jobs.locked':
+    'Family job posts become visible once the NOUNOU+ team has verified your profile. Complete your profile and send your documents from the home screen.',
   'jobs.noProfile': 'Create your profile first to respond to job posts.',
   'jobs.notFound': 'This job post is no longer available.',
   'jobs.back': 'Back to job posts',
@@ -448,7 +450,7 @@ const en: Record<TranslationKey, string> = {
   'security.phone.done': 'Number confirmed.',
   'security.email.label': 'Login email',
   'security.email.hint': 'Lets you log in with a password and recover it if you forget it.',
-  'security.email.saved': 'Email address saved.',
+  'security.email.saved': 'Noted. Confirm the address with the link sent by email (unless it is already yours).',
   'security.password.none': 'Your account has no password yet: you log in with an SMS code (or Google / Apple).',
   'security.password.create': 'Create my password',
   'security.password.change': 'Change my password',
@@ -461,7 +463,8 @@ const en: Record<TranslationKey, string> = {
   'security.sessions.confirm': 'Sign out of all devices, including this one?',
   'security.email.verified': 'Confirmed',
   'security.email.notVerified': 'Not confirmed',
-  'security.email.why': 'Open the link sent by email. Until the address is confirmed, “forgot password” does not work with it.',
+  'security.email.why':
+    'Open the link sent by email. Until the address is confirmed, it cannot be used to sign in or for “forgot password”.',
   'security.email.resend': 'Resend the link',
   'security.email.resent': 'Link sent. Check your inbox (and spam folder).',
   'confirmEmail.title': 'Email confirmation',
