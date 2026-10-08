@@ -2,7 +2,7 @@ import { Mail, MessageCircle, Phone } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import PageHead from '../components/PageHead'
-import { CONTACT, CONTACT_IS_PLACEHOLDER } from '../content/contact'
+import { CONTACT, CONTACT_IS_PLACEHOLDER, CONTACT_PHONE_DIGITS } from '../content/contact'
 import { FAQ } from '../content/help'
 import { useI18n } from '../i18n/I18nContext'
 
@@ -28,13 +28,16 @@ export default function Help() {
       <div className="card">
         {CONTACT_IS_PLACEHOLDER && <p className="dev-hint">{t('help.placeholder')}</p>}
         <p className="contact-line">
-          <Mail size={18} aria-hidden="true" /> {CONTACT.email}
+          <Mail size={18} aria-hidden="true" /> <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
         </p>
         <p className="contact-line">
-          <Phone size={18} aria-hidden="true" /> {CONTACT.phone}
+          <Phone size={18} aria-hidden="true" /> <a href={`tel:+${CONTACT_PHONE_DIGITS}`}>{CONTACT.phone}</a>
         </p>
         <p className="contact-line">
-          <MessageCircle size={18} aria-hidden="true" /> WhatsApp : {CONTACT.whatsapp}
+          <MessageCircle size={18} aria-hidden="true" /> WhatsApp :{' '}
+          <a href={`https://wa.me/${CONTACT_PHONE_DIGITS}`} target="_blank" rel="noopener noreferrer">
+            {CONTACT.whatsapp}
+          </a>
         </p>
         <p className="muted small-text">
           {CONTACT.hours[lang]} · {CONTACT.address}
