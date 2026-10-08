@@ -75,8 +75,19 @@
   color: var(--brand);
 }
 
-.terms p + p {
+.terms p + p,
+.terms p + ul,
+.terms ul + p {
   margin-top: var(--space-2);
+}
+
+.terms ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+}
+
+.terms li + li {
+  margin-top: var(--space-1);
 }
 
 .welcome-links {

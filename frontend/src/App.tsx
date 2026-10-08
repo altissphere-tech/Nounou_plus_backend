@@ -18,6 +18,7 @@ const Documents = lazyScreen(() => import('./pages/Documents'))
 const Favorites = lazyScreen(() => import('./pages/Favorites'))
 const ForgotPassword = lazyScreen(() => import('./pages/ForgotPassword'))
 const Help = lazyScreen(() => import('./pages/Help'))
+const LegalNotice = lazyScreen(() => import('./pages/LegalNotice'))
 const Home = lazyScreen(() => import('./pages/Home'))
 const JobDetail = lazyScreen(() => import('./pages/JobDetail'))
 const JobForm = lazyScreen(() => import('./pages/JobForm'))
@@ -25,6 +26,7 @@ const Jobs = lazyScreen(() => import('./pages/Jobs'))
 const MyJobs = lazyScreen(() => import('./pages/MyJobs'))
 const Matches = lazyScreen(() => import('./pages/Matches'))
 const Notifications = lazyScreen(() => import('./pages/Notifications'))
+const Privacy = lazyScreen(() => import('./pages/Privacy'))
 const ProfileForm = lazyScreen(() => import('./pages/ProfileForm'))
 const ReportForm = lazyScreen(() => import('./pages/ReportForm'))
 const ReviewForm = lazyScreen(() => import('./pages/ReviewForm'))
@@ -96,6 +98,8 @@ function Screens() {
               {/* Ouverts à tous, connecté ou non */}
               <Route path="/aide" element={<Help />} />
               <Route path="/conditions" element={<Terms />} />
+              <Route path="/confidentialite" element={<Privacy />} />
+              <Route path="/mentions-legales" element={<LegalNotice />} />
               <Route path="/email/confirmer" element={<ConfirmEmail />} />
               <Route path="/accueil" element={<Private><Home /></Private>} />
               <Route path="/profil" element={<Private><ProfileForm /></Private>} />

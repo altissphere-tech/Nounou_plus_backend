@@ -8,7 +8,9 @@ import Layout from './components/Layout'
 import { I18nProvider } from './i18n/I18nContext'
 import ForgotPassword from './pages/ForgotPassword'
 import Help from './pages/Help'
+import LegalNotice from './pages/LegalNotice'
 import Login from './pages/Login'
+import Privacy from './pages/Privacy'
 import Register from './pages/Register'
 import Terms from './pages/Terms'
 import Welcome from './pages/Welcome'
@@ -25,6 +27,8 @@ const SCREENS: [string, string, ReactNode][] = [
   ['mot de passe oublié', '/mot-de-passe-oublie', <ForgotPassword />],
   ['aide', '/aide', <Help />],
   ['conditions', '/conditions', <Terms />],
+  ['confidentialité', '/confidentialite', <Privacy />],
+  ['mentions légales', '/mentions-legales', <LegalNotice />],
 ]
 
 beforeEach(() => {

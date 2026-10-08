@@ -55,7 +55,8 @@ export default function Welcome() {
         ))}
       </ul>
       <p className="welcome-links">
-        <Link to="/aide">{t('help.title')}</Link> · <Link to="/conditions">{t('terms.title')}</Link>
+        <Link to="/aide">{t('help.title')}</Link> · <Link to="/conditions">{t('terms.title')}</Link> ·{' '}
+        <Link to="/confidentialite">{t('privacy.title')}</Link> · <Link to="/mentions-legales">{t('legal.title')}</Link>
       </p>
     </section>
   )
