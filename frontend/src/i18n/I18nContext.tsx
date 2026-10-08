@@ -1,24 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import en from './en'
 import fr from './fr'
 import type { TranslationKey } from './fr'
 import { interpolate } from './interpolate'
+import { DICTIONARIES, STORAGE_KEY, initialLanguage, loadLanguage } from './languages'
+import type { Language } from './languages'
 
-export type Language = 'fr' | 'en'
-
-const DICTIONARIES: Record<Language, Record<TranslationKey, string>> = { fr, en }
-const STORAGE_KEY = 'nounou.lang'
-
-function initialLanguage(): Language {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved === 'fr' || saved === 'en') return saved
-  } catch {
-    // Stockage indisponible (navigation privée) : on garde la valeur par défaut
-  }
-  return navigator.language?.toLowerCase().startsWith('en') ? 'en' : 'fr'
-}
+export type { Language } from './languages'
 
 interface I18nValue {
   lang: Language
@@ -36,19 +24,24 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, [lang])
 
   const setLang = useCallback((next: Language) => {
-    setLangState(next)
     try {
       localStorage.setItem(STORAGE_KEY, next)
     } catch {
       // Sans stockage, le choix vaut seulement pour cette visite
     }
+    // Sans connexion, la langue déjà téléchargée reste affichée
+    loadLanguage(next).then(
+      () => setLangState(next),
+      () => undefined,
+    )
   }, [])
 
   const value = useMemo<I18nValue>(
     () => ({
       lang,
       setLang,
-      t: (key, params) => interpolate(DICTIONARIES[lang][key], params),
+      // Tant que la langue choisie n'est pas téléchargée, le français s'affiche
+      t: (key, params) => interpolate((DICTIONARIES[lang] ?? fr)[key], params),
     }),
     [lang, setLang],
   )

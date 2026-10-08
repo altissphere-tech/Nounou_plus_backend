@@ -1,36 +1,41 @@
 import type { ReactNode } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import Layout from './components/Layout'
 import OfflineScreen from './components/OfflineScreen'
 import { I18nProvider, useI18n } from './i18n/I18nContext'
-import Account from './pages/Account'
-import ConfirmEmail from './pages/ConfirmEmail'
-import Conversation from './pages/Conversation'
-import Documents from './pages/Documents'
-import Favorites from './pages/Favorites'
-import ForgotPassword from './pages/ForgotPassword'
-import Help from './pages/Help'
-import Home from './pages/Home'
-import JobDetail from './pages/JobDetail'
-import JobForm from './pages/JobForm'
-import Jobs from './pages/Jobs'
-import MyJobs from './pages/MyJobs'
-import Login from './pages/Login'
-import Matches from './pages/Matches'
-import Notifications from './pages/Notifications'
-import ProfileForm from './pages/ProfileForm'
-import ReportForm from './pages/ReportForm'
-import ReviewForm from './pages/ReviewForm'
-import Search from './pages/Search'
-import Register from './pages/Register'
-import ResetPassword from './pages/ResetPassword'
-import Security from './pages/Security'
-import SocialComplete from './pages/SocialComplete'
-import Terms from './pages/Terms'
-import VerifyCode from './pages/VerifyCode'
 import Welcome from './pages/Welcome'
-import WorkerDetail from './pages/WorkerDetail'
+import { lazyScreen } from './routing/lazyScreen'
+import ScreenBoundary from './routing/ScreenBoundary'
+
+// Écran d'accueil des visiteurs : dans le fichier principal (affichage immédiat).
+// Les autres sont téléchargés à l'ouverture (voir routing/lazyScreen.ts).
+const Account = lazyScreen(() => import('./pages/Account'))
+const ConfirmEmail = lazyScreen(() => import('./pages/ConfirmEmail'))
+const Conversation = lazyScreen(() => import('./pages/Conversation'))
+const Documents = lazyScreen(() => import('./pages/Documents'))
+const Favorites = lazyScreen(() => import('./pages/Favorites'))
+const ForgotPassword = lazyScreen(() => import('./pages/ForgotPassword'))
+const Help = lazyScreen(() => import('./pages/Help'))
+const Home = lazyScreen(() => import('./pages/Home'))
+const JobDetail = lazyScreen(() => import('./pages/JobDetail'))
+const JobForm = lazyScreen(() => import('./pages/JobForm'))
+const Jobs = lazyScreen(() => import('./pages/Jobs'))
+const MyJobs = lazyScreen(() => import('./pages/MyJobs'))
+const Matches = lazyScreen(() => import('./pages/Matches'))
+const Notifications = lazyScreen(() => import('./pages/Notifications'))
+const ProfileForm = lazyScreen(() => import('./pages/ProfileForm'))
+const ReportForm = lazyScreen(() => import('./pages/ReportForm'))
+const ReviewForm = lazyScreen(() => import('./pages/ReviewForm'))
+const Search = lazyScreen(() => import('./pages/Search'))
+const ResetPassword = lazyScreen(() => import('./pages/ResetPassword'))
+const Security = lazyScreen(() => import('./pages/Security'))
+const SocialComplete = lazyScreen(() => import('./pages/SocialComplete'))
+const Terms = lazyScreen(() => import('./pages/Terms'))
+const WorkerDetail = lazyScreen(() => import('./pages/WorkerDetail'))
+const VerifyCode = lazyScreen(() => import('./pages/VerifyCode'))
+const Register = lazyScreen(() => import('./pages/Register'))
+const Login = lazyScreen(() => import('./pages/Login'))
 
 /**
  * Écrans réservés aux utilisateurs connectés. Sans connexion (déconnexion,
@@ -68,6 +73,18 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <Layout>
+            <Screens />
+          </Layout>
+        </BrowserRouter>
+      </AuthProvider>
+    </I18nProvider>
+  )
+}
+
+function Screens() {
+  const { pathname } = useLocation()
+  return (
+    <ScreenBoundary resetKey={pathname}>
             <Routes>
               <Route path="/" element={<Public><Welcome /></Public>} />
               <Route path="/inscription" element={<Public><Register /></Public>} />
@@ -102,9 +119,6 @@ export default function App() {
               <Route path="/annonces/:id" element={<OnlyFor role="travailleur"><JobDetail /></OnlyFor>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </Layout>
-        </BrowserRouter>
-      </AuthProvider>
-    </I18nProvider>
+    </ScreenBoundary>
   )
 }

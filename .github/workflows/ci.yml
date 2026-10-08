@@ -73,5 +73,7 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - name: Poids de l'application (limite pour la 3G)
+        run: npm run size
       - name: Vulnérabilités connues (npm audit)
         run: npm audit --audit-level=high
