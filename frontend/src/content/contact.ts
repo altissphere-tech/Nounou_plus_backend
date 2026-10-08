@@ -1,13 +1,13 @@
 /**
  * Coordonnées affichées dans « Aide » et « Conditions d'utilisation ».
- * Seule la raison sociale exacte reste à compléter par le fondateur.
+ * Identité légale complète (RCCM, ID. NAT., NIF) : voir content/legal.ts.
  */
 export const CONTACT = {
-  company: 'ALTIS Sphere Group (raison sociale à compléter)',
+  company: 'ALTIS SPHERE GROUP SARL',
   email: 'support@nounou-plus.com',
   phone: '+243 998 914 448',
   whatsapp: '+243 998 914 448',
-  address: '110, av. Biayi, Kalubwe, Lubumbashi, RD Congo',
+  address: '110, av. Biayi, quartier Kalubwe, Lubumbashi, RD Congo',
   hours: { fr: 'Lundi à samedi, 8 h – 18 h', en: 'Monday to Saturday, 8 am – 6 pm' },
 }
 

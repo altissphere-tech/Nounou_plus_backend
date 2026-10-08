@@ -48,6 +48,12 @@ export default function Help() {
         <Link to="/conditions" className="button small secondary">
           {t('terms.title')}
         </Link>
+        <Link to="/confidentialite" className="button small secondary">
+          {t('privacy.title')}
+        </Link>
+        <Link to="/mentions-legales" className="button small secondary">
+          {t('legal.title')}
+        </Link>
         {user && (
           <Link to="/securite" className="button small secondary">
             {t('security.title')}

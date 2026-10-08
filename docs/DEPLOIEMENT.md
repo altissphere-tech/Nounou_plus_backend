@@ -99,7 +99,7 @@ L'application et l'API sont sur le **même domaine** : aucun accès « CORS » �
 - [ ] Adresse d'administration changée, comptes de l'équipe avec mots de passe forts
 - [ ] Sauvegarde automatique faite **et** restauration testée
 - [ ] SMS et e-mails reçus sur de vrais téléphones et boîtes
-- [ ] Conditions d'utilisation et coordonnées du support à jour
+- [ ] Conditions d'utilisation, politique de confidentialité, mentions légales (hébergeur) et coordonnées du support à jour
 - [ ] Alerte de disponibilité et suivi des erreurs actifs
 
 ## 5. Coûts mensuels indicatifs (à confirmer)

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { LucideIcon } from 'lucide-react'
-import { BadgeCheck, Bell, ChevronRight, FileText, Heart, LifeBuoy, LogOut, ShieldCheck, UserPen } from 'lucide-react'
+import { BadgeCheck, Bell, ChevronRight, FileText, Heart, LifeBuoy, Lock, LogOut, Scale, ShieldCheck, UserPen } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import Avatar from '../components/Avatar'
 import PageHead from '../components/PageHead'
@@ -29,6 +29,8 @@ export default function Account() {
     { to: '/securite', icon: ShieldCheck, label: 'security.title' },
     { to: '/aide', icon: LifeBuoy, label: 'help.title' },
     { to: '/conditions', icon: FileText, label: 'terms.title' },
+    { to: '/confidentialite', icon: Lock, label: 'privacy.title' },
+    { to: '/mentions-legales', icon: Scale, label: 'legal.title' },
   ]
 
   return (

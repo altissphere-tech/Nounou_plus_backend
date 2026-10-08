@@ -1,11 +1,12 @@
 import type { Language } from '../i18n/I18nContext'
 import { CONTACT } from './contact'
+import { COMPANY } from './legal'
 
 /**
  * Conditions d'utilisation — BROUILLON préparé pour le fondateur.
  * ⚠️ Doit être relu et validé par un juriste (droit congolais) avant la mise en ligne.
  */
-export const TERMS_UPDATED = '2026-10-06'
+export const TERMS_UPDATED = '2026-10-08'
 
 export const TERMS: Record<Language, { title: string; body: string[] }[]> = {
   fr: [
@@ -42,6 +43,7 @@ export const TERMS: Record<Language, { title: string; body: string[] }[]> = {
         'Données collectées : numéro de téléphone, e-mail (facultatif), nom, quartier, informations du profil, photo, documents de vérification, références, messages.',
         "Avant un accord mutuel, les autres utilisateurs voient seulement votre prénom, l'initiale de votre nom, votre quartier, votre profil et votre photo validée. Votre nom complet et votre téléphone ne sont partagés qu'après un accord mutuel.",
         "Les documents de vérification et les coordonnées des références ne sont vus que par l'équipe NOUNOU+. Vous pouvez demander l'accès à vos données, leur correction ou la suppression de votre compte en écrivant au support.",
+        'Le détail (données collectées, partage, conservation, vos droits) figure dans la Politique de confidentialité, qui fait partie des présentes conditions.',
       ],
     },
     {
@@ -70,7 +72,7 @@ export const TERMS: Record<Language, { title: string; body: string[] }[]> = {
     },
     {
       title: '10. Contact',
-      body: [`${CONTACT.company} — ${CONTACT.address} — ${CONTACT.email} — ${CONTACT.phone}`],
+      body: [`${CONTACT.company} — ${CONTACT.address} — RCCM ${COMPANY.rccm} — ${CONTACT.email} — ${CONTACT.phone}`],
     },
   ],
   en: [
@@ -107,6 +109,7 @@ export const TERMS: Record<Language, { title: string; body: string[] }[]> = {
         'Data collected: phone number, email (optional), name, neighbourhood, profile information, photo, verification documents, references, messages.',
         'Before a mutual agreement, other users only see your first name, last-name initial, neighbourhood, profile and approved photo. Your full name and phone number are shared only after a mutual agreement.',
         'Verification documents and references’ contact details are only seen by the NOUNOU+ team. You can ask to access or correct your data, or to delete your account, by writing to support.',
+        'Details (data collected, sharing, retention, your rights) are in the Privacy policy, which is part of these terms.',
       ],
     },
     {
@@ -133,7 +136,7 @@ export const TERMS: Record<Language, { title: string; body: string[] }[]> = {
     },
     {
       title: '10. Contact',
-      body: [`${CONTACT.company} — ${CONTACT.address} — ${CONTACT.email} — ${CONTACT.phone}`],
+      body: [`${CONTACT.company} — ${CONTACT.address} — RCCM ${COMPANY.rccm} — ${CONTACT.email} — ${CONTACT.phone}`],
     },
   ],
 }
