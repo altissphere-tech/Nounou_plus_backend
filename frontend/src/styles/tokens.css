@@ -12,13 +12,14 @@
   --accent: #f5931e;
   --accent-light: #fff3e0;
   --accent-dark: #b86200;
+  --accent-text: #a35400; /* orange lisible pour du texte (prix, chiffres) : contraste 5,5:1 */
   --on-accent: #2b1600; /* texte posé sur l'orange */
 
   /* --- Neutres -------------------------------------------------------- */
   --white: #fff;
   --text: #1a1530;
   --muted: #6b6880;
-  --text-faint: #9a97ad;
+  --text-faint: #706d86; /* contraste 5:1 sur blanc (l'ancien gris clair était illisible) */
   --text-disabled: #b5b1c6;
   --border: #e6e2f0;
   --border-strong: #c9c3dd;
@@ -111,7 +112,9 @@
   --duration-slow: 320ms;
 
   /* --- Tailles minimales ---------------------------------------------- */
-  --touch-target: 44px; /* zone tactile minimale (recommandation WCAG / Apple / Google) */
+  --touch-target: 44px;
+  --focus-ring: var(--brand);
+  --focus-ring-on-brand: var(--white); /* zone tactile minimale (recommandation WCAG / Apple / Google) */
 
   font-family: var(--font-family);
   color: var(--text);

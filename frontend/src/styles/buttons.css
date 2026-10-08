@@ -54,6 +54,7 @@
   cursor: pointer;
   text-align: center;
   padding: var(--space-1-5);
+  min-height: var(--touch-target);
 }
 
 .lang-switch {
@@ -65,5 +66,14 @@
   border: 0;
   border-radius: var(--radius-pill);
   padding: var(--space-1-5) var(--space-3-5);
+  min-height: 36px;
   cursor: pointer;
+  /* Zone tactile agrandie sans changer l'apparence */
+  position: relative;
+}
+
+.lang-switch::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
 }

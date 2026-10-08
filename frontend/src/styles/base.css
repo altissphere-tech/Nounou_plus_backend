@@ -39,3 +39,60 @@ h2 {
 p {
   line-height: 1.5;
 }
+
+/* --- Accessibilité --------------------------------------------------- */
+
+/* Sélection au clavier : toujours bien visible (contour violet, blanc sur fond violet) */
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.header :focus-visible,
+.page-head :focus-visible,
+.welcome-hero :focus-visible,
+.button.primary:focus-visible,
+.bubble.mine :focus-visible {
+  outline-color: var(--focus-ring-on-brand);
+}
+
+.button.primary:focus-visible {
+  box-shadow: 0 0 0 5px var(--focus-ring);
+}
+
+/* Lien « Aller au contenu » : invisible tant qu'on n'utilise pas le clavier */
+.skip-link {
+  position: absolute;
+  left: var(--space-3);
+  top: -100px;
+  z-index: 100;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--brand-dark);
+  font-weight: 800;
+  box-shadow: var(--shadow-lg);
+}
+
+.skip-link:focus {
+  top: var(--space-3);
+}
+
+/* Texte lu par les lecteurs d'écran mais invisible à l'écran */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Le titre de l'écran reçoit le focus à chaque changement d'écran, sans contour */
+main:focus,
+h1[tabindex='-1']:focus {
+  outline: none;
+}

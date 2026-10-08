@@ -94,6 +94,7 @@ input[type='file'] {
 .report-link {
   align-self: flex-start;
   padding: 0;
+  min-height: var(--touch-target);
   font-size: var(--font-sm);
   color: var(--muted);
 }

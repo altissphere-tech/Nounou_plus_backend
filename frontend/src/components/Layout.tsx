@@ -19,6 +19,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   return (
     <div className={user ? 'app with-nav' : 'app'}>
+      <a href="#contenu" className="skip-link">
+        {t('a11y.skip')}
+      </a>
       <ScrollToTop />
       <header className="header">
         <Link to="/" className="header-logo">
@@ -28,6 +31,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <button
             type="button"
             className="lang-switch"
+            lang={lang === 'fr' ? 'en' : 'fr'}
             onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
           >
             {t('lang.switch')}
@@ -36,7 +40,9 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       </header>
       <OfflineBanner />
-      <main className="content">{children}</main>
+      <main id="contenu" className="content" tabIndex={-1}>
+        {children}
+      </main>
       <BottomNav />
       <IdleGuard />
     </div>

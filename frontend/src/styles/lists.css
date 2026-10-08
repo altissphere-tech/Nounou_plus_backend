@@ -95,6 +95,7 @@ select {
   width: auto;
   font-size: var(--font-md);
   padding: var(--space-2) var(--space-3-5);
+  min-height: var(--touch-target);
   border-radius: var(--radius-sm);
 }
 

@@ -4,6 +4,7 @@ import type { TranslationKey } from './fr'
 const en: Record<TranslationKey, string> = {
   'app.tagline': 'Trusted families and domestic workers in Lubumbashi',
   'lang.switch': 'Français',
+  'a11y.skip': 'Skip to content',
 
   'welcome.title': 'Welcome to NOUNOU+',
   'welcome.intro':
