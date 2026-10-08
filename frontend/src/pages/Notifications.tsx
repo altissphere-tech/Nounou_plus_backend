@@ -8,6 +8,7 @@ import PageHead from '../components/PageHead'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
 import { refreshNews } from '../matches/groups'
+import { ListSkeleton } from '../components/Skeleton'
 
 /** Phrase, icône et écran à ouvrir pour chaque type de notification. */
 function describe(n: AppNotification, t: (key: TranslationKey, values?: Record<string, string>) => string) {
@@ -75,7 +76,7 @@ export default function Notifications() {
   return (
     <section className="stack">
       <PageHead back={t('common.back')} title={t('notifications.title')} />
-      {items === undefined && <p className="muted">{t('common.loading')}</p>}
+      {items === undefined && <ListSkeleton />}
       {items === null && <p className="error">{t('list.error')}</p>}
       {items?.length === 0 && <p className="card muted">{t('notifications.empty')}</p>}
       {items && items.length > 0 && (

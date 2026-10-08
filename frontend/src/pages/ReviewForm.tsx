@@ -10,6 +10,7 @@ import Field from '../components/Field'
 import StarRating from '../components/StarRating'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
+import PageSkeleton from '../components/PageSkeleton'
 
 /** Évaluation de l'autre personne d'une mise en relation, après la période d'essai. */
 export default function ReviewForm() {
@@ -30,7 +31,7 @@ export default function ReviewForm() {
     )
   }, [matchId])
 
-  if (match === undefined) return <p className="muted">{t('common.loading')}</p>
+  if (match === undefined) return <PageSkeleton />
   if (match === null) return <p className="error">{t('matches.error')}</p>
 
   // Une famille note un travailleur, un travailleur note une famille

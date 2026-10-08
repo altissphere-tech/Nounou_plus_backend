@@ -13,6 +13,7 @@ import Stats from '../components/Stats'
 import { RatingLine } from '../lists/cards'
 import { money } from '../lists/format'
 import { useMyProfile } from '../profile/useMyProfile'
+import PageSkeleton from '../components/PageSkeleton'
 
 /** Détail d'une annonce vue par un travailleur, avec « Répondre à l'annonce ». */
 export default function JobDetail() {
@@ -32,7 +33,7 @@ export default function JobDetail() {
     })
   }, [id])
 
-  if (job === undefined) return <p className="muted">{t('common.loading')}</p>
+  if (job === undefined) return <PageSkeleton />
   if (job === null) {
     return (
       <div className="card">

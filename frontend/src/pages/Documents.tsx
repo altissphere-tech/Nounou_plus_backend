@@ -9,6 +9,7 @@ import Field from '../components/Field'
 import PageHead from '../components/PageHead'
 import { useI18n } from '../i18n/I18nContext'
 import References from '../profile/References'
+import PageSkeleton from '../components/PageSkeleton'
 
 const MAX_SIZE = 5 * 1024 * 1024 // 5 Mo, comme sur le serveur
 const DOC_TYPES: DocType[] = ['identite', 'reference']
@@ -29,7 +30,7 @@ export default function Documents() {
     myDocuments().then(setData, (err) => setData(err instanceof ApiError && err.status === 404 ? null : undefined))
   }, [version])
 
-  if (data === undefined) return <p className="muted">{t('common.loading')}</p>
+  if (data === undefined) return <PageSkeleton />
   if (data === null) {
     return (
       <div className="card">

@@ -3,10 +3,11 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import Layout from './components/Layout'
 import OfflineScreen from './components/OfflineScreen'
-import { I18nProvider, useI18n } from './i18n/I18nContext'
+import { I18nProvider } from './i18n/I18nContext'
 import Welcome from './pages/Welcome'
 import { lazyScreen } from './routing/lazyScreen'
 import ScreenBoundary from './routing/ScreenBoundary'
+import PageSkeleton from './components/PageSkeleton'
 
 // Écran d'accueil des visiteurs : dans le fichier principal (affichage immédiat).
 // Les autres sont téléchargés à l'ouverture (voir routing/lazyScreen.ts).
@@ -43,9 +44,8 @@ const Login = lazyScreen(() => import('./pages/Login'))
  */
 function Private({ children }: { children: ReactNode }) {
   const { user, unreachable } = useAuth()
-  const { t } = useI18n()
   if (unreachable && !user) return <OfflineScreen />
-  if (user === undefined) return <p className="muted">{t('common.loading')}</p>
+  if (user === undefined) return <PageSkeleton />
   return user ? children : <Navigate to="/" replace />
 }
 

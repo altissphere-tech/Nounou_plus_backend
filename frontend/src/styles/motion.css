@@ -1,0 +1,140 @@
+/* --- Mouvement : transitions et micro-interactions ---------------------- */
+/*
+ * Courtes (120 à 320 ms), sobres, et toutes désactivées quand le téléphone
+ * demande moins d'animations (voir en bas du fichier).
+ */
+
+/* Boutons, liens et contrôles : changements de couleur adoucis, léger appui */
+.button,
+.chip,
+.quick-chip,
+.segmented a,
+.segmented button,
+.icon-button,
+.favorite,
+.lang-switch,
+.bottom-nav-item,
+.card-link,
+.role-option {
+  transition:
+    background-color var(--duration) var(--ease-out),
+    border-color var(--duration) var(--ease-out),
+    color var(--duration) var(--ease-out),
+    box-shadow var(--duration) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.button:active:not(:disabled),
+.chip:active,
+.quick-chip:active,
+.icon-button:active,
+.favorite:active,
+.role-option:active {
+  transform: scale(0.97);
+}
+
+/* Cartes cliquables : se soulèvent légèrement à la souris (ordinateur) */
+.card.result {
+  transition:
+    transform var(--duration) var(--ease-out),
+    box-shadow var(--duration) var(--ease-out),
+    background-color var(--duration) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .card.result:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow), var(--shadow-sm);
+  }
+}
+
+/* Nouvel écran : apparition douce du contenu (une seule fois : la silhouette de
+   chargement, elle, s'affiche sans effet) */
+.content > :not([role='status']) {
+  animation: screen-in var(--duration-slow) var(--ease-out);
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Favori ajouté : le cœur « bat » une fois */
+.favorite.on svg {
+  animation: heart-pop var(--duration-slow) var(--ease-out);
+}
+
+@keyframes heart-pop {
+  40% {
+    transform: scale(1.3);
+  }
+}
+
+/* Confirmations (match, envoi, enregistrement) : apparition qui attire l'œil */
+.info-banner,
+.content [role='status']:not(.boot):not(.card-grid):not(section) {
+  animation: confirm-in var(--duration-slow) var(--ease-out);
+}
+
+@keyframes confirm-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* Message envoyé : arrive depuis le bas */
+.bubble.mine:last-of-type {
+  animation: bubble-in var(--duration) var(--ease-out);
+}
+
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+/* Fenêtre (avertissement d'inactivité) */
+.modal-backdrop {
+  animation: fade-in var(--duration) var(--ease-out);
+}
+
+.card.modal {
+  animation: confirm-in var(--duration-slow) var(--ease-out);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Pastille de notification : apparaît avec un petit rebond */
+.badge-dot {
+  animation: heart-pop var(--duration-slow) var(--ease-out);
+}
+
+/* Moins d'animations demandé par le téléphone : tout devient instantané */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .card.result:hover,
+  .button:active:not(:disabled),
+  .chip:active,
+  .quick-chip:active,
+  .icon-button:active,
+  .favorite:active,
+  .role-option:active {
+    transform: none;
+  }
+}

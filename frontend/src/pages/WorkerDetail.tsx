@@ -11,6 +11,7 @@ import PageHead from '../components/PageHead'
 import Stats from '../components/Stats'
 import TrustScore from '../components/TrustScore'
 import { money } from '../lists/format'
+import PageSkeleton from '../components/PageSkeleton'
 
 /** Fiche d'un travailleur vue par une famille, avec le bouton « Je suis intéressé(e) ». */
 export default function WorkerDetail() {
@@ -26,7 +27,7 @@ export default function WorkerDetail() {
     getWorkerReviews(id).then(setReviews, () => setReviews(null))
   }, [id])
 
-  if (worker === undefined) return <p className="muted">{t('common.loading')}</p>
+  if (worker === undefined) return <PageSkeleton />
   if (worker === null) {
     return (
       <div className="card">

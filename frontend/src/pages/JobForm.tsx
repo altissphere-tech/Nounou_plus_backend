@@ -8,6 +8,7 @@ import { errorText } from '../components/errors'
 import Field from '../components/Field'
 import { useI18n } from '../i18n/I18nContext'
 import { AVAILABILITIES, SERVICES } from '../profile/options'
+import PageSkeleton from '../components/PageSkeleton'
 
 const EMPTY: JobInput = {
   title: '',
@@ -40,7 +41,7 @@ export default function JobFormPage() {
     )
   }, [id])
 
-  if (initial === undefined) return <p className="muted">{t('common.loading')}</p>
+  if (initial === undefined) return <PageSkeleton />
   if (initial === null) return <p className="error">{t('jobs.notFound')}</p>
   return <JobForm id={id ? Number(id) : null} initial={initial} />
 }
