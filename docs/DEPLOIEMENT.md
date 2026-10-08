@@ -23,9 +23,11 @@ inutile. On avance par étapes, avec un **pilote limité** avant l'ouverture à 
 
 ### B. Corrections techniques obligatoires (moi)
 
-- Corriger les failles **élevées** et le **lot 1** de `docs/AUDIT_SECURITE_2026-10.md`.
-- Brancher le **vrai fournisseur SMS** : code aléatoire, haché, valable 10 minutes,
-  5 essais maximum, sans réponse différente selon que le numéro est inscrit ou non.
+- ~~Corriger les failles **élevées** et le **lot 1** de `docs/AUDIT_SECURITE_2026-10.md`~~ :
+  fait (voir la section « État des corrections » de l'audit).
+- Brancher le **vrai fournisseur SMS** dans `apps/accounts/sms.py`. Le reste est déjà prêt :
+  code aléatoire, haché, valable 10 minutes, 5 essais maximum, sans réponse différente selon
+  que le numéro est inscrit ou non.
 - Permettre le stockage des fichiers chez un fournisseur « S3 » si ce choix est fait.
 - Ajouter la **suppression du compte** par l'utilisateur (exigée aussi par Google
   Play et l'App Store pour l'application mobile).

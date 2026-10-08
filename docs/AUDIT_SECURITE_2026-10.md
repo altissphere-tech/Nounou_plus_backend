@@ -116,3 +116,52 @@ seulement dans un cas particulier.
    compte).
 3. **Lot 3, avec le vrai fournisseur SMS** : M4 et M9.
 4. **Lot 4, petites corrections** : M1, M2 et les points faibles.
+
+## 5. État des corrections (mise à jour)
+
+**Corrigées et couvertes par des tests automatiques :**
+
+- **Élevées** : E1, E2, E3.
+  - E3 a été corrigée selon le choix du fondateur : code SMS obligatoire avant tout accès, et le
+    vrai titulaire du numéro récupère le compte.
+- **Moyennes** : M1, M2, M3, M4, M5, M6, M7, M8, M9, M10.
+  - M3 a été corrigée selon le choix du fondateur : familles et annonces réservées aux
+    travailleurs vérifiés.
+  - M4 : les réponses ne révèlent plus si un numéro ou un e-mail est inscrit, y compris en
+    production sans SMS.
+  - M9 : le code SMS est prêt pour la production ; il ne reste qu'à brancher le fournisseur.
+  - M10 : 10 essais de connexion par 15 minutes, et une adresse d'administration obligatoire
+    en production. La double authentification reste à décider.
+- **Faibles** :
+  - avis d'un travailleur non vérifié ;
+  - photo d'un compte suspendu, dont le cache passe de 24 h à 1 h ;
+  - durée de connexion identique pour un e-mail connu ou inconnu ;
+  - documents téléchargés au lieu d'être ouverts dans l'administration ;
+  - connexion chiffrée imposée vers une base distante ;
+  - Pillow limité à trois formats ;
+  - lignes du journal protégées ;
+  - `pytest` mis à jour et vérifié par `pip-audit` dans la CI.
+
+**Changement de fonctionnement à connaître :**
+
+- L'inscription avec e-mail demande d'abord le code SMS. Le mot de passe et l'adresse sont
+  enregistrés juste après.
+- Une adresse e-mail ne permet de se connecter qu'une fois confirmée par le lien.
+- Les anciens comptes de test dont le numéro n'a jamais été confirmé doivent saisir un code SMS.
+  Si quelqu'un d'autre que le titulaire avait ajouté un mot de passe, un e-mail ou un compte
+  Google / Apple, ces accès sont retirés.
+
+**Restent ouvertes :**
+
+- Décisions du fondateur :
+  - B5 : cookies `HttpOnly` ;
+  - B6 : double authentification pour l'équipe ;
+  - B7 : suppression du compte, obligatoire pour les magasins d'applications.
+- Points faibles :
+  - aucune durée maximale de session ;
+  - réutilisation simultanée d'un même jeton de renouvellement ;
+  - envoi des e-mails pendant la requête au lieu d'en arrière-plan ;
+  - listes de messages et de favoris sans pagination ;
+  - masque du téléphone qui laisse voir l'opérateur et le dernier chiffre ;
+  - actions de la CI référencées par version plutôt que par empreinte.
+- Limite inhérente : après un accord mutuel, le retrait de l'autre personne se voit forcément.
