@@ -1,0 +1,305 @@
+/* --- Maquette Figma : en-têtes, avatars, chiffres clés, confiance ------ */
+
+/* Bandeau violet en haut d'un écran, dans le prolongement de l'en-tête */
+.page-head {
+  margin: -20px -16px var(--space-1);
+  padding: var(--space-1-5) var(--space-4) var(--space-6);
+  background: var(--brand);
+  color: var(--white);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3-5);
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: var(--font-2xl);
+  line-height: 1.2;
+}
+
+.page-head-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.page-head-overline {
+  margin: 0 0 var(--space-0-5);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.icon-button {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--on-brand-subtle);
+  color: var(--white);
+  cursor: pointer;
+}
+
+.head-pill {
+  align-self: flex-start;
+  font-size: var(--font-sm);
+  font-weight: 800;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--on-brand-subtle);
+}
+
+/* Petits titres de section en majuscules */
+.overline {
+  margin: 0;
+  font-size: var(--font-xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.section-title.overline {
+  margin-top: var(--space-3);
+}
+
+.avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--white);
+  font-weight: 800;
+  border: 2px solid var(--white);
+  box-shadow: var(--shadow-sm);
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.person-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  font-size: var(--font-sm);
+}
+
+.person .profile-name {
+  flex: 1;
+}
+
+.person-text .profile-name {
+  flex: none;
+  font-size: var(--font-base);
+}
+
+.price {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.list-count {
+  margin: var(--space-1) 0 0;
+  font-weight: 800;
+}
+
+/* Raccourcis de service dans l'en-tête */
+.quick-chips {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 0 var(--space-4) var(--space-0-5);
+  scrollbar-width: none;
+}
+
+.quick-chip {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: var(--font-sm);
+  font-weight: 700;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--on-brand-border);
+  background: transparent;
+  color: var(--white);
+  cursor: pointer;
+}
+
+.quick-chip.selected {
+  background: var(--white);
+  color: var(--brand);
+  border-color: var(--white);
+}
+
+/* Chiffres clés sous l'en-tête d'une fiche */
+.stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: var(--space-3-5) var(--space-1-5);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: var(--space-0-5);
+  text-align: center;
+  padding: 0 var(--space-1);
+}
+
+.stat + .stat {
+  border-left: 1px solid var(--border);
+}
+
+.stat dd {
+  margin: 0;
+  font-weight: 800;
+  font-size: var(--font-base);
+}
+
+.stat dd.accent {
+  color: var(--accent);
+}
+
+.stat dt {
+  font-size: var(--font-xs);
+  color: var(--muted);
+}
+
+/* Score de confiance */
+.trust {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.trust-steps {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-3-5);
+  border-radius: var(--radius-md);
+  background: var(--brand-light);
+  display: flex;
+  justify-content: space-around;
+  gap: var(--space-2);
+}
+
+.trust-steps li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.trust-steps li.done {
+  color: var(--brand);
+}
+
+.trust-dot {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 2px dashed var(--border-strong);
+  color: var(--text-faint);
+}
+
+.trust-steps li.done .trust-dot {
+  background: var(--brand);
+  border: 0;
+  color: var(--white);
+}
+
+.trust-note {
+  font-size: var(--font-sm);
+  color: var(--muted);
+}
+
+/* Accueil : « Pourquoi NOUNOU+ ? » */
+.welcome-why {
+  margin: var(--space-8) 0 var(--space-3);
+  text-align: left;
+}
+
+.features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2-5);
+  text-align: left;
+}
+
+.feature {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.feature > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  font-size: var(--font-sm);
+}
+
+.feature strong {
+  font-size: var(--font-base);
+}
+
+.feature-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: var(--brand-light);
+  color: var(--brand);
+}
+
+/* Conversation : en-tête violet avec la personne */
+.chat-head .avatar {
+  border-color: var(--on-brand-border-strong);
+}
+
+.chat-head .profile-name {
+  font-size: var(--font-lg);
+  color: var(--white);
+}
+
+.chat-head .phone {
+  color: var(--white);
+  opacity: 0.85;
+  font-size: var(--font-md);
+}
+
+.chat-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}

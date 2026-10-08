@@ -1,0 +1,159 @@
+/* --- Messages -------------------------------------------------------- */
+
+.error {
+  margin: 0;
+  padding: var(--space-2-5) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.info {
+  margin: 0;
+  color: var(--brand-dark);
+}
+
+.dev-hint {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--warning-bg);
+  font-size: var(--font-md);
+}
+
+.badge {
+  align-self: flex-start;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  padding: var(--space-1) var(--space-2-5);
+  border-radius: var(--radius-pill);
+  background: var(--accent-light);
+  color: var(--warning-text);
+}
+
+/* --- Détails du compte ----------------------------------------------- */
+
+.details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1-5) var(--space-4);
+  margin: 0;
+}
+
+.details dt {
+  color: var(--muted);
+}
+
+.details dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* --- Profil ---------------------------------------------------------- */
+
+textarea {
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.4;
+}
+
+.choices {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.choices .field-label {
+  width: 100%;
+  margin-bottom: var(--space-1);
+}
+
+.choices .field-hint {
+  width: 100%;
+}
+
+/* Choix sous forme de « pastilles » faciles à toucher */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2-5) var(--space-3-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: var(--font-md);
+  user-select: none;
+}
+
+.chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chip.selected {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--white);
+}
+
+.chip:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.card.highlight {
+  border-color: var(--brand);
+  background: var(--brand-light);
+}
+
+.profile-name {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  margin: 0;
+}
+
+.card p {
+  margin: 0;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+
+.tag {
+  font-size: var(--font-sm);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--brand-light);
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--accent-light);
+  font-size: var(--font-md);
+}
+
+.notice.success {
+  background: var(--success-bg);
+}
+
+.info-banner {
+  margin: 0;
+  padding: var(--space-2-5) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--success-bg);
+  color: var(--success);
+  font-weight: 600;
+}

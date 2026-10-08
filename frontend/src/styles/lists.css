@@ -1,0 +1,153 @@
+/* --- Listes et cartes de résultats ----------------------------------- */
+
+select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}
+
+.center {
+  text-align: center;
+}
+
+.card.result {
+  color: inherit;
+  text-decoration: none;
+  gap: var(--space-2);
+}
+
+.card.result:active {
+  background: var(--brand-light);
+}
+
+.result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.result-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+/* Le montant reste sur une seule ligne ; c'est le texte voisin qui passe à la ligne */
+.result-foot strong {
+  white-space: nowrap;
+}
+
+.result-foot span {
+  text-align: right;
+}
+
+.verified {
+  flex-shrink: 0;
+  font-size: var(--font-xs);
+  font-weight: 800;
+  color: var(--brand);
+  background: var(--brand-light);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+}
+
+.rating {
+  font-size: var(--font-md);
+  color: var(--muted);
+}
+
+.status {
+  flex-shrink: 0;
+  font-size: var(--font-sm);
+  font-weight: 700;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+}
+
+.status-ouverte {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.status-pourvue {
+  background: var(--brand-light);
+  color: var(--brand-dark);
+}
+
+.status-fermee {
+  background: var(--neutral-bg);
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.button.small {
+  display: inline-flex;
+  width: auto;
+  font-size: var(--font-md);
+  padding: var(--space-2) var(--space-3-5);
+  border-radius: var(--radius-sm);
+}
+
+.link.back {
+  align-self: flex-start;
+  padding: 0;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.pre-line {
+  white-space: pre-line;
+}
+
+.contents {
+  display: contents;
+}
+
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+/* --- Filtres --------------------------------------------------------- */
+
+.filters {
+  padding: 0;
+  gap: 0;
+}
+
+.filters summary {
+  padding: var(--space-3-5) var(--space-5);
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.filters-count {
+  background: var(--brand);
+  color: var(--white);
+  font-size: var(--font-xs);
+  border-radius: var(--radius-pill);
+  padding: 1px var(--space-2);
+}
+
+.filters-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0 var(--space-5) var(--space-5);
+}
