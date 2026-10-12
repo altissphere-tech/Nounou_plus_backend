@@ -486,6 +486,23 @@ const en: Record<TranslationKey, string> = {
   'idle.stay': 'Stay signed in',
   'idle.loggedOut': 'You were signed out after 30 minutes of inactivity. Sign in again to continue.',
   'nav.label': 'Main navigation',
+  'aside.label': 'More information',
+  'aside.preview.title': 'My profile as others see it',
+  'aside.preview.worker': 'Families see this. Your full name and phone number are only shared after a mutual agreement.',
+  'aside.preview.client': 'Verified workers see this. Your full name and phone number are only shared after a mutual agreement.',
+  'aside.preview.hiddenWorker': 'Families only see verified profiles: yours will appear once your documents are approved.',
+  'aside.preview.photoPending': 'Your photo will appear once approved by the team.',
+  'aside.preview.none': 'Create your profile to appear in searches.',
+  'aside.progress.title': 'Progress',
+  'aside.progress.count': '{done} of {total}',
+  'aside.progress.profile': 'Profile created',
+  'aside.progress.photo': 'Photo approved',
+  'aside.progress.email': 'Email confirmed (optional)',
+  'aside.progress.complete': 'Complete',
+  'aside.activity.title': 'Recent activity',
+  'aside.activity.all': 'See all',
+  'aside.help.title': 'Need help?',
+  'aside.help.call': 'Call',
 }
 
 export default en

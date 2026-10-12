@@ -13,6 +13,8 @@ import { useAuth } from '../auth/AuthContext'
 import { errorText } from '../components/errors'
 import Field from '../components/Field'
 import PageHead from '../components/PageHead'
+import { HelpCard, MyProfilePreviewCard } from '../components/SideCards'
+import WithAside from '../components/WithAside'
 import PasswordField from '../components/PasswordField'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
@@ -248,36 +250,44 @@ export default function Security() {
   return (
     <section className="stack">
       <PageHead back={t('common.back')} title={t('security.title')} />
-
-      <div className="card">
-        <h2>{t('security.tips')}</h2>
-        <ul className="tips">
-          {TIPS.map((tip) => (
-            <li key={tip}>
-              <CheckCircle2 size={18} aria-hidden="true" /> {t(tip)}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="card">
-        <h2>{t('security.privacy')}</h2>
-        <p>{t('security.privacy.before')}</p>
-        <p>{t('security.privacy.after')}</p>
-        <p className="muted small-text">{t('security.privacy.team')}</p>
-      </div>
-
-      <h2 className="overline">{t('security.account')}</h2>
-      <PhoneCard />
-      <EmailCard />
-      <PasswordCard />
-      <SessionsCard />
-      {user!.social_providers.length > 0 && (
+      <WithAside
+        aside={
+          <>
+            <MyProfilePreviewCard />
+            <HelpCard />
+          </>
+        }
+      >
         <div className="card">
-          <h2>{t('security.linked')}</h2>
-          <p>{user!.social_providers.map((p) => (p === 'google' ? 'Google' : 'Apple')).join(', ')}</p>
+          <h2>{t('security.tips')}</h2>
+          <ul className="tips">
+            {TIPS.map((tip) => (
+              <li key={tip}>
+                <CheckCircle2 size={18} aria-hidden="true" /> {t(tip)}
+              </li>
+            ))}
+          </ul>
         </div>
-      )}
+
+        <div className="card">
+          <h2>{t('security.privacy')}</h2>
+          <p>{t('security.privacy.before')}</p>
+          <p>{t('security.privacy.after')}</p>
+          <p className="muted small-text">{t('security.privacy.team')}</p>
+        </div>
+
+        <h2 className="overline">{t('security.account')}</h2>
+        <PhoneCard />
+        <EmailCard />
+        <PasswordCard />
+        <SessionsCard />
+        {user!.social_providers.length > 0 && (
+          <div className="card">
+            <h2>{t('security.linked')}</h2>
+            <p>{user!.social_providers.map((p) => (p === 'google' ? 'Google' : 'Apple')).join(', ')}</p>
+          </div>
+        )}
+      </WithAside>
     </section>
   )
 }

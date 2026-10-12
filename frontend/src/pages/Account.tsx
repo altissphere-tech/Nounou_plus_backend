@@ -4,6 +4,8 @@ import { BadgeCheck, Bell, ChevronRight, FileText, Heart, LifeBuoy, Lock, LogOut
 import { useAuth } from '../auth/AuthContext'
 import Avatar from '../components/Avatar'
 import PageHead from '../components/PageHead'
+import { HelpCard, ProfilePreviewCard, ProgressCard, RecentActivityCard } from '../components/SideCards'
+import WithAside from '../components/WithAside'
 import { useI18n } from '../i18n/I18nContext'
 import type { TranslationKey } from '../i18n/fr'
 import { useMyPhoto } from '../profile/useMyPhoto'
@@ -46,30 +48,41 @@ export default function Account() {
         </div>
       </PageHead>
 
-      {user!.warnings.length > 0 && <p className="notice">{t('account.hasWarnings')}</p>}
+      <WithAside
+        aside={
+          <>
+            <ProfilePreviewCard data={data} />
+            <ProgressCard data={data} />
+            <RecentActivityCard />
+            <HelpCard />
+          </>
+        }
+      >
+        {user!.warnings.length > 0 && <p className="notice">{t('account.hasWarnings')}</p>}
 
-      <ul className="menu">
-        {items.map((item) => (
-          <li key={item.to}>
-            <Link to={item.to} className="menu-item">
-              <span className="menu-icon" aria-hidden="true">
-                <item.icon size={20} />
-              </span>
-              <span className="menu-label">{t(item.label)}</span>
-              <ChevronRight size={18} aria-hidden="true" className="menu-chevron" />
-            </Link>
-          </li>
-        ))}
-      </ul>
+        <ul className="menu">
+          {items.map((item) => (
+            <li key={item.to}>
+              <Link to={item.to} className="menu-item">
+                <span className="menu-icon" aria-hidden="true">
+                  <item.icon size={20} />
+                </span>
+                <span className="menu-label">{t(item.label)}</span>
+                <ChevronRight size={18} aria-hidden="true" className="menu-chevron" />
+              </Link>
+            </li>
+          ))}
+        </ul>
 
-      <div className="card version">
-        <span className="overline">{t('account.version')}</span>
-        <span>NOUNOU+ {VERSION} · Lubumbashi</span>
-      </div>
+        <div className="card version">
+          <span className="overline">{t('account.version')}</span>
+          <span>NOUNOU+ {VERSION} · Lubumbashi</span>
+        </div>
 
-      <button type="button" className="button danger-outline" onClick={logout}>
-        <LogOut size={18} aria-hidden="true" /> {t('home.logout')}
-      </button>
+        <button type="button" className="button danger-outline" onClick={logout}>
+          <LogOut size={18} aria-hidden="true" /> {t('home.logout')}
+        </button>
+      </WithAside>
     </section>
   )
 }

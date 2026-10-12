@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { HelpCard, MyProfilePreviewCard } from '../components/SideCards'
+import WithAside from '../components/WithAside'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { saveClientProfile, saveWorkerProfile } from '../api/profiles'
@@ -143,120 +145,129 @@ function ProfileForm({ data }: { data: MyProfile }) {
 
   return (
     <section className="stack">
-      <PhotoPicker name={`${form.firstName} ${form.lastName}`.trim() || '?'} />
-      <form className="card" onSubmit={submit}>
-        <h1>{exists ? t('profile.edit.title') : t('profile.create.title')}</h1>
-        {!exists && (
-          <p className="muted">
-            {isWorker ? t('profile.create.intro.worker') : t('profile.create.intro.client')}
-          </p>
-        )}
+      <WithAside
+        aside={
+          <>
+            <MyProfilePreviewCard />
+            <HelpCard />
+          </>
+        }
+      >
+        <PhotoPicker name={`${form.firstName} ${form.lastName}`.trim() || '?'} />
+        <form className="card" onSubmit={submit}>
+          <h1>{exists ? t('profile.edit.title') : t('profile.create.title')}</h1>
+          {!exists && (
+            <p className="muted">
+              {isWorker ? t('profile.create.intro.worker') : t('profile.create.intro.client')}
+            </p>
+          )}
 
-        <Field label={t('profile.firstName')}>
-          <input
-            type="text"
-            required
-            autoComplete="given-name"
-            value={form.firstName}
-            onChange={(e) => update('firstName', e.target.value)}
-          />
-        </Field>
-        <Field label={t('profile.lastName')} hint={t('profile.lastName.hint')}>
-          <input
-            type="text"
-            required
-            autoComplete="family-name"
-            value={form.lastName}
-            onChange={(e) => update('lastName', e.target.value)}
-          />
-        </Field>
-        <Field label={t('profile.location')}>
-          <input
-            type="text"
-            required
-            placeholder={t('profile.location.placeholder')}
-            value={form.location}
-            onChange={(e) => update('location', e.target.value)}
-          />
-        </Field>
-
-        <fieldset className="choices">
-          <legend className="field-label">
-            {isWorker ? t('profile.services.worker') : t('profile.services.client')}
-          </legend>
-          {SERVICES.map((slug) => (
-            <label key={slug} className={`chip ${form.services.includes(slug) ? 'selected' : ''}`}>
-              <input
-                type="checkbox"
-                checked={form.services.includes(slug)}
-                onChange={() => toggleService(slug)}
-              />
-              {t(`service.${slug}`)}
-            </label>
-          ))}
-          <span className="field-hint">{t('profile.services.hint')}</span>
-        </fieldset>
-
-        <fieldset className="choices">
-          <legend className="field-label">
-            {isWorker ? t('profile.availability.worker') : t('profile.availability.client')}
-          </legend>
-          {AVAILABILITIES.map((value) => (
-            <label key={value} className={`chip ${form.availability === value ? 'selected' : ''}`}>
-              <input
-                type="radio"
-                name="availability"
-                checked={form.availability === value}
-                onChange={() => update('availability', value)}
-              />
-              {t(`availability.${value}`)}
-            </label>
-          ))}
-        </fieldset>
-
-        {isWorker && (
-          <Field label={t('profile.experience')}>
+          <Field label={t('profile.firstName')}>
             <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={50}
+              type="text"
               required
-              value={form.experience}
-              onChange={(e) => update('experience', e.target.value)}
+              autoComplete="given-name"
+              value={form.firstName}
+              onChange={(e) => update('firstName', e.target.value)}
             />
           </Field>
-        )}
+          <Field label={t('profile.lastName')} hint={t('profile.lastName.hint')}>
+            <input
+              type="text"
+              required
+              autoComplete="family-name"
+              value={form.lastName}
+              onChange={(e) => update('lastName', e.target.value)}
+            />
+          </Field>
+          <Field label={t('profile.location')}>
+            <input
+              type="text"
+              required
+              placeholder={t('profile.location.placeholder')}
+              value={form.location}
+              onChange={(e) => update('location', e.target.value)}
+            />
+          </Field>
 
-        <Field label={isWorker ? t('profile.salary') : t('profile.budget')} hint={t('profile.amount.hint')}>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="any"
-            required={isWorker}
-            value={form.amount}
-            onChange={(e) => update('amount', e.target.value)}
-          />
-        </Field>
+          <fieldset className="choices">
+            <legend className="field-label">
+              {isWorker ? t('profile.services.worker') : t('profile.services.client')}
+            </legend>
+            {SERVICES.map((slug) => (
+              <label key={slug} className={`chip ${form.services.includes(slug) ? 'selected' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={form.services.includes(slug)}
+                  onChange={() => toggleService(slug)}
+                />
+                {t(`service.${slug}`)}
+              </label>
+            ))}
+            <span className="field-hint">{t('profile.services.hint')}</span>
+          </fieldset>
 
-        <Field label={isWorker ? t('profile.bio') : t('profile.needs')}>
-          <textarea
-            rows={4}
-            placeholder={isWorker ? t('profile.bio.placeholder') : t('profile.needs.placeholder')}
-            value={form.text}
-            onChange={(e) => update('text', e.target.value)}
-          />
-        </Field>
+          <fieldset className="choices">
+            <legend className="field-label">
+              {isWorker ? t('profile.availability.worker') : t('profile.availability.client')}
+            </legend>
+            {AVAILABILITIES.map((value) => (
+              <label key={value} className={`chip ${form.availability === value ? 'selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="availability"
+                  checked={form.availability === value}
+                  onChange={() => update('availability', value)}
+                />
+                {t(`availability.${value}`)}
+              </label>
+            ))}
+          </fieldset>
 
-        {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="button primary" disabled={busy}>
-          {busy ? t('common.loading') : t('profile.save')}
-        </button>
-        <Link to="/accueil" className="link">
-          {t('profile.cancel')}
-        </Link>
-      </form>
+          {isWorker && (
+            <Field label={t('profile.experience')}>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={50}
+                required
+                value={form.experience}
+                onChange={(e) => update('experience', e.target.value)}
+              />
+            </Field>
+          )}
+
+          <Field label={isWorker ? t('profile.salary') : t('profile.budget')} hint={t('profile.amount.hint')}>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              required={isWorker}
+              value={form.amount}
+              onChange={(e) => update('amount', e.target.value)}
+            />
+          </Field>
+
+          <Field label={isWorker ? t('profile.bio') : t('profile.needs')}>
+            <textarea
+              rows={4}
+              placeholder={isWorker ? t('profile.bio.placeholder') : t('profile.needs.placeholder')}
+              value={form.text}
+              onChange={(e) => update('text', e.target.value)}
+            />
+          </Field>
+
+          {error && <p className="error" role="alert">{error}</p>}
+          <button type="submit" className="button primary" disabled={busy}>
+            {busy ? t('common.loading') : t('profile.save')}
+          </button>
+          <Link to="/accueil" className="link">
+            {t('profile.cancel')}
+          </Link>
+        </form>
+      </WithAside>
     </section>
   )
 }

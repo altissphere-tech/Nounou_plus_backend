@@ -1,0 +1,153 @@
+/*
+ * Colonne d'informations à droite (composant WithAside), grand écran uniquement.
+ * Sur téléphone et tablette, les enveloppes sont transparentes : rien ne change.
+ */
+.aside-layout,
+.aside-main {
+  display: contents;
+}
+
+/* Ordinateur, avant l'apparition de la colonne : même largeur de lecture qu'avant */
+@media (min-width: 1024px) {
+  .with-nav .aside-main > * {
+    width: 100%;
+    max-width: 820px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .with-nav .aside-layout,
+  .app:not(.with-nav) .aside-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 820px) minmax(300px, 380px);
+    gap: var(--space-6);
+    align-items: start;
+  }
+
+  .with-nav .aside-main > * {
+    max-width: none;
+  }
+
+  .aside-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3-5);
+    min-width: 0;
+  }
+
+  .side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+}
+
+.side-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2-5);
+}
+
+.side-card h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-base);
+  color: var(--brand);
+}
+
+.side-card .button {
+  align-self: flex-start;
+}
+
+.side-card .verified {
+  margin-left: var(--space-2);
+}
+
+.side-note {
+  margin: 0;
+  padding: var(--space-2-5) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--brand-light);
+  color: var(--brand-dark);
+  font-size: var(--font-sm);
+}
+
+.side-count {
+  margin-left: auto;
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--accent-light);
+  color: var(--accent-text);
+  font-size: var(--font-xs);
+}
+
+.side-progress {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--border);
+  overflow: hidden;
+}
+
+.side-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand);
+  transition: width var(--duration-slow) var(--ease-out);
+}
+
+/* Étapes en liste verticale (au lieu des trois pastilles de l'accueil) */
+.trust-steps.side-steps {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.trust-steps.side-steps li {
+  flex-direction: row;
+  gap: var(--space-2-5);
+}
+
+.trust-steps.side-steps .trust-dot {
+  width: 26px;
+  height: 26px;
+}
+
+.side-activity {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.side-activity li + li {
+  border-top: 1px solid var(--border);
+}
+
+.side-activity a {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-2-5);
+  align-items: start;
+  padding: var(--space-2-5) 0;
+  color: var(--text);
+  text-decoration: none;
+  font-size: var(--font-sm);
+}
+
+.side-activity a.unread {
+  font-weight: 700;
+}
+
+.side-activity svg {
+  color: var(--brand);
+  margin-top: var(--space-0-5);
+}
+
+.side-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}

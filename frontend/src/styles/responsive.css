@@ -139,7 +139,7 @@
   }
 
   /* Pages de lecture et formulaires : largeur confortable, alignés à gauche */
-  .with-nav .content > section > :not(.page-head):not(.card-grid):not(.detail-grid):not(.profile-card) {
+  .with-nav .content > section > :not(.page-head):not(.card-grid):not(.detail-grid):not(.profile-card):not(.aside-layout) {
     width: 100%;
     max-width: 820px;
   }

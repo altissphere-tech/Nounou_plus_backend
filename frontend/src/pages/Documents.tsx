@@ -7,6 +7,8 @@ import type { DocType, VerificationDocument } from '../api/types'
 import { errorText } from '../components/errors'
 import Field from '../components/Field'
 import PageHead from '../components/PageHead'
+import { HelpCard, MyProgressCard } from '../components/SideCards'
+import WithAside from '../components/WithAside'
 import { useI18n } from '../i18n/I18nContext'
 import References from '../profile/References'
 import PageSkeleton from '../components/PageSkeleton'
@@ -69,53 +71,62 @@ export default function Documents() {
   return (
     <section className="stack">
       <PageHead back={t('common.back')} title={t('docs.title')} />
-      <div className={`notice ${data.is_verified ? 'success' : ''}`}>
-        <strong>{data.is_verified ? `✔ ${t('docs.verified')}` : t('docs.notVerified')}</strong>
-        <span>{t('docs.intro')}</span>
-      </div>
+      <WithAside
+        aside={
+          <>
+            <MyProgressCard />
+            <HelpCard />
+          </>
+        }
+      >
+        <div className={`notice ${data.is_verified ? 'success' : ''}`}>
+          <strong>{data.is_verified ? `✔ ${t('docs.verified')}` : t('docs.notVerified')}</strong>
+          <span>{t('docs.intro')}</span>
+        </div>
 
-      <form className="card" onSubmit={submit}>
-        <fieldset className="choices">
-          <legend className="field-label">{t('docs.type')}</legend>
-          {DOC_TYPES.map((type) => (
-            <label key={type} className={`chip ${docType === type ? 'selected' : ''}`}>
-              <input type="radio" name="doc_type" checked={docType === type} onChange={() => setDocType(type)} />
-              {t(`docType.${type}`)}
-            </label>
-          ))}
-        </fieldset>
-        <Field label={t('docs.file')} hint={t('docs.file.hint')}>
-          <input
-            type="file"
-            required
-            accept="image/jpeg,image/png,application/pdf"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          />
-        </Field>
-        {message && <p className={message.ok ? 'info-banner' : 'error'} role="status">{message.text}</p>}
-        <button type="submit" className="button primary" disabled={busy || !file}>
-          {busy ? t('common.loading') : t('docs.send')}
-        </button>
-      </form>
+        <form className="card" onSubmit={submit}>
+          <fieldset className="choices">
+            <legend className="field-label">{t('docs.type')}</legend>
+            {DOC_TYPES.map((type) => (
+              <label key={type} className={`chip ${docType === type ? 'selected' : ''}`}>
+                <input type="radio" name="doc_type" checked={docType === type} onChange={() => setDocType(type)} />
+                {t(`docType.${type}`)}
+              </label>
+            ))}
+          </fieldset>
+          <Field label={t('docs.file')} hint={t('docs.file.hint')}>
+            <input
+              type="file"
+              required
+              accept="image/jpeg,image/png,application/pdf"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+          </Field>
+          {message && <p className={message.ok ? 'info-banner' : 'error'} role="status">{message.text}</p>}
+          <button type="submit" className="button primary" disabled={busy || !file}>
+            {busy ? t('common.loading') : t('docs.send')}
+          </button>
+        </form>
 
-      <div className="card">
-        <h2>{t('docs.list')}</h2>
-        {data.documents.length === 0 && <p className="muted">{t('docs.none')}</p>}
-        {data.documents.map((doc) => (
-          <div key={doc.id} className="doc-row">
-            <div>
-              <strong>{t(`docName.${doc.doc_type}`)}</strong>
-              <span className="muted"> · {date(doc.created_at)}</span>
-              {doc.status === 'rejete' && doc.rejection_reason && (
-                <p className="error-text">{t('docs.reason', { reason: doc.rejection_reason })}</p>
-              )}
+        <div className="card">
+          <h2>{t('docs.list')}</h2>
+          {data.documents.length === 0 && <p className="muted">{t('docs.none')}</p>}
+          {data.documents.map((doc) => (
+            <div key={doc.id} className="doc-row">
+              <div>
+                <strong>{t(`docName.${doc.doc_type}`)}</strong>
+                <span className="muted"> · {date(doc.created_at)}</span>
+                {doc.status === 'rejete' && doc.rejection_reason && (
+                  <p className="error-text">{t('docs.reason', { reason: doc.rejection_reason })}</p>
+                )}
+              </div>
+              <span className={`status doc-${doc.status}`}>{t(`docStatus.${doc.status}`)}</span>
             </div>
-            <span className={`status doc-${doc.status}`}>{t(`docStatus.${doc.status}`)}</span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <References />
+        <References />
+      </WithAside>
     </section>
   )
 }

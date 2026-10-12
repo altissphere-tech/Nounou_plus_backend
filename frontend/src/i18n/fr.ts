@@ -485,6 +485,23 @@ const fr = {
   'idle.stay': 'Rester connecté(e)',
   'idle.loggedOut': 'Vous avez été déconnecté(e) après 30 minutes d’inactivité. Reconnectez-vous pour continuer.',
   'nav.label': 'Navigation principale',
+  'aside.label': 'Informations complémentaires',
+  'aside.preview.title': 'Mon profil vu par les autres',
+  'aside.preview.worker': 'Les familles voient ceci. Votre nom complet et votre téléphone ne sont partagés qu’après un accord mutuel.',
+  'aside.preview.client': 'Les travailleurs vérifiés voient ceci. Votre nom complet et votre téléphone ne sont partagés qu’après un accord mutuel.',
+  'aside.preview.hiddenWorker': 'Les familles ne voient que les profils vérifiés : le vôtre apparaîtra une fois vos documents validés.',
+  'aside.preview.photoPending': 'Votre photo apparaîtra une fois validée par l’équipe.',
+  'aside.preview.none': 'Créez votre profil pour apparaître dans les recherches.',
+  'aside.progress.title': 'Avancement',
+  'aside.progress.count': '{done} sur {total}',
+  'aside.progress.profile': 'Profil créé',
+  'aside.progress.photo': 'Photo validée',
+  'aside.progress.email': 'E-mail confirmé (facultatif)',
+  'aside.progress.complete': 'Compléter',
+  'aside.activity.title': 'Activité récente',
+  'aside.activity.all': 'Tout voir',
+  'aside.help.title': 'Besoin d’aide ?',
+  'aside.help.call': 'Appeler',
 } as const
 
 export default fr

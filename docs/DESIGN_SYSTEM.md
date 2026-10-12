@@ -99,6 +99,19 @@ La police est **Nunito** (`--font-family`). Les tailles disponibles sont :
 | Chiffres clés | `components/Stats.tsx` | |
 | Favori | `components/FavoriteButton.tsx` | |
 | Squelette | `components/Skeleton.tsx` | Forme du contenu pendant le chargement |
+| Colonne de droite | `components/WithAside.tsx`, `SideCards.tsx` | Grand écran (≥ 1280 px) : remplit la place libre à côté des pages étroites |
+
+## Colonne de droite (grand écran)
+
+À partir de 1280 px, les pages étroites (Mon compte, Sécurité, Notifications, Aide, Mes documents,
+Modifier mon profil) affichent une colonne d'informations à droite. Règles :
+
+- **Uniquement des informations déjà présentes ailleurs** dans l'application (profil, contrôles,
+  notifications, contacts du support, conseils de sécurité), avec les mêmes règles de confidentialité :
+  « Mon profil vu par les autres » montre le prénom et l'initiale, jamais le nom complet ni le téléphone.
+- **Rien ne change sous 1280 px** : la colonne n'est pas créée et ses données ne sont pas chargées
+  (vérifié écran par écran, au pixel près, à 390 et 1 100 px).
+- Les listes (recherche, relations, annonces) n'en ont pas besoin : elles occupent déjà la largeur.
 
 ## Ajouter ou modifier un écran
 
