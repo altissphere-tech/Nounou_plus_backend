@@ -20,6 +20,7 @@ from .models import Message
 from .serializers import MessageCreateSerializer, MessageSerializer
 
 CLOSED_MESSAGE = "La messagerie n'est disponible qu'après un match mutuel."
+UNVERIFIED_MESSAGE = "La messagerie sera de nouveau disponible une fois votre profil vérifié."
 
 
 class ConversationView(APIView):
@@ -39,6 +40,8 @@ class ConversationView(APIView):
         match = get_object_or_404(Match.objects.for_user(request.user), pk=match_id)
         if match.status_seen_by(request.user) != Match.STATUS_MUTUAL:
             return match, Response({"detail": CLOSED_MESSAGE}, status=status.HTTP_403_FORBIDDEN)
+        if not match.contact_open_for(request.user):
+            return match, Response({"detail": UNVERIFIED_MESSAGE}, status=status.HTTP_403_FORBIDDEN)
         return match, None
 
     @extend_schema(

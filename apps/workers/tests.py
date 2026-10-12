@@ -312,8 +312,10 @@ class TestWorkerSearch:
         assert response.data["count"] == 3
 
     def test_valeur_invalide_renvoie_400(self, client_user, workers):
+        # « NaN » / « Infinity » : erreur 400, jamais une erreur du serveur (test d'intrusion 2026)
         for params in ({"max_salary": "beaucoup"}, {"min_experience": "-1"},
-                       {"availability": "nuit"}, {"ordering": "nom"}):
+                       {"availability": "nuit"}, {"ordering": "nom"},
+                       {"max_salary": "NaN"}, {"max_salary": "sNaN"}, {"max_salary": "Infinity"}):
             response = auth_client(client_user).get(self.url, params)
             assert response.status_code == status.HTTP_400_BAD_REQUEST, params
 

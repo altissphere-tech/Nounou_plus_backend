@@ -32,6 +32,15 @@ DATABASES["default"]["OPTIONS"] = {
 if ADMIN_URL.strip("/") == "admin":  # noqa: F405
     raise ImproperlyConfigured("Choisissez une ADMIN_URL non évidente pour la production (ex : gestion-xxxx/).")
 
+# Les liens envoyés par e-mail (mot de passe oublié, confirmation) pointent vers
+# l'application : adresse obligatoire et en HTTPS
+if not FRONTEND_URL.startswith("https://"):  # noqa: F405
+    raise ImproperlyConfigured("FRONTEND_URL doit être l'adresse HTTPS de l'application (ex : https://nounou-plus.com).")
+
+# Fichiers envoyés (photos, pièces d'identité) lisibles par le seul compte du serveur
+FILE_UPLOAD_PERMISSIONS = 0o600
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o700
+
 # Cache partagé (base de données) : les limites d'essais sont communes à tous les
 # processus du serveur. Créer la table une fois : python manage.py createcachetable
 CACHES = {
@@ -66,4 +75,18 @@ EMAIL_USE_TLS = True
 SPECTACULAR_SETTINGS = {
     **SPECTACULAR_SETTINGS,  # noqa: F405
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
+}
+
+# Erreurs du serveur (500) écrites dans le journal : sans cela, elles seraient perdues
+# (aucune adresse ADMINS pour les recevoir par e-mail)
+LOGGING = {
+    **LOGGING,  # noqa: F405
+    "handlers": {
+        **LOGGING["handlers"],  # noqa: F405
+        "errors_console": {"class": "logging.StreamHandler", "level": "ERROR"},
+    },
+    "loggers": {
+        **LOGGING["loggers"],  # noqa: F405
+        "django": {"handlers": ["errors_console"], "level": "ERROR", "propagate": False},
+    },
 }

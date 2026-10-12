@@ -268,3 +268,18 @@ class TestAdmin:
         report(client_profile.user, worker.id)
         client.force_login(admin_user)
         assert client.get(reverse("admin:reports_report_changelist")).status_code == 200
+
+
+@pytest.mark.django_db
+class TestSignalementParUnTravailleurNonVerifie:
+    """Test d'intrusion d'octobre 2026 : pas de sondage des familles par les signalements."""
+
+    def test_famille_inconnue_refusee(self, client_profile):
+        unverified = make_worker("+243877000050", verified=False)
+        assert report(unverified.user, client_profile.id).status_code == status.HTTP_404_NOT_FOUND
+        assert not Report.objects.exists()
+
+    def test_famille_deja_en_relation_acceptee(self, client_profile):
+        unverified = make_worker("+243877000051", verified=False)
+        Match.objects.create(client=client_profile, worker=unverified)
+        assert report(unverified.user, client_profile.id).status_code == status.HTTP_201_CREATED

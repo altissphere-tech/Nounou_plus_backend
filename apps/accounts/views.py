@@ -2,6 +2,8 @@
 Vues (endpoints) de l'app accounts.
 Chaque vue correspond à une URL et traite une action précise.
 """
+from collections.abc import Mapping
+
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
@@ -31,6 +33,7 @@ from common.throttles import (
     LoginEmailThrottle,
     OtpVerifyPhoneThrottle,
     SmsPhoneThrottle,
+    check_sms_send,
     throttle,
 )
 
@@ -63,12 +66,23 @@ class OTPServiceUnavailable(APIException):
     default_code = "otp_unavailable"
 
 
-def _send_otp(user) -> None:
-    """Génère l'OTP de l'utilisateur, ou renvoie une erreur 503 si l'envoi est indisponible."""
+def _send_otp(user, request=None) -> None:
+    """
+    Génère l'OTP de l'utilisateur, ou renvoie une erreur 503 si l'envoi est indisponible.
+    Avec `request`, vérifie d'abord les limites d'envoi par numéro et par appareil ; sans,
+    l'appelant les a déjà vérifiées (avant de savoir si le numéro est inscrit).
+    """
+    if request is not None:
+        check_sms_send(request, user.phone)
     try:
         user.generate_otp()
     except OTPUnavailableError:
         raise OTPServiceUnavailable()
+
+
+def _field(request, name: str):
+    """Valeur d'un champ envoyé, ou None si le corps n'est pas un objet JSON (ex : une liste)."""
+    return request.data.get(name) if isinstance(request.data, Mapping) else None
 
 
 def _require_sms() -> None:
@@ -77,9 +91,9 @@ def _require_sms() -> None:
         raise OTPServiceUnavailable()
 
 
-def _phone_verification_response(user, extra: dict | None = None) -> Response:
+def _phone_verification_response(user, request, extra: dict | None = None) -> Response:
     """Le numéro du compte n'est pas encore confirmé : un code lui est envoyé."""
-    _send_otp(user)
+    _send_otp(user, request)
     return Response(
         {
             "detail": PHONE_UNVERIFIED_MESSAGE,
@@ -190,7 +204,7 @@ class RegisterView(APIView):
                 if not existing.phone_verified and existing.role != serializer.validated_data["role"]:
                     existing.role = serializer.validated_data["role"]
                     existing.save(update_fields=["role"])
-            _send_otp(user)
+            _send_otp(user, request)
         return Response({"message": REGISTER_SMS_MESSAGE}, status=status.HTTP_201_CREATED)
 
 
@@ -220,6 +234,8 @@ class OTPRequestView(APIView):
         serializer = OTPRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         _require_sms()
+        # Compté même pour un numéro inconnu : la limite ne révèle pas qui est inscrit
+        check_sms_send(request, serializer.validated_data["phone"])
         user = serializer.get_user()
         if user is not None:
             _send_otp(user)
@@ -259,7 +275,7 @@ class OTPVerifyView(APIView):
     def post(self, request):
         serializer = OTPVerifySerializer(data=request.data)
         if not serializer.is_valid():
-            security_log.event("code_sms_refuse", request, numero=security_log.fingerprint(request.data.get("phone")))
+            security_log.event("code_sms_refuse", request, numero=security_log.fingerprint(_field(request, "phone")))
             raise ValidationError(serializer.errors)
         user = serializer.validated_data["user"]
         if serializer.validated_data.get("first_verification"):
@@ -345,11 +361,11 @@ class EmailLoginView(APIView):
     def post(self, request):
         serializer = EmailLoginSerializer(data=request.data)
         if not serializer.is_valid():
-            security_log.event("connexion_refusee", request, email=security_log.fingerprint(request.data.get("email")))
+            security_log.event("connexion_refusee", request, email=security_log.fingerprint(_field(request, "email")))
             raise ValidationError(serializer.errors)
         user = serializer.validated_data["user"]
         if not user.phone_verified:
-            return _phone_verification_response(user)
+            return _phone_verification_response(user, request)
         security_log.event("connexion", request, compte=user.pk, methode="email")
         return _login_response(user, "Connexion réussie.")
 
@@ -559,7 +575,7 @@ class SocialLoginView(APIView):
             if link is None:
                 SocialAccount.objects.get_or_create(user=user, provider=provider, uid=identity.uid)
             if not user.phone_verified:
-                return _phone_verification_response(user)
+                return _phone_verification_response(user, request)
             security_log.event("connexion", request, compte=user.pk, methode=provider)
             return _login_response(user, "Connexion réussie.")
 
@@ -588,7 +604,7 @@ class SocialLoginView(APIView):
             {"p": provider, "u": identity.uid, "e": identity.email or "", "n": str(target.phone)},
             salt=SOCIAL_TICKET_SALT,
         )
-        return _phone_verification_response(target, {"social_ticket": ticket})
+        return _phone_verification_response(target, request, {"social_ticket": ticket})
 
 
 def _link_social_ticket(user, ticket: str, request) -> None:
@@ -708,7 +724,7 @@ class LogoutView(APIView):
     )
     def post(self, request):
         try:
-            RefreshToken(str(request.data.get("refresh", ""))).blacklist()
+            RefreshToken(str(_field(request, "refresh") or "")).blacklist()
         except TokenError:
             pass
         return Response({"message": "Déconnecté."})

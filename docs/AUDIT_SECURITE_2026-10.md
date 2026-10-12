@@ -165,3 +165,41 @@ seulement dans un cas particulier.
   - masque du téléphone qui laisse voir l'opérateur et le dernier chiffre ;
   - actions de la CI référencées par version plutôt que par empreinte.
 - Limite inhérente : après un accord mutuel, le retrait de l'autre personne se voit forcément.
+
+## 6. Test d'intrusion du 12 octobre 2026
+
+Nouveau test, mené comme un attaquant sur une copie locale, en trois volets : connexion et
+comptes, droits d'accès et confidentialité, réglages du serveur, fichiers, application et
+bibliothèques. Chaque faille a été reproduite, puis la correction a été prouvée par un test.
+Les corrections précédentes (E1 à E3, M1 à M10) tiennent toujours.
+
+**Aucune faille critique ni élevée.** `pip-audit` et `npm audit` ne signalent rien.
+
+| # | Niveau | Faille | Correction |
+|---|---|---|---|
+| P1 | Moyenne | La connexion Google / Apple ne comptait pas les SMS : on pouvait inonder un numéro de codes. | Limites d'envoi par numéro et par appareil vérifiées avant **chaque** envoi de code, quel que soit le chemin. |
+| P2 | Moyenne | Un travailleur non vérifié lisait les avis reçus par les familles (souvent des noms et adresses). | Avis d'une famille réservés aux travailleurs vérifiés et à la famille elle-même. |
+| P3 | Moyenne | Un travailleur non vérifié pouvait signaler n'importe quelle famille et sonder lesquelles existent. | Seulement les familles visibles pour lui, ou déjà en relation avec lui. |
+| P4 | Faible | Un travailleur qui perdait son badge gardait le téléphone, les besoins et la messagerie des familles. | **Décision du fondateur** : accès coupé jusqu'à une nouvelle vérification. |
+| P5 | Faible | Un accord retiré au bout d'une seconde permettait un avis 7 jours plus tard. | **Décision du fondateur** : l'accord doit être resté actif 7 jours au total. |
+| P6 | Faible | Limite d'essais de l'administration contournable en écrivant le numéro autrement (`08…`, `+243 …`). | Numéro normalisé avant le comptage. |
+| P7 | Faible | Une requête mal formée (liste au lieu d'objet, `NaN`) provoquait une erreur du serveur. | Réponse 400. Les 50 routes de l'API ont été testées avec des données malformées. |
+| P8 | Faible | Un compte dont le numéro n'est plus confirmé restait visible dans les relations existantes. | Caché, comme partout ailleurs. |
+| P9 | Faible | L'application installée pouvait garder une photo en attente de validation (administration). | Les réponses « à ne pas garder » ne sont jamais mémorisées. |
+| P10 | Faible | En production, les erreurs du serveur n'étaient écrites nulle part. | Écrites dans le journal. |
+| P11 | Faible | Liens des e-mails en `http://localhost` si `FRONTEND_URL` était oubliée. | Le serveur refuse de démarrer sans adresse `https://`. |
+| P12 | Faible | Pièces d'identité lisibles par les autres comptes de la machine. | Fichiers réservés au compte du serveur (`0600`). |
+
+### Restent ouverts (à décider plus tard)
+
+- **Historique Git** : l'ancien `.env` et une base de test (1 numéro) y figurent. Le dépôt
+  est resté privé et l'ancienne clé n'est plus utilisée : on le laisse tel quel.
+- Empreintes des numéros dans le journal : calculables pour qui lit le journal (prévoir une
+  empreinte avec clé secrète).
+- La durée de réponse d'une demande de code pourrait révéler si un numéro est inscrit, une
+  fois le vrai fournisseur SMS branché (envoyer le SMS en arrière-plan).
+- `manage.py` démarre en mode développement si la variable de réglages est oubliée (le
+  serveur web, lui, refuse).
+- `STATIC_ROOT` à régler avant la mise en ligne (styles de l'administration).
+- Toujours en attente : B5 (cookies `HttpOnly`), B6 (double authentification de l'équipe),
+  B7 (suppression du compte dans l'application).

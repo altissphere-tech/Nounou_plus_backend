@@ -292,3 +292,34 @@ def test_numero_non_confirme_invisible(client_profile, worker_profile):
     User.objects.filter(pk=worker_profile.user_id).update(phone_verified=False)
     assert interest(client_profile.user, worker_profile.id).status_code == status.HTTP_404_NOT_FOUND
     assert auth_client(client_profile.user).get(reverse("workers-list")).data["count"] == 0
+
+
+# ------------------------------------------------------------------ #
+# Tests : test d'intrusion d'octobre 2026                             #
+# ------------------------------------------------------------------ #
+
+@pytest.mark.django_db
+class TestBadgeRetire:
+    """Décision du fondateur : un travailleur qui perd son badge perd l'accès aux coordonnées."""
+
+    def test_coordonnees_et_messagerie_coupees(self, mutual_match, client_profile, worker_profile):
+        WorkerProfile.objects.filter(pk=worker_profile.pk).update(is_verified=False)
+        other = my_matches(worker_profile.user)[0]["other_party"]
+        assert other["phone"] is None and other["last_name"] == "I."
+        assert other["needs_description"] == "" and other["budget"] is None
+        url = reverse("messages-conversation", args=[mutual_match.id])
+        assert auth_client(worker_profile.user).get(url).status_code == status.HTTP_403_FORBIDDEN
+        sent = auth_client(worker_profile.user).post(url, {"content": "Bonjour"}, format="json")
+        assert sent.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_acces_rendu_apres_nouvelle_verification(self, mutual_match, client_profile, worker_profile):
+        WorkerProfile.objects.filter(pk=worker_profile.pk).update(is_verified=False)
+        WorkerProfile.objects.filter(pk=worker_profile.pk).update(is_verified=True)
+        assert my_matches(worker_profile.user)[0]["other_party"]["phone"] == CLIENT_PHONE
+
+
+@pytest.mark.django_db
+def test_relation_cachee_si_numero_plus_confirme(mutual_match, client_profile, worker_profile):
+    """Un compte dont le numéro n'est plus confirmé disparaît aussi des relations existantes."""
+    User.objects.filter(pk=worker_profile.user_id).update(phone_verified=False)
+    assert my_matches(client_profile.user) == []

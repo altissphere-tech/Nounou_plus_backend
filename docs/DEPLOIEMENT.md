@@ -67,7 +67,8 @@ L'application et l'API sont sur le **même domaine** : aucun accès « CORS » �
    - `NUM_PROXIES=1` ;
    - `ADMIN_URL` non évidente ;
    - `DB_*` avec `DB_SSLMODE=require` ;
-   - `EMAIL_*`, `FRONTEND_URL`, identifiants SMS.
+   - `EMAIL_*`, identifiants SMS ;
+   - `FRONTEND_URL` en `https://` (le serveur refuse de démarrer sinon).
 3. Exécuter `pip install -r requirements/prod.txt`, `python manage.py migrate`,
    `python manage.py createcachetable` et `python manage.py check --deploy`.
 4. Faire tourner Django avec gunicorn, servi par nginx avec HTTPS. Régler

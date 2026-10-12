@@ -55,9 +55,8 @@ def make_match(n, days_ago=8):
     match = Match.objects.create(client=client, worker=worker)
     match.set_decision(client_user, Match.DECISION_INTERESTED)
     match.set_decision(worker_user, Match.DECISION_INTERESTED)
-    Match.objects.filter(pk=match.pk).update(
-        first_mutual_at=timezone.now() - timedelta(days=days_ago)
-    )
+    since = timezone.now() - timedelta(days=days_ago)
+    Match.objects.filter(pk=match.pk).update(first_mutual_at=since, mutual_at=since)
     match.refresh_from_db()
     return match
 
@@ -221,3 +220,56 @@ class TestPublicReviews:
         match.worker.save()
         url = reverse("reviews-worker", args=[match.worker.id])
         assert auth_client(match.client.user).get(url).status_code == status.HTTP_404_NOT_FOUND
+
+
+# ------------------------------------------------------------------ #
+# Tests : test d'intrusion d'octobre 2026                             #
+# ------------------------------------------------------------------ #
+
+@pytest.mark.django_db
+class TestAccordTenuSeptJours:
+    """Décision du fondateur : un avis exige un accord resté actif au moins 7 jours."""
+
+    def test_accord_retire_aussitot(self, match):
+        Match.objects.filter(pk=match.pk).update(mutual_at=timezone.now())
+        match.refresh_from_db()
+        match.set_decision(match.worker.user, Match.DECISION_DECLINED)  # retiré tout de suite
+        Match.objects.filter(pk=match.pk).update(first_mutual_at=timezone.now() - timedelta(days=30))
+        match.refresh_from_db()
+        response = review(match.client.user, match, WORKER_SCORES)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "7 jours" in response.data["detail"]
+
+    def test_periodes_cumulees(self, match):
+        """Deux accords de 4 jours chacun suffisent."""
+        Match.objects.filter(pk=match.pk).update(
+            mutual_at=timezone.now() - timedelta(days=4), mutual_duration=timedelta(days=4)
+        )
+        match.refresh_from_db()
+        assert review(match.client.user, match, WORKER_SCORES).status_code == status.HTTP_201_CREATED
+
+    def test_date_affichee_tient_compte_du_temps_restant(self, match):
+        now = timezone.now()
+        Match.objects.filter(pk=match.pk).update(mutual_at=now, mutual_duration=timedelta(days=5))
+        match.refresh_from_db()
+        assert match.review_available_at == now + timedelta(days=2)
+
+
+@pytest.mark.django_db
+class TestAvisDesFamilles:
+    """Les avis reçus par une famille suivent la règle de la liste des familles."""
+
+    def url(self, match):
+        return reverse("reviews-client", args=[match.client.id])
+
+    def test_travailleur_non_verifie_refuse(self, match):
+        WorkerProfile.objects.filter(pk=match.worker.pk).update(is_verified=False)
+        assert auth_client(match.worker.user).get(self.url(match)).status_code == status.HTTP_404_NOT_FOUND
+
+    def test_autre_famille_refusee(self, match):
+        other = make_match(9).client
+        assert auth_client(other.user).get(self.url(match)).status_code == status.HTTP_404_NOT_FOUND
+
+    def test_travailleur_verifie_et_famille_elle_meme(self, match):
+        assert auth_client(match.worker.user).get(self.url(match)).status_code == status.HTTP_200_OK
+        assert auth_client(match.client.user).get(self.url(match)).status_code == status.HTTP_200_OK

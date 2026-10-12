@@ -47,6 +47,7 @@ jobs:
           SECRET_KEY: cle-factice-de-verification-ci-assez-longue-pour-le-controle-0123456789
           ALLOWED_HOSTS: nounou.example
           ADMIN_URL: gestion-ci/
+          FRONTEND_URL: https://nounou.example
           DB_NAME: x
           DB_USER: x
           DB_PASSWORD: x

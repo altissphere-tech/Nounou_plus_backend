@@ -1,6 +1,7 @@
 """
 Vues (endpoints) de l'app reviews.
 """
+from django.conf import settings
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, inline_serializer
@@ -73,7 +74,10 @@ class MatchReviewView(APIView):
         if not match.can_be_reviewed_by(request.user):
             available_at = match.review_available_at
             if available_at is None:
-                detail = "L'évaluation n'est possible qu'après un match mutuel."
+                detail = (
+                    "L'évaluation n'est possible qu'après un match mutuel resté actif "
+                    f"au moins {settings.REVIEW_DELAY_DAYS} jours."
+                )
             else:
                 detail = (
                     "L'évaluation sera possible à partir du "
@@ -142,6 +146,7 @@ class ClientReviewsView(APIView):
     GET /api/reviews/clients/<profile_id>/
 
     Évaluations reçues par un client (moyennes par critère + commentaires).
+    Réservé aux travailleurs vérifiés (comme la liste des familles) et à la famille elle-même.
     """
 
     permission_classes = [IsWorkerOrClient]
@@ -157,5 +162,11 @@ class ClientReviewsView(APIView):
         },
     )
     def get(self, request, profile_id):
-        client = get_object_or_404(ClientProfile.objects.active().select_related("user"), pk=profile_id)
+        # Comme la liste des familles : visibles par les travailleurs vérifiés, et par la
+        # famille elle-même. Les autres reçoivent 404 (pas d'indice sur les profils existants).
+        visible = ClientProfile.objects.active().select_related("user")
+        worker = getattr(request.user, "worker_profile", None)
+        if worker is None or not worker.is_verified:
+            visible = visible.filter(user=request.user)
+        client = get_object_or_404(visible, pk=profile_id)
         return _reviews_response(request, self, client.user, CLIENT_CRITERIA)

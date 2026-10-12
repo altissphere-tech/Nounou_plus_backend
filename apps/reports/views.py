@@ -69,7 +69,13 @@ class ReportView(APIView):
             )
             profile = get_object_or_404(visible.distinct(), pk=profile_id)
         else:
-            profile = get_object_or_404(ClientProfile.objects.active(), pk=profile_id)
+            # Familles visibles par ce travailleur : toutes s'il est vérifié, sinon celles
+            # avec qui il est déjà en relation (on peut toujours signaler un abus subi)
+            visible = ClientProfile.objects.active()
+            worker = getattr(request.user, "worker_profile", None)
+            if worker is None or not worker.is_verified:
+                visible = visible.filter(matches__worker__user=request.user).distinct()
+            profile = get_object_or_404(visible, pk=profile_id)
 
         if Report.objects.filter(
             reporter=request.user, target=profile.user, status=Report.STATUS_PENDING

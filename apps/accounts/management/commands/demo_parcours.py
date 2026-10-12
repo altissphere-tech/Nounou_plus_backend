@@ -196,7 +196,8 @@ class Command(BaseCommand):
 
         # 8. Évaluations
         self.step(8, "Évaluations après la période d'essai")
-        Match.objects.filter(pk=match_id).update(first_mutual_at=timezone.now() - timedelta(days=8))
+        eight_days_ago = timezone.now() - timedelta(days=8)
+        Match.objects.filter(pk=match_id).update(first_mutual_at=eight_days_ago, mutual_at=eight_days_ago)
         self.info("(pour la démo, on fait comme si le match datait d'il y a 8 jours)")
         self.call("post", f"/api/matches/{match_id}/review/", tc, {
             "punctuality": 5, "competence": 5, "reliability": 4, "comment": "Très sérieuse.",

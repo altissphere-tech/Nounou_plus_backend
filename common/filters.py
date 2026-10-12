@@ -17,7 +17,7 @@ def get_decimal(request, name):
         value = Decimal(raw)
     except InvalidOperation:
         raise ValidationError({name: "Doit être un nombre (ex : 150 ou 150.50)."})
-    if value < 0 or not value.is_finite():
+    if not value.is_finite() or value < 0:  # « NaN » ne se compare pas : tester d'abord
         raise ValidationError({name: "Doit être un nombre positif."})
     return value
 

@@ -105,13 +105,13 @@ class MatchSerializer(serializers.ModelSerializer):
 
     def get_unread_count(self, obj) -> int:
         user = self._user()
-        if obj.status_seen_by(user) != Match.STATUS_MUTUAL:
+        if not obj.contact_open_for(user):
             return 0
         return obj.messages.filter(read_at__isnull=True).exclude(sender=user).count()
 
     def get_other_party(self, obj) -> dict:
         user = self._user()
-        mutual = obj.status_seen_by(user) == Match.STATUS_MUTUAL
+        mutual = obj.contact_open_for(user)
         if obj.is_client_side(user):
             profile = obj.worker
             serializer_class = WorkerProfileSerializer if mutual else WorkerProfilePublicSerializer
@@ -121,4 +121,9 @@ class MatchSerializer(serializers.ModelSerializer):
         data = dict(serializer_class(profile).data)
         # Le téléphone complet n'est révélé qu'après un match mutuel
         data["phone"] = str(profile.user.phone) if mutual else None
+        if not obj.is_client_side(user) and not obj.worker.is_verified:
+            # Travailleur non (ou plus) vérifié : les besoins et le budget de la famille
+            # restent cachés, comme dans la liste des familles
+            data["needs_description"] = ""
+            data["budget"] = None
         return data

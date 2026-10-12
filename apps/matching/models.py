@@ -23,12 +23,15 @@ class MatchQuerySet(models.QuerySet):
     def for_user(self, user):
         """
         Les matchs auxquels l'utilisateur participe, en excluant ceux dont
-        l'autre partie a un compte suspendu (elle disparaît de la plateforme).
+        l'autre partie a un compte suspendu ou un numéro non confirmé (elle
+        disparaît de la plateforme).
         """
         return self.filter(
             models.Q(client__user=user) | models.Q(worker__user=user),
             client__user__is_active=True,
             worker__user__is_active=True,
+            client__user__phone_verified=True,
+            worker__user__phone_verified=True,
         ).select_related("client__user", "worker__user", "job")
 
     def ordered_for(self, user):
@@ -119,6 +122,14 @@ class Match(models.Model):
             "Sert à calculer quand les deux parties peuvent s'évaluer."
         ),
     )
+    mutual_duration = models.DurationField(
+        default=timedelta(0),
+        verbose_name="Durée cumulée des périodes mutuelles terminées",
+        help_text=(
+            "Ajoutée à chaque retrait d'un accord mutuel. Un avis n'est possible "
+            "qu'après un accord resté actif au moins le délai d'essai."
+        ),
+    )
     client_activity_at = models.DateTimeField(
         null=True, blank=True, verbose_name="Dernière décision du client le"
     )
@@ -192,6 +203,17 @@ class Match(models.Model):
             return self.STATUS_MUTUAL
         return self.STATUS_PENDING
 
+    def contact_open_for(self, user) -> bool:
+        """
+        True si l'utilisateur voit les coordonnées de l'autre partie et accède à la
+        messagerie : match mutuel et, côté travailleur, profil toujours vérifié. Un
+        travailleur qui perd son badge perd cet accès jusqu'à une nouvelle vérification
+        (décision du fondateur, octobre 2026).
+        """
+        if self.status_seen_by(user) != self.STATUS_MUTUAL:
+            return False
+        return self.is_client_side(user) or self.worker.is_verified
+
     def visible_activity_for(self, user):
         """Date de dernière activité telle que l'utilisateur a le droit de la voir."""
         client_side = self.is_client_side(user)
@@ -218,7 +240,10 @@ class Match(models.Model):
             setattr(current, f"{own}_activity_at", now)
             if not current.is_mutual:
                 # Si l'une des parties revient sur sa décision, les coordonnées
-                # ne sont plus partagées et la date du match est effacée
+                # ne sont plus partagées et la date du match est effacée ; la durée
+                # de l'accord qui se termine est gardée (calcul du droit à l'avis)
+                if current.mutual_at is not None:
+                    current.mutual_duration += now - current.mutual_at
                 current.mutual_at = None
             elif current.mutual_at is None:
                 current.mutual_at = now
@@ -226,11 +251,12 @@ class Match(models.Model):
                     current.first_mutual_at = now
             current.save(
                 update_fields=[
-                    f"{own}_decision", f"{own}_activity_at", "mutual_at", "first_mutual_at", "updated_at",
+                    f"{own}_decision", f"{own}_activity_at", "mutual_at", "first_mutual_at",
+                    "mutual_duration", "updated_at",
                 ]
             )
         for field in ("client_decision", "worker_decision", "client_activity_at", "worker_activity_at",
-                      "mutual_at", "first_mutual_at", "updated_at"):
+                      "mutual_at", "first_mutual_at", "mutual_duration", "updated_at"):
             setattr(self, field, getattr(current, field))
         return previous, was_mutual
 
@@ -240,10 +266,20 @@ class Match(models.Model):
 
     @property
     def review_available_at(self):
-        """Date à partir de laquelle les deux parties peuvent s'évaluer (None si jamais mutuel)."""
+        """
+        Date à partir de laquelle les deux parties peuvent s'évaluer, ou None.
+        L'accord doit être resté actif au moins REVIEW_DELAY_DAYS jours au total
+        (décision du fondateur, octobre 2026) : un accord retiré au bout d'une seconde
+        ne permet pas de laisser un avis.
+        """
+        delay = timedelta(days=settings.REVIEW_DELAY_DAYS)
         if self.first_mutual_at is None:
             return None
-        return self.first_mutual_at + timedelta(days=settings.REVIEW_DELAY_DAYS)
+        if self.mutual_at is not None:  # accord en cours : il reste le temps manquant
+            return self.mutual_at + max(delay - self.mutual_duration, timedelta(0))
+        if self.mutual_duration >= delay:  # accord terminé, assez long : déjà atteint
+            return self.first_mutual_at + delay
+        return None
 
     def can_be_reviewed_by(self, user) -> bool:
         """

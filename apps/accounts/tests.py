@@ -1110,3 +1110,50 @@ class TestAdminLogin:
         User.objects.create_superuser(phone="+243812300051", password="MotDePasseAdmin42")
         response = client.post(reverse("admin:login"), {"username": "+243812300051", "password": "MotDePasseAdmin42"})
         assert response.status_code == 302
+
+
+# ------------------------------------------------------------------ #
+# Tests : test d'intrusion d'octobre 2026                             #
+# ------------------------------------------------------------------ #
+
+@pytest.mark.django_db
+class TestIntrusion2026:
+    def test_google_ne_contourne_pas_la_limite_de_sms(self, api_client, google, monkeypatch):
+        """Un même numéro ne peut pas être inondé de codes par la connexion Google / Apple."""
+        from rest_framework.throttling import SimpleRateThrottle
+
+        monkeypatch.setattr(
+            SimpleRateThrottle, "THROTTLE_RATES", {**SimpleRateThrottle.THROTTLE_RATES, "sms_phone": "2/hour"}
+        )
+        codes = [social_login(api_client, role="client", phone="+243812300090").status_code for _ in range(3)]
+        assert codes == [400, 400, 429]  # 400 = « code envoyé, saisissez-le »
+
+    def test_limite_comptee_aussi_pour_un_numero_inconnu(self, api_client, monkeypatch):
+        """La limite d'envoi ne révèle pas si un numéro est inscrit."""
+        from rest_framework.throttling import SimpleRateThrottle
+
+        monkeypatch.setattr(
+            SimpleRateThrottle, "THROTTLE_RATES", {**SimpleRateThrottle.THROTTLE_RATES, "sms_ip": "1/hour"}
+        )
+        url = reverse("accounts-otp-request")
+        first = api_client.post(url, {"phone": "+243812300091"}, format="json")
+        second = api_client.post(url, {"phone": "+243812300092"}, format="json")
+        assert (first.status_code, second.status_code) == (200, 429)
+
+    def test_corps_json_qui_n_est_pas_un_objet(self, api_client):
+        """Une liste à la place d'un objet donne une erreur 400, pas une erreur du serveur."""
+        for name in ("accounts-register", "accounts-otp-request", "accounts-otp-verify",
+                     "accounts-login", "accounts-password-forgot"):
+            response = api_client.post(reverse(name), ["+243812300093"], format="json")
+            assert response.status_code == 400, name
+
+    def test_admin_autres_ecritures_du_numero(self, client):
+        """« 0812… », « +243 812… », « 00243812… » visent le même compte : limite commune."""
+        User.objects.create_superuser(phone="+243812300094", password="MotDePasseAdmin42")
+        url = reverse("admin:login")
+        spellings = ["0812300094", "+243 812 300 094", "00243812300094", "+243812300094", "0812 300 094"]
+        for i in range(10):
+            client.post(url, {"username": spellings[i % 5], "password": "faux"}, REMOTE_ADDR=f"10.0.0.{i}")
+        blocked = client.post(url, {"username": "0812-300-094", "password": "MotDePasseAdmin42"},
+                              REMOTE_ADDR="10.0.0.99")
+        assert blocked.status_code == 429
